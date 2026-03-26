@@ -1,76 +1,69 @@
 /**
- * Prints just the resume using a print-only overlay.
- * resumeEl should be the measurement div that contains the full template render.
+ * Prints the resume by opening a dedicated window with only the resume HTML.
+ * This is the only reliable way to get @page margin: 0 to work cross-browser.
  */
 export function printResume(resumeEl: HTMLElement) {
-  // The measureRef contains one child — the template root element
   const templateRoot = resumeEl.firstElementChild as HTMLElement | null
-  const html = templateRoot ? templateRoot.outerHTML : resumeEl.innerHTML
+  const resumeHTML = templateRoot ? templateRoot.outerHTML : resumeEl.innerHTML
 
-  // Remove any existing print artifacts
-  document.getElementById('__resume_print_root__')?.remove()
-  document.getElementById('__resume_print_style__')?.remove()
+  // Grab all Tailwind/app styles from the current page
+  const styles = [
+    ...Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')).map(
+      (el) => `<link rel="stylesheet" href="${el.href}" />`
+    ),
+    ...Array.from(document.querySelectorAll<HTMLStyleElement>('style')).map(
+      (el) => `<style>${el.textContent}</style>`
+    ),
+  ].join('\n')
 
-  const printRoot = document.createElement('div')
-  printRoot.id = '__resume_print_root__'
-  printRoot.innerHTML = html
-
-  const style = document.createElement('style')
-  style.id = '__resume_print_style__'
-  style.textContent = `
-    @media print {
-      body > *:not(#__resume_print_root__) {
-        display: none !important;
-        visibility: hidden !important;
-      }
-      #__resume_print_root__ {
-        display: block !important;
-        visibility: visible !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 794px !important;
-        min-height: 1123px !important;
-        background: #fff !important;
-        z-index: 999999 !important;
-        transform: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color-adjust: exact !important;
-      }
-      #__resume_print_root__ * {
-        visibility: visible !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color-adjust: exact !important;
-      }
-      @page {
-        size: A4;
-        margin: 0mm;
-      }
-      html, body {
-        margin: 0 !important;
-        padding: 0 !important;
-      }
+  const doc = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Resume</title>
+  ${styles}
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff;
     }
-    @media screen {
-      #__resume_print_root__ {
-        display: none !important;
-      }
+    body > div {
+      width: 794px;
     }
-  `
+    @page {
+      size: A4 portrait;
+      margin: 0mm !important;
+    }
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+  </style>
+</head>
+<body>
+  <div>${resumeHTML}</div>
+</body>
+</html>`
 
-  document.head.appendChild(style)
-  document.body.appendChild(printRoot)
+  const win = window.open('', '_blank', 'width=900,height=700')
+  if (!win) {
+    alert('Please allow popups for this site to download the PDF.')
+    return
+  }
 
-  requestAnimationFrame(() => {
-    window.print()
-    // Clean up after dialog closes
+  win.document.open()
+  win.document.write(doc)
+  win.document.close()
+
+  // Wait for stylesheets to load before printing
+  win.addEventListener('load', () => {
     setTimeout(() => {
-      document.getElementById('__resume_print_root__')?.remove()
-      document.getElementById('__resume_print_style__')?.remove()
-    }, 1000)
+      win.focus()
+      win.print()
+      win.close()
+    }, 600)
   })
 }
