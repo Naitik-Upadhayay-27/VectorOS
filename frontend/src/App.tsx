@@ -8,7 +8,6 @@ import JobsPage from '@/pages/JobsPage'
 import ApplicationsPage from '@/pages/ApplicationsPage'
 import AnalyticsPage from '@/pages/AnalyticsPage'
 import AuthCallbackPage from '@/pages/AuthCallbackPage'
-import PrintResumePage from '@/pages/PrintResumePage'
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow'
 import { useAuthStore } from '@/store/authStore'
 
