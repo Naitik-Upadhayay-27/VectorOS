@@ -1,45 +1,47 @@
 /**
- * Opens a print-only window containing just the resume template HTML.
- * Grabs all <style> and <link rel="stylesheet"> from the current document
- * so Tailwind classes render correctly in the print window.
+ * Prints just the resume by injecting a print-only overlay into the DOM,
+ * triggering window.print(), then removing it. No popups needed.
  */
-export function printResume(resumeEl: HTMLElement, filename = 'resume') {
-  const styles = Array.from(document.querySelectorAll<HTMLStyleElement | HTMLLinkElement>('style, link[rel="stylesheet"]'))
-    .map((el) => el.outerHTML)
-    .join('\n')
+export function printResume(resumeEl: HTMLElement) {
+  // Create a wrapper that will be shown only during print
+  const printRoot = document.createElement('div')
+  printRoot.id = '__resume_print_root__'
+  printRoot.innerHTML = resumeEl.innerHTML
 
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>${filename}</title>
-  ${styles}
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #fff; }
-    @page { size: A4; margin: 0; }
+  // Inject print-only styles
+  const style = document.createElement('style')
+  style.id = '__resume_print_style__'
+  style.textContent = `
     @media print {
-      html, body { width: 210mm; }
+      body > *:not(#__resume_print_root__) {
+        display: none !important;
+      }
+      #__resume_print_root__ {
+        display: block !important;
+        position: fixed;
+        inset: 0;
+        width: 794px;
+        background: #fff;
+        z-index: 99999;
+      }
+      @page {
+        size: A4;
+        margin: 0;
+      }
     }
-  </style>
-</head>
-<body>
-  ${resumeEl.outerHTML}
-</body>
-</html>`
+    @media screen {
+      #__resume_print_root__ {
+        display: none;
+      }
+    }
+  `
 
-  const win = window.open('', '_blank', 'width=900,height=700')
-  if (!win) return
-  win.document.open()
-  win.document.write(html)
-  win.document.close()
+  document.head.appendChild(style)
+  document.body.appendChild(printRoot)
 
-  // Wait for fonts/images to load then print
-  win.onload = () => {
-    setTimeout(() => {
-      win.focus()
-      win.print()
-      win.close()
-    }, 400)
-  }
+  window.print()
+
+  // Clean up after print dialog closes
+  document.head.removeChild(style)
+  document.body.removeChild(printRoot)
 }
