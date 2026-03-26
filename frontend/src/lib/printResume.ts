@@ -1,28 +1,48 @@
 /**
- * Prints just the resume by injecting a print-only overlay into the DOM,
- * triggering window.print(), then removing it. No popups needed.
+ * Prints just the resume using a print-only overlay.
+ * resumeEl should be the measurement div that contains the full template render.
  */
 export function printResume(resumeEl: HTMLElement) {
-  // Create a wrapper that will be shown only during print
+  // The measureRef contains one child — the template root element
+  const templateRoot = resumeEl.firstElementChild as HTMLElement | null
+  const html = templateRoot ? templateRoot.outerHTML : resumeEl.innerHTML
+
+  // Remove any existing print artifacts
+  document.getElementById('__resume_print_root__')?.remove()
+  document.getElementById('__resume_print_style__')?.remove()
+
   const printRoot = document.createElement('div')
   printRoot.id = '__resume_print_root__'
-  printRoot.innerHTML = resumeEl.innerHTML
+  printRoot.innerHTML = html
 
-  // Inject print-only styles
   const style = document.createElement('style')
   style.id = '__resume_print_style__'
   style.textContent = `
     @media print {
       body > *:not(#__resume_print_root__) {
         display: none !important;
+        visibility: hidden !important;
       }
       #__resume_print_root__ {
         display: block !important;
-        position: fixed;
-        inset: 0;
-        width: 794px;
-        background: #fff;
-        z-index: 99999;
+        visibility: visible !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 794px !important;
+        min-height: 1123px !important;
+        background: #fff !important;
+        z-index: 999999 !important;
+        transform: none !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      #__resume_print_root__ * {
+        visibility: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
       }
       @page {
         size: A4;
@@ -31,7 +51,7 @@ export function printResume(resumeEl: HTMLElement) {
     }
     @media screen {
       #__resume_print_root__ {
-        display: none;
+        display: none !important;
       }
     }
   `
@@ -39,9 +59,12 @@ export function printResume(resumeEl: HTMLElement) {
   document.head.appendChild(style)
   document.body.appendChild(printRoot)
 
-  window.print()
-
-  // Clean up after print dialog closes
-  document.head.removeChild(style)
-  document.body.removeChild(printRoot)
+  requestAnimationFrame(() => {
+    window.print()
+    // Clean up after dialog closes
+    setTimeout(() => {
+      document.getElementById('__resume_print_root__')?.remove()
+      document.getElementById('__resume_print_style__')?.remove()
+    }, 1000)
+  })
 }
