@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
+import { API_BASE } from '@/lib/config'
 
 export default function SignupPage() {
   const [name, setName] = useState('')
@@ -18,7 +19,7 @@ export default function SignupPage() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('http://localhost:4000/api/auth/signup', {
+      const res = await fetch(`${API_BASE}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
@@ -116,7 +117,7 @@ export default function SignupPage() {
           </div>
 
           <button
-            onClick={() => window.location.href = 'http://localhost:4000/api/auth/google'}
+            onClick={() => window.location.href = `${API_BASE}/api/auth/google`}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-white/[0.08] rounded-xl text-sm font-medium text-white/50 hover:border-purple-500/40 hover:text-white/70 transition-all"
           >
             <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="" />
@@ -133,3 +134,4 @@ export default function SignupPage() {
     </div>
   )
 }
+

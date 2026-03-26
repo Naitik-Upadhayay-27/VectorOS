@@ -162,3 +162,4 @@ export default function ResumeTopBar({ onOpenTemplates }: ResumeTopBarProps) {
     </div>
   )
 }
+

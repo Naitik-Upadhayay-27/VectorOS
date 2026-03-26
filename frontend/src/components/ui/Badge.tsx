@@ -21,3 +21,4 @@ export default function Badge({ children, className, variant = 'default' }: Badg
 }
 
 export { Badge }
+

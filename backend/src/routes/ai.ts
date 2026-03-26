@@ -10,8 +10,8 @@ router.post('/rewrite-bullet', async (req: AuthRequest, res: Response) => {
   const { bullet, jobTitle, industry } = req.body
   if (!bullet) return res.status(400).json({ error: 'bullet is required' })
   try {
-    const text = await generateText(`You are an expert resume writer. Rewrite the following bullet point to be more impactful, quantified, and ATS-friendly for a ${jobTitle ?? 'professional'} in ${industry ?? 'tech'}. Return only the rewritten bullet, nothing else.\n\nBullet: ${bullet}`)
-    res.json({ result: text })
+    const text = await generateChat(`Rewrite this resume bullet point to be more impactful, quantified, and ATS-friendly for a ${jobTitle ?? 'professional'} in ${industry ?? 'tech'}. Return only the rewritten bullet, nothing else.\n\nBullet: ${bullet}`)
+    res.json({ result: text.trim() })
   } catch (err: any) { res.status(500).json({ error: err.message }) }
 })
 
@@ -195,13 +195,17 @@ router.post('/improve-section', async (req: AuthRequest, res: Response) => {
   const { section, content, targetRole, targetDomains, currentRole, targetCompany } = req.body
   if (!section || !content) return res.status(400).json({ error: 'section and content are required' })
   try {
-    const prompt = `You are an expert resume writer. Improve this ${section} section for the TARGET role. Return ONLY valid JSON:
+    const prompt = `You are an expert resume writer. Improve this ${section} section for the TARGET role. Return ONLY valid JSON with no markdown fences:
 {"improved":<string or array>,"changes":[<string>],"keywords_added":[<string>]}
 Target Role: ${targetRole ?? 'Not specified'} | Industries: ${Array.isArray(targetDomains) ? targetDomains.join(', ') : 'Not specified'} | Current: ${currentRole ?? 'Not specified'} | Company: ${targetCompany ?? 'Not specified'}
 CURRENT CONTENT:\n${typeof content === 'string' ? content : JSON.stringify(content)}`
 
-    const text = await generateText(prompt)
-    res.json(JSON.parse(text.replace(/```json|```/g, '').trim()))
+    const text = await generateChat(prompt)
+    const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+    const jsonStart = cleaned.indexOf('{')
+    const jsonEnd = cleaned.lastIndexOf('}')
+    const jsonStr = jsonStart !== -1 && jsonEnd > jsonStart ? cleaned.slice(jsonStart, jsonEnd + 1) : cleaned
+    res.json(JSON.parse(jsonStr))
   } catch (err: any) { res.status(500).json({ error: err.message }) }
 })
 

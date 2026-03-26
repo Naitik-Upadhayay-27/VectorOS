@@ -92,3 +92,4 @@ export default function OnboardingModal({ open, onClose }: OnboardingModalProps)
     </Modal>
   )
 }
+

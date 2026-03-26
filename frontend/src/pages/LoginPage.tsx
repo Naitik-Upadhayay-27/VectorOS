@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
+import { API_BASE } from '@/lib/config'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -17,7 +18,7 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('http://localhost:4000/api/auth/login', {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -105,7 +106,7 @@ export default function LoginPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => window.location.href = 'http://localhost:4000/api/auth/google'}
+              onClick={() => window.location.href = `${API_BASE}/api/auth/google`}
               className="flex items-center justify-center gap-2 px-4 py-2.5 border border-white/[0.08] rounded-xl text-sm font-medium text-white/50 hover:border-purple-500/40 hover:text-white/70 transition-all">
               <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="" />
               Google
@@ -127,3 +128,4 @@ export default function LoginPage() {
     </div>
   )
 }
+

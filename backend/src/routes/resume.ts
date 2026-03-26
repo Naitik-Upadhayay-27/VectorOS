@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { authenticate, AuthRequest } from '../middleware/auth'
 import { generateText } from '../lib/ai'
 import { repairJson } from '../lib/repairJson'
+import { Resume } from '../models/Resume'
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { PDFParse } = require('pdf-parse')
@@ -153,6 +154,46 @@ Rules:
 
 RESUME:
 `
+
+// ── GET /api/resumes ─────────────────────────────────────────────────────────
+router.get('/', async (req: AuthRequest, res: Response) => {
+  const resumes = await Resume.find({ userId: req.userId }).sort({ updatedAt: -1 }).select('-experience -education -skills -projects -certificates -awards -languages -volunteer')
+  res.json({ resumes })
+})
+
+// ── POST /api/resumes ────────────────────────────────────────────────────────
+router.post('/', async (req: AuthRequest, res: Response) => {
+  try {
+    const resume = await Resume.create({ userId: req.userId, ...req.body })
+    res.status(201).json({ resume })
+  } catch (err: any) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+// ── GET /api/resumes/:id ─────────────────────────────────────────────────────
+router.get('/:id', async (req: AuthRequest, res: Response) => {
+  const resume = await Resume.findOne({ _id: req.params.id, userId: req.userId })
+  if (!resume) return res.status(404).json({ error: 'Resume not found' })
+  res.json({ resume })
+})
+
+// ── PUT /api/resumes/:id ─────────────────────────────────────────────────────
+router.put('/:id', async (req: AuthRequest, res: Response) => {
+  const resume = await Resume.findOneAndUpdate(
+    { _id: req.params.id, userId: req.userId },
+    { ...req.body, updatedAt: new Date() },
+    { new: true, upsert: false }
+  )
+  if (!resume) return res.status(404).json({ error: 'Resume not found' })
+  res.json({ resume })
+})
+
+// ── DELETE /api/resumes/:id ──────────────────────────────────────────────────
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
+  await Resume.findOneAndDelete({ _id: req.params.id, userId: req.userId })
+  res.json({ success: true })
+})
 
 // ── POST /api/resumes/parse ──────────────────────────────────────────────────
 router.post(

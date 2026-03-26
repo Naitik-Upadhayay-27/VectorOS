@@ -7,6 +7,7 @@ import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
 import { useAuthStore } from '@/store/authStore'
 import { apiFetch } from '@/lib/apiFetch'
+import { API_BASE } from '@/lib/config'
 
 const quickActions = [
   { icon: '✏️', title: 'Rewrite my summary to be more impactful',    subtitle: 'AI rewrites it directly in your resume', color: 'text-blue-500',   isEdit: true  },
@@ -116,6 +117,7 @@ export default function ChatPanel() {
   const [editedMsgIds, setEditedMsgIds] = useState<Set<string>>(new Set())
   const [streamingId, setStreamingId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const triggerProcessed = useRef<string | null>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -123,7 +125,8 @@ export default function ChatPanel() {
 
   // Auto-send any message triggered externally (e.g. "Fix Resume with AI" button)
   useEffect(() => {
-    if (pendingTrigger) {
+    if (pendingTrigger && pendingTrigger !== triggerProcessed.current) {
+      triggerProcessed.current = pendingTrigger
       clearTrigger()
       sendMessage(pendingTrigger)
     }
@@ -136,7 +139,7 @@ export default function ChatPanel() {
     setTyping(true)
 
     try {
-      const res = await apiFetch('http://localhost:4000/api/ai/chat', {
+      const res = await apiFetch(`${API_BASE}/api/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -325,3 +328,4 @@ export default function ChatPanel() {
     </div>
   )
 }
+

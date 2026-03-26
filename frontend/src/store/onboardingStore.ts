@@ -60,3 +60,4 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   update: (patch) => set((s) => ({ data: { ...s.data, ...patch } })),
   reset: () => set({ step: 'start', data: { ...defaultData } }),
 }))
+

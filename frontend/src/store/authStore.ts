@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { User } from '@/types'
+import { API_BASE } from '@/lib/config'
 
 interface AuthState {
   user: User | null
@@ -44,7 +45,7 @@ export const useAuthStore = create<AuthState>()(
         const { refreshToken } = get()
         if (!refreshToken) return false
         try {
-          const res = await fetch('http://localhost:4000/api/auth/refresh', {
+          const res = await fetch(`${API_BASE}/api/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refreshToken }),
@@ -61,3 +62,4 @@ export const useAuthStore = create<AuthState>()(
     { name: 'jobos-auth' }
   )
 )
+

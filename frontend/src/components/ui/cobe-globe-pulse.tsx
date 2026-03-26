@@ -158,3 +158,4 @@ export function GlobePulse({ markers = defaultMarkers, className = "", speed = 0
     </div>
   )
 }
+

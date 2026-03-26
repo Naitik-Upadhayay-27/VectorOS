@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
 import { apiFetch } from '@/lib/apiFetch'
+import { API_BASE } from '@/lib/config'
 
 export default function SummaryPanel() {
   const [open, setOpen] = useState(true)
@@ -16,7 +17,7 @@ export default function SummaryPanel() {
     setImproving(true)
     setChanges(null)
     try {
-      const res = await apiFetch('http://localhost:4000/api/ai/improve-section', {
+      const res = await apiFetch(`${API_BASE}/api/ai/improve-section`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -88,3 +89,4 @@ export default function SummaryPanel() {
     </div>
   )
 }
+

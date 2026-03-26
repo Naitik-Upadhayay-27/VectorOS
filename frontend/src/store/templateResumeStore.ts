@@ -194,3 +194,4 @@ export const useTemplateResumeStore = create<TemplateResumeState>((set) => ({
   removeVolunteer: (id) =>
     set((s) => ({ data: { ...s.data, volunteer: s.data.volunteer?.filter((e) => e.id !== id) } })),
 }))
+

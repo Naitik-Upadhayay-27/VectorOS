@@ -11,3 +11,4 @@ export const useResumeUploadStore = create<ResumeUploadState>((set) => ({
   setResumeText: (text) => set({ resumeText: text }),
   clearResumeText: () => set({ resumeText: '' }),
 }))
+

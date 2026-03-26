@@ -244,3 +244,4 @@ const ResumeTemplate10 = ({ data }: ResumeTemplate10Props) => {
 };
 
 export default ResumeTemplate10;
+

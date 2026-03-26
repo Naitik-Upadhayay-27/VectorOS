@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
 import passport from '../config/passport'
+import { User } from '../models/User'
 
 const router = Router()
 
@@ -17,18 +18,29 @@ const loginSchema = z.object({
   password: z.string(),
 })
 
+function makeTokens(userId: string) {
+  const token = jwt.sign({ userId }, process.env.JWT_SECRET!, { expiresIn: '15m' })
+  const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '7d' })
+  return { token, refreshToken }
+}
+
+function userPayload(u: any) {
+  return { id: u._id.toString(), name: u.name, email: u.email, plan: u.plan, aiTokensLeft: u.aiTokensLeft, avatar: u.avatar }
+}
+
 // POST /api/auth/signup
 router.post('/signup', async (req: Request, res: Response) => {
   try {
     const { name, email, password } = signupSchema.parse(req.body)
-    const hashed = await bcrypt.hash(password, 12)
 
-    // TODO: persist to DB
-    const user = { id: crypto.randomUUID(), name, email, plan: 'free', aiTokensLeft: 20 }
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '15m' })
-    const refreshToken = jwt.sign({ userId: user.id }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '7d' })
+    const existing = await User.findOne({ email })
+    if (existing) return res.status(409).json({ error: 'Email already in use' })
 
-    res.status(201).json({ user, token, refreshToken })
+    const passwordHash = await bcrypt.hash(password, 12)
+    const user = await User.create({ name, email, passwordHash })
+
+    const { token, refreshToken } = makeTokens(user._id.toString())
+    res.status(201).json({ user: userPayload(user), token, refreshToken })
   } catch (err: any) {
     res.status(400).json({ error: err.message })
   }
@@ -39,12 +51,14 @@ router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = loginSchema.parse(req.body)
 
-    // TODO: fetch user from DB and verify password
-    const user = { id: 'mock-id', name: 'Alex Johnson', email, plan: 'free', aiTokensLeft: 20 }
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '15m' })
-    const refreshToken = jwt.sign({ userId: user.id }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '7d' })
+    const user = await User.findOne({ email })
+    if (!user || !user.passwordHash) return res.status(401).json({ error: 'Invalid email or password' })
 
-    res.json({ user, token, refreshToken })
+    const valid = await bcrypt.compare(password, user.passwordHash)
+    if (!valid) return res.status(401).json({ error: 'Invalid email or password' })
+
+    const { token, refreshToken } = makeTokens(user._id.toString())
+    res.json({ user: userPayload(user), token, refreshToken })
   } catch (err: any) {
     res.status(400).json({ error: err.message })
   }
@@ -54,7 +68,6 @@ router.post('/login', async (req: Request, res: Response) => {
 router.post('/refresh', (req: Request, res: Response) => {
   const { refreshToken } = req.body
   if (!refreshToken) return res.status(401).json({ error: 'No refresh token' })
-
   try {
     const payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as { userId: string }
     const token = jwt.sign({ userId: payload.userId }, process.env.JWT_SECRET!, { expiresIn: '15m' })
@@ -64,40 +77,42 @@ router.post('/refresh', (req: Request, res: Response) => {
   }
 })
 
-// ── Google OAuth ─────────────────────────────────────────────────────────────
+// ── Google OAuth ──────────────────────────────────────────────────────────────
 
-// GET /api/auth/google — redirect to Google consent screen
 router.get('/google', (req, res, next) => {
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET)
     return res.status(503).json({ error: 'Google OAuth is not configured.' })
-  }
   passport.authenticate('google', { scope: ['profile', 'email'], session: false })(req, res, next)
 })
 
-// GET /api/auth/google/callback
 router.get('/google/callback', (req: Request, res: Response, next) => {
-  passport.authenticate('google', { session: false }, (err: any, user: any) => {
-    if (err) {
-      console.error('[Google OAuth] Auth error:', err)
-      return res.redirect(`${process.env.CLIENT_URL ?? 'http://localhost:5173'}/login?error=oauth_error`)
-    }
-    if (!user) {
-      console.error('[Google OAuth] No user returned')
+  passport.authenticate('google', { session: false }, async (err: any, profile: any) => {
+    if (err || !profile)
       return res.redirect(`${process.env.CLIENT_URL ?? 'http://localhost:5173'}/login?error=oauth_failed`)
-    }
+
     try {
-      console.log('[Google OAuth] Success:', user.email)
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '15m' })
-      const refreshToken = jwt.sign({ userId: user.id }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '7d' })
-      // Encode user as base64 to avoid URL encoding issues with JSON special chars
-      const userB64 = Buffer.from(JSON.stringify(user)).toString('base64url')
+      // Upsert user by googleId or email
+      let user = await User.findOne({ $or: [{ googleId: profile.id }, { email: profile.email }] })
+      if (!user) {
+        user = await User.create({
+          name: profile.name,
+          email: profile.email,
+          googleId: profile.id,
+          avatar: profile.avatar,
+        })
+      } else if (!user.googleId) {
+        user.googleId = profile.id
+        if (profile.avatar) user.avatar = profile.avatar
+        await user.save()
+      }
+
+      const { token, refreshToken } = makeTokens(user._id.toString())
+      const userB64 = Buffer.from(JSON.stringify(userPayload(user))).toString('base64url')
       const params = new URLSearchParams({ token, refreshToken, user: userB64 })
-      const redirectUrl = `${process.env.CLIENT_URL ?? 'http://localhost:5173'}/auth/callback?${params}`
-      console.log('[Google OAuth] Redirecting to:', redirectUrl.slice(0, 100) + '...')
-      res.redirect(redirectUrl)
+      res.redirect(`${process.env.CLIENT_URL ?? 'http://localhost:5173'}/auth/callback?${params}`)
     } catch (e: any) {
-      console.error('[Google OAuth] JWT error:', e)
-      res.redirect(`${process.env.CLIENT_URL ?? 'http://localhost:5173'}/login?error=jwt_error`)
+      console.error('[Google OAuth] DB error:', e)
+      res.redirect(`${process.env.CLIENT_URL ?? 'http://localhost:5173'}/login?error=db_error`)
     }
   })(req, res, next)
 })

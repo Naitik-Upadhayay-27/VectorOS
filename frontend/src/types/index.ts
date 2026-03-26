@@ -80,3 +80,4 @@ export interface MatchResult {
   suggestions: string[]
   strengths: string[]
 }
+

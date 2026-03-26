@@ -67,7 +67,7 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const { drafts, deleteDraft, setActiveDraft } = useDraftStore()
   const resumeData = useTemplateResumeStore((s) => s.data)
-  const { data: onboarding } = useOnboardingStore()
+  const { data: onboarding, openOnboarding, reset: resetOnboarding } = useOnboardingStore()
   const aiMessages = Math.max(0, useChatStore.getState().messages.length - 1)
   const hasResume = !!resumeData.personalInfo?.name
   const [deleteTarget, setDeleteTarget] = useState<ResumeDraft | null>(null)
@@ -222,13 +222,19 @@ export default function DashboardPage() {
 
               {/* Create new draft card */}
               <button
-                onClick={() => navigate('/resume/resume-1')}
+                onClick={() => {
+                  resetOnboarding()
+                  useChatStore.getState().clearMessages()
+                  useDraftStore.getState().setActiveDraft(null)
+                  openOnboarding()
+                }}
                 className="bg-white rounded-2xl border-2 border-dashed border-gray-200 hover:border-purple-300 hover:bg-purple-50/30 transition-all flex flex-col items-center justify-center gap-3 min-h-[220px] group"
               >
                 <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-purple-100 flex items-center justify-center transition-colors">
                   <Plus size={18} className="text-gray-400 group-hover:text-purple-500 transition-colors" />
                 </div>
-                <p className="text-sm font-semibold text-gray-500 group-hover:text-purple-600 transition-colors">Create New Draft</p>
+                <p className="text-sm font-semibold text-gray-500 group-hover:text-purple-600 transition-colors">Create New Resume</p>
+                <p className="text-xs text-gray-400 group-hover:text-purple-400 transition-colors">Upload or start from scratch</p>
               </button>
             </div>
           </div>
@@ -349,3 +355,4 @@ export default function DashboardPage() {
     </AppLayout>
   )
 }
+

@@ -2,11 +2,13 @@ import { useState, useCallback, useRef } from 'react'
 import { Search, MapPin, Building2, ExternalLink, Zap, Filter, Wifi, Clock, ChevronRight, CheckCircle2, AlertCircle, ArrowLeft, Edit, Copy } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
 import { apiFetch } from '@/lib/apiFetch'
+import { API_BASE } from '@/lib/config'
 import { useOnboardingStore } from '@/store/onboardingStore'
 import { useDraftStore, type ResumeDraft } from '@/store/draftStore'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useNavigate } from 'react-router-dom'
 import { TEMPLATES } from '@/components/resume-templates'
+import { useChatStore } from '@/store/chatStore'
 
 const PAGE_W = 794
 const PAGE_H = 1123
@@ -158,7 +160,7 @@ export default function JobsPage() {
     setJobs([])
     try {
       const params = new URLSearchParams({ q: query, location, type: typeFilter, remote: remoteOnly ? 'true' : '' })
-      const res = await apiFetch(`http://localhost:4000/api/jobs/search?${params}`)
+      const res = await apiFetch(`${API_BASE}/api/jobs/search?${params}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Search failed')
       setJobs(data.jobs ?? [])
@@ -178,7 +180,7 @@ export default function JobsPage() {
       const draft = drafts.find((d) => d.id === selectedDraftId)
       const resume = draft ? draft.resumeData : resumeData
 
-      const res = await apiFetch('http://localhost:4000/api/ai/match', {
+      const res = await apiFetch(`${API_BASE}/api/ai/match`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -218,6 +220,19 @@ export default function JobsPage() {
         useTemplateResumeStore.getState().setTemplate(draft.templateId)
       }
     }
+
+    // Build a targeted message with the job context and missing skills
+    const missing = compatibility?.missingSkills ?? []
+    const score = compatibility?.overallScore
+
+    const parts: string[] = [
+      `I want to tailor my resume for this job: "${selectedJob.title}" at ${selectedJob.company}.`,
+    ]
+    if (score !== undefined) parts.push(`My current match score is ${score}%.`)
+    if (missing.length > 0) parts.push(`Missing keywords to add: ${missing.join(', ')}.`)
+    parts.push('Please optimize my resume for this role — add the missing keywords naturally, strengthen my bullet points, and improve my summary to match this position.')
+
+    useChatStore.getState().triggerMessage(parts.join(' '))
     navigate('/resume/resume-1')
   }
 
@@ -616,3 +631,4 @@ export default function JobsPage() {
     </AppLayout>
   )
 }
+

@@ -47,3 +47,4 @@ export const DOMAINS = [
   'Non-Profit & NGO', 'Government & Public Sector', 'Research & Academia',
   'Entrepreneurship / Startup', 'Freelance / Consulting',
 ]
+

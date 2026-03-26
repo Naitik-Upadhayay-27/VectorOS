@@ -4,6 +4,7 @@ import Input from '@/components/ui/Input'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
 import { apiFetch } from '@/lib/apiFetch'
+import { API_BASE } from '@/lib/config'
 
 export type SectionType =
   | 'experience' | 'education' | 'skills' | 'projects'
@@ -237,7 +238,7 @@ function ItemCard({
     try {
       const fields = itemToFields(item, type)
       const content = fields.description || fields.skills || JSON.stringify(fields)
-      const res = await apiFetch('http://localhost:4000/api/ai/improve-section', {
+      const res = await apiFetch(`${API_BASE}/api/ai/improve-section`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -514,3 +515,4 @@ function singularLabel(title: string) {
   }
   return map[title] ?? title.replace(/s$/, '')
 }
+

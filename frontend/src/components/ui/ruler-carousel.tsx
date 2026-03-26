@@ -140,3 +140,4 @@ export function RulerCarousel({ originalItems }: { originalItems: CarouselItem[]
     </div>
   );
 }
+

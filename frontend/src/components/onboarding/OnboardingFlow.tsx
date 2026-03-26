@@ -10,6 +10,7 @@ import { TEMPLATES } from '@/components/resume-templates'
 import { sampleData } from '@/lib/sampleResumeData'
 import { DOMAINS } from '@/lib/domains'
 import { apiFetch } from '@/lib/apiFetch'
+import { API_BASE } from '@/lib/config'
 import {
   Upload, FileText, Sparkles, ChevronRight, ChevronLeft,
   Check, X, Search, Briefcase, MapPin, DollarSign,
@@ -182,7 +183,7 @@ function StepStart() {
     const timeout = setTimeout(() => controller.abort(), 30000)
 
     try {
-      const res = await apiFetch('http://localhost:4000/api/resumes/parse', {
+      const res = await apiFetch(`${API_BASE}/api/resumes/parse`, {
         method: 'POST',
         body: formData,
         signal: controller.signal,
@@ -655,3 +656,4 @@ function SelectField({ icon, label, value, options, onChange }: {
     </div>
   )
 }
+

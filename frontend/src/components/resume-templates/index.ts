@@ -38,3 +38,4 @@ export const TEMPLATES: TemplateConfig[] = [
   { id: 14, name: 'Template 14',     component: ResumeTemplate14, thumbnail: '#a855f7' },
   { id: 15, name: 'Template 15',     component: ResumeTemplate15, thumbnail: '#0ea5e9' },
 ]
+

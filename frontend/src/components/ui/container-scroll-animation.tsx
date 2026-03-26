@@ -65,3 +65,4 @@ const Card = ({
     </div>
   </motion.div>
 );
+

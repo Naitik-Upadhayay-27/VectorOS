@@ -5,6 +5,7 @@ import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
 import { useChatStore } from '@/store/chatStore'
 import { apiFetch } from '@/lib/apiFetch'
+import { API_BASE } from '@/lib/config'
 
 interface ATSResult {
   overallScore: number
@@ -88,7 +89,7 @@ export default function ResumeAnalysisPanel() {
     setLoading(true)
     setError(null)
     try {
-      const res = await apiFetch('http://localhost:4000/api/ai/ats-score', {
+      const res = await apiFetch(`${API_BASE}/api/ai/ats-score`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -293,3 +294,4 @@ export default function ResumeAnalysisPanel() {
     </div>
   )
 }
+

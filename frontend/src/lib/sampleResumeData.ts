@@ -85,3 +85,4 @@ export const sampleData: TemplateResumeData = {
     { id: '1', role: 'Technical Mentor', organization: 'Code.org', startDate: 'Sep 2021', endDate: 'Present', description: 'Mentoring underrepresented students in web development.' },
   ],
 }
+

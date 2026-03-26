@@ -93,3 +93,4 @@ export const useResumeStore = create<ResumeState>((set) => ({
 
   setZoom: (zoom) => set({ zoom }),
 }))
+
