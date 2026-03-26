@@ -10,6 +10,7 @@ import ChatPanel from '@/components/chat/ChatPanel'
 import ResumeAnalysisPanel from '@/components/resume-editor/ResumeAnalysisPanel'
 import { useChatStore } from '@/store/chatStore'
 import { PanelLeftClose, PanelLeftOpen, GripVertical } from 'lucide-react'
+import { printResume } from '@/lib/printResume'
 
 const sections = [
   { type: 'experience',     title: 'Work Experience' },
@@ -32,7 +33,8 @@ export default function ResumeEditorPage() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
 
   const handleDownload = () => {
-    window.open('/print', '_blank')
+    const measureEl = document.querySelector<HTMLDivElement>('[data-resume-measure]')
+    if (measureEl) printResume(measureEl)
   }
 
   // Panel visibility

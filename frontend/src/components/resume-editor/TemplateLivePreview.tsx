@@ -117,6 +117,7 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
         {/* Hidden measurement render */}
         <div
           ref={measureRef}
+          data-resume-measure
           style={{
             position: 'absolute',
             top: 0,
