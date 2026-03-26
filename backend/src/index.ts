@@ -29,6 +29,7 @@ app.use('/api/jobs', jobRoutes)
 app.use('/api/ai', aiRoutes)
 app.use('/api/applications', applicationRoutes)
 
+app.get('/', (_req, res) => res.send('VectorOS API is running 🚀'))
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
 connectDB().then(() => {
