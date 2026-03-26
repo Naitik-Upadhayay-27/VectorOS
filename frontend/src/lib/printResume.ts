@@ -2,46 +2,47 @@ export function printResume(resumeEl: HTMLElement) {
   const templateRoot = resumeEl.firstElementChild as HTMLElement | null
   const html = templateRoot ? templateRoot.outerHTML : resumeEl.innerHTML
 
-  document.getElementById('__rp__')?.remove()
-  document.getElementById('__rs__')?.remove()
+  const styles = [
+    ...Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')).map(
+      (el) => `<link rel="stylesheet" href="${el.href}" />`
+    ),
+    ...Array.from(document.querySelectorAll<HTMLStyleElement>('style')).map(
+      (el) => `<style>${el.textContent}</style>`
+    ),
+  ].join('\n')
 
-  const root = document.createElement('div')
-  root.id = '__rp__'
-  root.innerHTML = html
-
-  const style = document.createElement('style')
-  style.id = '__rs__'
-  style.textContent = `
-    @media screen { #__rp__ { display: none !important; } }
-    @media print {
-      @page { size: A4 portrait; margin: 0; }
-      html, body { margin: 0 !important; padding: 0 !important; }
-      body > *:not(#__rp__) { display: none !important; }
-      #__rp__ {
-        display: block !important;
-        position: fixed !important;
-        inset: 0 !important;
-        width: 794px !important;
-        background: #fff !important;
-        z-index: 999999 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-      #__rp__ * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
+  const doc = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Resume</title>
+  ${styles}
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #fff; }
+    @page { size: A4 portrait; margin: 0; }
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
-  `
+    body > div { width: 794px; }
+  </style>
+</head>
+<body><div>${html}</div></body>
+</html>`
 
-  document.head.appendChild(style)
-  document.body.appendChild(root)
+  const win = window.open('', '_blank', 'width=1,height=1,left=-1000,top=-1000')
+  if (!win) { alert('Allow popups for this site to download PDF.'); return }
 
-  requestAnimationFrame(() => {
-    window.print()
+  win.document.open()
+  win.document.write(doc)
+  win.document.close()
+
+  win.addEventListener('load', () => {
     setTimeout(() => {
-      document.getElementById('__rp__')?.remove()
-      document.getElementById('__rs__')?.remove()
-    }, 1000)
+      win.focus()
+      win.print()
+      win.close()
+    }, 500)
   })
 }
