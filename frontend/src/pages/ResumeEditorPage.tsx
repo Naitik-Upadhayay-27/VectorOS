@@ -11,6 +11,7 @@ import ChatPanel from '@/components/chat/ChatPanel'
 import ResumeAnalysisPanel from '@/components/resume-editor/ResumeAnalysisPanel'
 import { useChatStore } from '@/store/chatStore'
 import { PanelLeftClose, PanelLeftOpen, GripVertical } from 'lucide-react'
+import { printResume } from '@/lib/printResume'
 
 const sections = [
   { type: 'experience',     title: 'Work Experience' },
@@ -32,11 +33,18 @@ export default function ResumeEditorPage() {
   const { isOpen: chatOpen } = useChatStore()
   const location = useLocation()
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+  const resumeRef = useRef<HTMLDivElement>(null)
+
+  const handleDownload = () => {
+    if (resumeRef.current) printResume(resumeRef.current)
+  }
 
   // Auto-print when navigated with ?print=1
   useEffect(() => {
     if (location.search.includes('print=1')) {
-      setTimeout(() => window.print(), 800)
+      setTimeout(() => {
+        if (resumeRef.current) printResume(resumeRef.current)
+      }, 800)
     }
   }, [location.search])
 
@@ -82,7 +90,7 @@ export default function ResumeEditorPage() {
   return (
     <AppLayout>
       <div className="flex flex-col h-screen">
-        <ResumeTopBar onOpenTemplates={() => setShowTemplatePicker(true)} />
+        <ResumeTopBar onOpenTemplates={() => setShowTemplatePicker(true)} onDownload={handleDownload} />
 
         <div ref={containerRef} className="flex flex-1 overflow-hidden select-none">
 
@@ -127,7 +135,7 @@ export default function ResumeEditorPage() {
 
           {/* ── Center preview ─────────────────────────────────────────── */}
           <div className="flex-1 relative min-h-0 overflow-hidden">
-            <TemplateLivePreview />
+            <TemplateLivePreview previewRef={resumeRef} />
           </div>
 
           {/* ── Right resize handle (only when chat is open) ───────────── */}

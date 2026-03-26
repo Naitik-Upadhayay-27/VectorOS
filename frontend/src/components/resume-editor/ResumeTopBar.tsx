@@ -10,9 +10,10 @@ import { useDraftStore } from '@/store/draftStore'
 
 interface ResumeTopBarProps {
   onOpenTemplates?: () => void
+  onDownload?: () => void
 }
 
-export default function ResumeTopBar({ onOpenTemplates }: ResumeTopBarProps) {
+export default function ResumeTopBar({ onOpenTemplates, onDownload }: ResumeTopBarProps) {
   const { zoom, setZoom } = useResumeStore()
   const { toggleChat, isOpen, messages, editLog } = useChatStore()
   const { resetOnboarding } = useAuthStore()
@@ -154,7 +155,7 @@ export default function ResumeTopBar({ onOpenTemplates }: ResumeTopBarProps) {
           {saved ? 'Saved!' : 'Save Draft'}
         </button>
 
-        <Button size="sm">
+        <Button size="sm" onClick={onDownload}>
           <Download size={13} />
           Download PDF
         </Button>

@@ -1,9 +1,14 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useResumeStore } from '@/store/resumeStore'
 import { TEMPLATES } from '@/components/resume-templates'
 import { EditableContext } from './EditableContext'
 import { Pencil, Eye } from 'lucide-react'
+import { printResume } from '@/lib/printResume'
+
+export interface TemplateLivePreviewHandle {
+  print: () => void
+}
 
 const PAGE_W = 794
 const PAGE_H = 1123
@@ -41,7 +46,7 @@ function computePageOffsets(container: HTMLDivElement, totalHeight: number): num
   return offsets
 }
 
-export default function TemplateLivePreview() {
+export default function TemplateLivePreview({ previewRef }: { previewRef?: React.RefObject<HTMLDivElement | null> }) {
   const { data, activeTemplateId } = useTemplateResumeStore()
   const { zoom } = useResumeStore()
   const [editMode, setEditMode] = useState(false)
@@ -52,6 +57,13 @@ export default function TemplateLivePreview() {
   const scale = zoom / 100
 
   const measureRef = useRef<HTMLDivElement>(null)
+
+  // Expose the measure div to parent for printing
+  useEffect(() => {
+    if (previewRef && measureRef.current) {
+      (previewRef as React.MutableRefObject<HTMLDivElement | null>).current = measureRef.current
+    }
+  })
   const [pageOffsets, setPageOffsets] = useState<number[]>([0])
   const [totalHeight, setTotalHeight] = useState(PAGE_H)
 
