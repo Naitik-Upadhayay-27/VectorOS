@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useResumeStore } from '@/store/resumeStore'
 import { TEMPLATES } from '@/components/resume-templates'
@@ -63,7 +63,9 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
     if (previewRef && measureRef.current) {
       (previewRef as React.MutableRefObject<HTMLDivElement | null>).current = measureRef.current
     }
-  })  const [pageOffsets, setPageOffsets] = useState<number[]>([0])
+  })
+
+  const [pageOffsets, setPageOffsets] = useState<number[]>([0])
   const [totalHeight, setTotalHeight] = useState(PAGE_H)
 
   useEffect(() => {
