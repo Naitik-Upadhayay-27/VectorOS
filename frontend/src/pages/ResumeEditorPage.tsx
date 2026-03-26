@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import ResumeTopBar from '@/components/resume-editor/ResumeTopBar'
 import PersonalInfoPanel from '@/components/resume-editor/PersonalInfoPanel'
@@ -29,7 +29,6 @@ const MAX_RIGHT = 500
 
 export default function ResumeEditorPage() {
   const { isOpen: chatOpen } = useChatStore()
-  const location = useLocation()
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
 
   const handleDownload = () => {
@@ -123,7 +122,7 @@ export default function ResumeEditorPage() {
 
           {/* ── Center preview ─────────────────────────────────────────── */}
           <div className="flex-1 relative min-h-0 overflow-hidden">
-            <TemplateLivePreview previewRef={resumeRef} />
+            <TemplateLivePreview />
           </div>
 
           {/* ── Right resize handle (only when chat is open) ───────────── */}
