@@ -1,5 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useState, useRef, useCallback } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import ResumeTopBar from '@/components/resume-editor/ResumeTopBar'
 import PersonalInfoPanel from '@/components/resume-editor/PersonalInfoPanel'
@@ -11,7 +10,6 @@ import ChatPanel from '@/components/chat/ChatPanel'
 import ResumeAnalysisPanel from '@/components/resume-editor/ResumeAnalysisPanel'
 import { useChatStore } from '@/store/chatStore'
 import { PanelLeftClose, PanelLeftOpen, GripVertical } from 'lucide-react'
-import { printResume } from '@/lib/printResume'
 
 const sections = [
   { type: 'experience',     title: 'Work Experience' },
@@ -33,20 +31,10 @@ export default function ResumeEditorPage() {
   const { isOpen: chatOpen } = useChatStore()
   const location = useLocation()
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
-  const resumeRef = useRef<HTMLDivElement>(null)
 
   const handleDownload = () => {
-    if (resumeRef.current) printResume(resumeRef.current)
+    window.open('/print', '_blank')
   }
-
-  // Auto-print when navigated with ?print=1
-  useEffect(() => {
-    if (location.search.includes('print=1')) {
-      setTimeout(() => {
-        if (resumeRef.current) printResume(resumeRef.current)
-      }, 800)
-    }
-  }, [location.search])
 
   // Panel visibility
   const [leftOpen, setLeftOpen]   = useState(true)

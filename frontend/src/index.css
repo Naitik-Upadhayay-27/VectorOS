@@ -73,3 +73,28 @@
 .resume-preview-scroll::-webkit-scrollbar-thumb:hover {
   background: #8892b8;
 }
+
+/* Print page — hide everything except the resume template */
+body.print-mode > * {
+  display: none;
+}
+body.print-mode > #print-root {
+  display: block;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0mm;
+  }
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 794px;
+    background: #fff;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
