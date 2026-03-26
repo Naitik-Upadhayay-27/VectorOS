@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import ResumeTopBar from '@/components/resume-editor/ResumeTopBar'
 import PersonalInfoPanel from '@/components/resume-editor/PersonalInfoPanel'
