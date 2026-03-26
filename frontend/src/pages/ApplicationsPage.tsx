@@ -7,12 +7,12 @@ import { clsx } from 'clsx'
 
 type Status = 'saved' | 'applied' | 'interview' | 'offer' | 'rejected'
 
-const statusConfig: Record<Status, { label: string; color: 'gray' | 'blue' | 'purple' | 'green' | 'red' }> = {
-  saved: { label: 'Saved', color: 'gray' },
-  applied: { label: 'Applied', color: 'blue' },
-  interview: { label: 'Interview', color: 'purple' },
-  offer: { label: 'Offer', color: 'green' },
-  rejected: { label: 'Rejected', color: 'red' },
+const statusConfig: Record<Status, { label: string; className: string }> = {
+  saved:     { label: 'Saved',     className: 'bg-gray-100 text-gray-600 border-gray-200' },
+  applied:   { label: 'Applied',   className: 'bg-blue-50 text-blue-700 border-blue-100' },
+  interview: { label: 'Interview', className: 'bg-purple-50 text-purple-700 border-purple-100' },
+  offer:     { label: 'Offer',     className: 'bg-green-50 text-green-700 border-green-100' },
+  rejected:  { label: 'Rejected',  className: 'bg-red-50 text-red-700 border-red-100' },
 }
 
 const mockApps = [
@@ -60,12 +60,12 @@ export default function ApplicationsPage() {
         {view === 'kanban' ? (
           <div className="flex gap-4 overflow-x-auto pb-4 flex-1">
             {columns.map((status) => {
-              const { label, color } = statusConfig[status]
+              const { label } = statusConfig[status]
               const items = byStatus(status)
               return (
                 <div key={status} className="w-64 shrink-0">
                   <div className="flex items-center gap-2 mb-3">
-                    <Badge color={color}>{label}</Badge>
+                    <Badge className={statusConfig[status].className}>{label}</Badge>
                     <span className="text-xs text-gray-400">{items.length}</span>
                   </div>
                   <div className="space-y-2">
@@ -120,7 +120,7 @@ export default function ApplicationsPage() {
                     <td className="px-4 py-3 text-xs text-gray-600">{app.company}</td>
                     <td className="px-4 py-3 text-xs text-gray-500">{app.location}</td>
                     <td className="px-4 py-3">
-                      <Badge color={statusConfig[app.status].color}>{statusConfig[app.status].label}</Badge>
+                      <Badge className={statusConfig[app.status].className}>{statusConfig[app.status].label}</Badge>
                     </td>
                     <td className="px-4 py-3 text-xs font-semibold text-gray-700">{app.match}%</td>
                     <td className="px-4 py-3 text-xs text-gray-400">{app.appliedAt || '—'}</td>
