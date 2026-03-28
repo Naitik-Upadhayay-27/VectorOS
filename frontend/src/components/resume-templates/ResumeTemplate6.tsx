@@ -10,6 +10,11 @@ interface ResumeTemplate6Props {
 const ResumeTemplate6 = ({ data }: ResumeTemplate6Props) => {
   const store = useTemplateResumeStore()
   const sectionOrder = store.sectionOrder ?? DEFAULT_SECTION_ORDER
+  const layout = store.layout
+  const marginTB = `${((layout?.marginTopBottom ?? 50) / 100).toFixed(2)}in`
+  const marginLR = `${((layout?.marginLeftRight ?? 50) / 100).toFixed(2)}in`
+  const fontFamily = layout?.fontFamily ?? "'Inter', sans-serif"
+  const fontSize = layout?.fontSize ?? 11
 
   const setPI = (field: string, val: string) => store.setPersonalInfo({ [field]: val })
   const setContact = (field: string, val: string) => store.setContact({ [field]: val })
@@ -213,11 +218,11 @@ const ResumeTemplate6 = ({ data }: ResumeTemplate6Props) => {
   return (
     <div className="w-[850px] min-h-[1100px] bg-white overflow-hidden"
          style={{
-           fontFamily: "'Inter', 'Segoe UI', sans-serif",
-           fontSize: '10pt',
+           fontFamily,
+           fontSize: `${fontSize}pt`,
            lineHeight: '1.5',
            color: '#374151',
-           padding: '12mm 16mm',
+           padding: `${marginTB} ${marginLR}`,
            boxSizing: 'border-box'
          }}>
 

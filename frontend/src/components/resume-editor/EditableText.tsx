@@ -1,4 +1,4 @@
-import { useRef, useEffect, useLayoutEffect, useCallback } from 'react'
+import { useRef, useLayoutEffect, useCallback, useEffect } from 'react'
 import { useEditableContext } from './EditableContext'
 
 interface EditableTextProps {
@@ -20,83 +20,91 @@ export default function EditableText({
 }: EditableTextProps) {
   const { editMode } = useEditableContext()
   const ref = useRef<HTMLElement>(null)
-  const lastExternalValue = useRef(value)
   const isFocused = useRef(false)
+  const lastSaved = useRef(value)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Sync external value changes into the DOM only when not focused
+  // Sync external value into DOM only when not focused
   useLayoutEffect(() => {
     const el = ref.current
     if (!el || isFocused.current) return
-    if (value !== lastExternalValue.current) {
-      el.textContent = value
-      lastExternalValue.current = value
+    if (value !== lastSaved.current) {
+      el.innerHTML = value
+      lastSaved.current = value
     }
   }, [value])
 
+  const save = useCallback((html: string) => {
+    if (html === lastSaved.current) return
+    lastSaved.current = html
+    onSave(html)
+  }, [onSave])
+
   const handleFocus = useCallback(() => {
     isFocused.current = true
+    // Dispatch a custom event so FormatToolbar knows a field is focused
+    document.dispatchEvent(new CustomEvent('editable-focus'))
   }, [])
 
   const handleBlur = useCallback(() => {
     isFocused.current = false
+    if (saveTimer.current) clearTimeout(saveTimer.current)
     const el = ref.current
-    if (!el) return
-    const newVal = el.textContent ?? ''
-    lastExternalValue.current = newVal
-    onSave(newVal)
-  }, [onSave])
+    if (el) save(el.innerHTML)
+    document.dispatchEvent(new CustomEvent('editable-blur'))
+  }, [save])
 
-  // Real-time update on every keystroke
+  // Debounced save on input — doesn't touch the DOM so undo stack is preserved
   const handleInput = useCallback(() => {
     const el = ref.current
     if (!el) return
-    onSave(el.textContent ?? '')
-  }, [onSave])
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => save(el.innerHTML), 300)
+  }, [save])
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        const el = ref.current
-        if (el) {
-          el.textContent = lastExternalValue.current
-          el.blur()
-        }
-        e.preventDefault()
-      }
-      if (e.key === 'Enter' && !multiline) {
-        e.preventDefault()
-        ref.current?.blur()
-      }
-    },
-    [multiline]
-  )
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+      const el = ref.current
+      if (el) { el.innerHTML = lastSaved.current; el.blur() }
+      e.preventDefault()
+    }
+    if (e.key === 'Enter' && !multiline) {
+      e.preventDefault()
+      ref.current?.blur()
+    }
+    // Let Ctrl+Z / Cmd+Z pass through to browser's native undo
+  }, [multiline])
 
-  // Non-edit mode — plain render
+  useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current) }, [])
+
   if (!editMode) {
-    return <Tag className={className} style={style}>{value}</Tag>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const T = Tag as any
+    return <T className={className} style={style} dangerouslySetInnerHTML={{ __html: value }} />
   }
 
-  // Edit mode — use dangerouslySetInnerHTML so content is present on first render
-  // This avoids the blank flash from useEffect-based textContent setting
-  const props = {
-    ref: ref as any,
-    contentEditable: true as const,
-    suppressContentEditableWarning: true,
-    spellCheck: false,
-    onFocus: handleFocus,
-    onBlur: handleBlur,
-    onInput: handleInput,
-    onKeyDown: handleKeyDown,
-    dangerouslySetInnerHTML: { __html: value },
-    className: [
-      className,
-      'outline-none cursor-text',
-      'hover:ring-1 hover:ring-blue-300 rounded-[2px]',
-      'focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/40',
-    ].join(' '),
-    style: { ...style, minWidth: '1ch', display: 'inline-block' } as React.CSSProperties,
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const T = Tag as any
 
-  return <Tag {...(props as any)} />
+  return (
+    <T
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      spellCheck={false}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      onInput={handleInput}
+      onKeyDown={handleKeyDown}
+      dangerouslySetInnerHTML={{ __html: value }}
+      className={[
+        className,
+        'outline-none cursor-text',
+        'hover:ring-1 hover:ring-blue-300 rounded-[2px]',
+        'focus:ring-2 focus:ring-blue-400 focus:bg-blue-50/40',
+      ].join(' ')}
+      style={{ ...style, minWidth: '1ch', display: 'inline-block' }}
+    />
+  )
 }
-

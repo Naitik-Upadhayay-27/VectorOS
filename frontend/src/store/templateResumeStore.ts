@@ -23,17 +23,24 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
 export interface LayoutSettings {
   marginTopBottom: number   // inches * 100
   marginLeftRight: number   // inches * 100
-  spacingBetweenSections: number  // pt
-  spacingTitleContent: number     // pt
-  spacingContentBlocks: number    // pt
+  fontSize: number          // base font size in pt (10-14)
+  fontFamily: string        // font family key
 }
+
+export const FONT_OPTIONS = [
+  { label: 'Inter', value: "'Inter', sans-serif" },
+  { label: 'Georgia', value: "'Georgia', serif" },
+  { label: 'Times New Roman', value: "'Times New Roman', serif" },
+  { label: 'Garamond', value: "'Garamond', serif" },
+  { label: 'Arial', value: "'Arial', sans-serif" },
+  { label: 'Helvetica', value: "'Helvetica Neue', sans-serif" },
+]
 
 export const DEFAULT_LAYOUT: LayoutSettings = {
   marginTopBottom: 50,
   marginLeftRight: 50,
-  spacingBetweenSections: 10,
-  spacingTitleContent: 4,
-  spacingContentBlocks: 6,
+  fontSize: 11,
+  fontFamily: "'Inter', sans-serif",
 }
 
 interface TemplateResumeState {

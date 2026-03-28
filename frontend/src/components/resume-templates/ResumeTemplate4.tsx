@@ -10,6 +10,11 @@ interface ResumeTemplate4Props {
 const ResumeTemplate4 = ({ data }: ResumeTemplate4Props) => {
   const store = useTemplateResumeStore()
   const sectionOrder = store.sectionOrder ?? DEFAULT_SECTION_ORDER
+  const layout = store.layout
+  const marginTB = `${((layout?.marginTopBottom ?? 50) / 100).toFixed(2)}in`
+  const marginLR = `${((layout?.marginLeftRight ?? 50) / 100).toFixed(2)}in`
+  const fontFamily = layout?.fontFamily ?? "'Inter', sans-serif"
+  const fontSize = layout?.fontSize ?? 11
   const primaryColor = "#ea580c";
 
   const setPI = (field: string, val: string) => store.setPersonalInfo({ [field]: val })
@@ -35,9 +40,9 @@ const ResumeTemplate4 = ({ data }: ResumeTemplate4Props) => {
 
   const styles = {
     page: {
-      width: "8.5in", minHeight: "11in", padding: "0.4in 0.5in",
-      backgroundColor: "#ffffff", fontFamily: "'Inter', 'Segoe UI', sans-serif",
-      fontSize: "9pt", lineHeight: "1.4", color: "#1f2937", boxSizing: "border-box" as const,
+      width: "8.5in", minHeight: "11in", padding: `${marginTB} ${marginLR}`,
+      backgroundColor: "#ffffff", fontFamily,
+      fontSize: `${fontSize}pt`, lineHeight: "1.4", color: "#1f2937", boxSizing: "border-box" as const,
     },
     header: {
       display: "flex", justifyContent: "space-between", alignItems: "flex-start",

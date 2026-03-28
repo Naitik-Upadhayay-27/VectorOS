@@ -7,6 +7,11 @@ import { useTemplateResumeStore, DEFAULT_SECTION_ORDER } from '@/store/templateR
 const ResumeTemplate1 = ({ data }: { data: TemplateResumeData }) => {
   const store = useTemplateResumeStore()
   const sectionOrder = store.sectionOrder ?? DEFAULT_SECTION_ORDER
+  const layout = store.layout
+  const marginTB = `${((layout?.marginTopBottom ?? 50) / 100).toFixed(2)}in`
+  const marginLR = `${((layout?.marginLeftRight ?? 50) / 100).toFixed(2)}in`
+  const fontFamily = layout?.fontFamily ?? "'Inter', sans-serif"
+  const fontSize = layout?.fontSize ?? 11
 
   const setPI = (field: string, val: string) => store.setPersonalInfo({ [field]: val })
   const setContact = (field: string, val: string) => store.setContact({ [field]: val })
@@ -208,7 +213,7 @@ const ResumeTemplate1 = ({ data }: { data: TemplateResumeData }) => {
   }
 
   return (
-    <div className="resume-page bg-white" style={{ fontFamily: "'Inter', sans-serif", padding: `var(--margin-tb, 0.6in) var(--margin-lr, 0.6in)` }}>
+    <div className="resume-page bg-white" style={{ fontFamily, fontSize: `${fontSize}pt`, padding: `${marginTB} ${marginLR}` }}>
       {/* Header — always first */}
       <header className="pb-4 border-b-2 border-gray-400 mb-6">
         <div className="flex items-center gap-6 mb-3">

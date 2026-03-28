@@ -2,7 +2,6 @@ import { Router, Response } from 'express'
 import multer from 'multer'
 import { z } from 'zod'
 import { authenticate, AuthRequest } from '../middleware/auth'
-import { generateText } from '../lib/ai'
 import { repairJson } from '../lib/repairJson'
 import { Resume } from '../models/Resume'
 
@@ -238,35 +237,67 @@ router.post(
       })
     }
 
-    // ── Step 2: AI structured parse (Gemini → Groq fallback) ────────────────
+    // ── Step 2: AI structured parse (Gemini first, Groq fallback on any failure) ─
     let structuredData: any
     let rawAiText: string = ''
-    try {
-      console.log('[3] Sending to AI...')
-      rawAiText = (await generateText(SCHEMA_PROMPT + rawText, { maxOutputTokens: 8192 }))
-        .replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
-      console.log(`[3] AI raw response (first 500 chars):\n${rawAiText.slice(0, 500)}`)
 
-      // Try direct parse first, then repair if needed
+    const parseAiResponse = async (aiText: string): Promise<any> => {
+      const cleaned = aiText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
       try {
-        structuredData = JSON.parse(rawAiText)
-        console.log('[3] JSON.parse OK (direct)')
-      } catch (parseErr) {
-        console.warn('[3] Direct parse failed, attempting repair...')
-        const repaired = repairJson(rawAiText)
-        structuredData = JSON.parse(repaired)
-        console.log('[3] JSON.parse OK (repaired)')
+        return JSON.parse(cleaned)
+      } catch {
+        const repaired = repairJson(cleaned)
+        return JSON.parse(repaired)
       }
+    }
 
-      console.log('[3] Top-level keys:', Object.keys(structuredData))
-      console.log('[3] personalInfo:', JSON.stringify(structuredData.personalInfo, null, 2))
-    } catch (err: any) {
-      if (err instanceof SyntaxError) {
-        console.error('[3] JSON parse error:', err.message)
-        return res.status(502).json({ error: 'AI returned invalid JSON. Please try again.' })
+    try {
+      console.log('[3] Sending to Gemini...')
+      const geminiRaw = await (async () => {
+        const { GoogleGenerativeAI } = await import('@google/generative-ai')
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+        const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.5-flash-lite']
+        for (const modelName of GEMINI_MODELS) {
+          try {
+            const model = genAI.getGenerativeModel({ model: modelName, generationConfig: { maxOutputTokens: 8192, temperature: 0.4 } })
+            const result = await model.generateContent(SCHEMA_PROMPT + rawText)
+            return result.response.text()
+          } catch (e: any) {
+            console.warn(`[3] Gemini ${modelName} failed:`, e.message)
+          }
+        }
+        throw new Error('All Gemini models failed')
+      })()
+
+      rawAiText = geminiRaw
+      console.log(`[3] Gemini raw (first 300):\n${rawAiText.slice(0, 300)}`)
+      structuredData = await parseAiResponse(rawAiText)
+      console.log('[3] Gemini parse OK')
+    } catch (geminiErr: any) {
+      console.warn('[3] Gemini failed, switching to Groq:', geminiErr.message)
+      try {
+        const groqKey = process.env.GROQ_API_KEY
+        if (!groqKey) throw new Error('GROQ_API_KEY not configured')
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'user', content: SCHEMA_PROMPT + rawText }],
+            temperature: 0.4,
+            max_tokens: 8192,
+          }),
+        })
+        if (!groqRes.ok) throw new Error(`Groq error ${groqRes.status}`)
+        const groqData = await groqRes.json() as any
+        rawAiText = groqData.choices?.[0]?.message?.content ?? ''
+        console.log(`[3] Groq raw (first 300):\n${rawAiText.slice(0, 300)}`)
+        structuredData = await parseAiResponse(rawAiText)
+        console.log('[3] Groq parse OK')
+      } catch (groqErr: any) {
+        console.error('[3] Both Gemini and Groq failed:', groqErr.message)
+        return res.status(500).json({ error: 'Resume parsing failed. Please try again in a moment.' })
       }
-      console.error('[3] AI API error:', err)
-      return res.status(500).json({ error: `AI parsing failed: ${err.message}` })
     }
 
     // ── Step 3: Sanitize nulls ────────────────────────────────────────────────

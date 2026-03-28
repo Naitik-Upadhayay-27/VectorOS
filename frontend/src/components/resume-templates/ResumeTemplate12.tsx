@@ -11,6 +11,11 @@ interface ResumeTemplate12Props {
 const ResumeTemplate12 = ({ data }: ResumeTemplate12Props) => {
     const store = useTemplateResumeStore()
     const sectionOrder = store.sectionOrder ?? DEFAULT_SECTION_ORDER
+    const layout = store.layout
+    const marginTB = `${((layout?.marginTopBottom ?? 50) / 100).toFixed(2)}in`
+    const marginLR = `${((layout?.marginLeftRight ?? 50) / 100).toFixed(2)}in`
+    const fontFamily = layout?.fontFamily ?? "'Inter', sans-serif"
+    const fontSize = layout?.fontSize ?? 11
 
     const setPI = (field: string, val: string) => store.setPersonalInfo({ [field]: val })
     const setContact = (field: string, val: string) => store.setContact({ [field]: val })
@@ -175,7 +180,7 @@ const ResumeTemplate12 = ({ data }: ResumeTemplate12Props) => {
     }
 
     return (
-        <div className="resume-page bg-white px-12 py-10" style={{ fontFamily: "'Georgia', serif" }}>
+        <div className="resume-page bg-white" style={{ fontFamily, fontSize: `${fontSize}pt`, padding: `${marginTB} ${marginLR}` }}>
             {/* Header - Clean Centered */}
             <header className="text-center mb-8 pb-6 border-b border-gray-200">
                 <h1 className="text-[32px] font-normal tracking-wide text-gray-900 mb-1" style={{ fontFamily: "'Georgia', serif" }}>

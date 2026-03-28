@@ -12,6 +12,11 @@ interface ResumeTemplate11Props {
 const ResumeTemplate11 = ({ data }: ResumeTemplate11Props) => {
     const store = useTemplateResumeStore()
     const sectionOrder = store.sectionOrder ?? DEFAULT_SECTION_ORDER
+    const layout = store.layout
+    const marginTB = `${((layout?.marginTopBottom ?? 50) / 100).toFixed(2)}in`
+    const marginLR = `${((layout?.marginLeftRight ?? 50) / 100).toFixed(2)}in`
+    const fontFamily = layout?.fontFamily ?? "'Inter', sans-serif"
+    const fontSize = layout?.fontSize ?? 11
 
     const setPI = (field: string, val: string) => store.setPersonalInfo({ [field]: val })
     const setContact = (field: string, val: string) => store.setContact({ [field]: val })
@@ -218,7 +223,7 @@ const ResumeTemplate11 = ({ data }: ResumeTemplate11Props) => {
     }
 
     return (
-        <div className="resume-page bg-white" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <div className="resume-page bg-white" style={{ fontFamily, fontSize: `${fontSize}pt`, padding: `${marginTB} ${marginLR}` }}>
             {/* Header with gradient accent */}
             <div className="h-2 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600" />
 

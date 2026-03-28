@@ -12,6 +12,11 @@ interface ResumeTemplate14Props {
 const ResumeTemplate14 = ({ data }: ResumeTemplate14Props) => {
     const store = useTemplateResumeStore()
     const sectionOrder = store.sectionOrder ?? DEFAULT_SECTION_ORDER
+    const layout = store.layout
+    const marginTB = `${((layout?.marginTopBottom ?? 50) / 100).toFixed(2)}in`
+    const marginLR = `${((layout?.marginLeftRight ?? 50) / 100).toFixed(2)}in`
+    const fontFamily = layout?.fontFamily ?? "'Inter', sans-serif"
+    const fontSize = layout?.fontSize ?? 11
 
     const setPI = (field: string, val: string) => store.setPersonalInfo({ [field]: val })
     const setContact = (field: string, val: string) => store.setContact({ [field]: val })
@@ -213,7 +218,7 @@ const ResumeTemplate14 = ({ data }: ResumeTemplate14Props) => {
     }
 
     return (
-        <div className="resume-page bg-white" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <div className="resume-page bg-white" style={{ fontFamily, fontSize: `${fontSize}pt`, padding: `${marginTB} ${marginLR}` }}>
             <div className="flex">
                 {/* Left - Coral Sidebar (contact only) */}
                 <div className="w-[2.8in] bg-gradient-to-b from-rose-500 to-orange-500 p-8 text-white min-h-full">

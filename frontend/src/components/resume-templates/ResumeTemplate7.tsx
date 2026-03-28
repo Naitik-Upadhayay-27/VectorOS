@@ -10,6 +10,11 @@ interface ResumeTemplate7Props {
 const ResumeTemplate7 = ({ data }: ResumeTemplate7Props) => {
   const store = useTemplateResumeStore()
   const sectionOrder = store.sectionOrder ?? DEFAULT_SECTION_ORDER
+  const layout = store.layout
+  const marginTB = `${((layout?.marginTopBottom ?? 50) / 100).toFixed(2)}in`
+  const marginLR = `${((layout?.marginLeftRight ?? 50) / 100).toFixed(2)}in`
+  const fontFamily = layout?.fontFamily ?? "'Inter', sans-serif"
+  const fontSize = layout?.fontSize ?? 11
 
   const setPI = (field: string, val: string) => store.setPersonalInfo({ [field]: val })
   const setContact = (field: string, val: string) => store.setContact({ [field]: val })
@@ -229,7 +234,7 @@ const ResumeTemplate7 = ({ data }: ResumeTemplate7Props) => {
 
   return (
     <div className="w-[850px] min-h-[1100px] bg-white overflow-hidden"
-         style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", fontSize: '9pt', lineHeight: '1.4', color: '#1a1a2e', padding: '0.5in 0.6in', boxSizing: 'border-box' }}>
+         style={{ fontFamily, fontSize: `${fontSize}pt`, lineHeight: '1.4', color: '#1a1a2e', padding: `${marginTB} ${marginLR}`, boxSizing: 'border-box' }}>
 
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '12px', borderBottom: '2px solid #1e3a5f', paddingBottom: '10px' }}>

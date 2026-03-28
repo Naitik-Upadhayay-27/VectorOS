@@ -10,6 +10,11 @@ interface ResumeTemplate9Props {
 const ResumeTemplate9 = ({ data }: ResumeTemplate9Props) => {
   const store = useTemplateResumeStore()
   const sectionOrder = store.sectionOrder ?? DEFAULT_SECTION_ORDER
+  const layout = store.layout
+  const marginTB = `${((layout?.marginTopBottom ?? 50) / 100).toFixed(2)}in`
+  const marginLR = `${((layout?.marginLeftRight ?? 50) / 100).toFixed(2)}in`
+  const fontFamily = layout?.fontFamily ?? "'Inter', sans-serif"
+  const fontSize = layout?.fontSize ?? 11
   const accentColor = "#0d9488";
 
   const setPI = (field: string, val: string) => store.setPersonalInfo({ [field]: val })
@@ -214,7 +219,7 @@ const ResumeTemplate9 = ({ data }: ResumeTemplate9Props) => {
 
   return (
     <div className="w-[850px] min-h-[1100px] bg-white overflow-hidden flex"
-         style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", fontSize: '9pt', lineHeight: '1.4', color: '#1f2937', boxSizing: 'border-box' }}>
+         style={{ fontFamily, fontSize: `${fontSize}pt`, lineHeight: '1.4', color: '#1f2937', boxSizing: 'border-box', padding: `${marginTB} ${marginLR}` }}>
 
       {/* Sidebar — contact info only */}
       <div style={{ width: '240px', backgroundColor: '#0f172a', color: '#f8fafc', padding: '0.4in 0.3in' }}>

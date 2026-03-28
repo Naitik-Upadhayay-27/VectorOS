@@ -12,6 +12,11 @@ interface ResumeTemplate13Props {
 const ResumeTemplate13 = ({ data }: ResumeTemplate13Props) => {
     const store = useTemplateResumeStore()
     const sectionOrder = store.sectionOrder ?? DEFAULT_SECTION_ORDER
+    const layout = store.layout
+    const marginTB = `${((layout?.marginTopBottom ?? 50) / 100).toFixed(2)}in`
+    const marginLR = `${((layout?.marginLeftRight ?? 50) / 100).toFixed(2)}in`
+    const fontFamily = layout?.fontFamily ?? "'Inter', sans-serif"
+    const fontSize = layout?.fontSize ?? 11
 
     const setPI = (field: string, val: string) => store.setPersonalInfo({ [field]: val })
     const setContact = (field: string, val: string) => store.setContact({ [field]: val })
@@ -207,7 +212,7 @@ const ResumeTemplate13 = ({ data }: ResumeTemplate13Props) => {
     }
 
     return (
-        <div className="resume-page bg-[#0f172a]" style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace" }}>
+        <div className="resume-page bg-[#0f172a]" style={{ fontFamily, fontSize: `${fontSize}pt`, padding: `${marginTB} ${marginLR}` }}>
             {/* Header */}
             <header className="bg-gradient-to-r from-emerald-600 to-teal-600 px-10 py-8">
                 <div className="flex items-center gap-6">
