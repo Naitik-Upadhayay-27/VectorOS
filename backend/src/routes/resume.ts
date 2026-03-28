@@ -121,7 +121,15 @@ const VolunteerSchema = z.array(z.object({
   organization: reqStr,
   startDate:    reqStr,
   endDate:      reqStr,
-  description:  optStr,
+  description:  z.union([
+    z.string(),
+    z.array(z.union([z.string(), z.null()]).transform(v => v ?? '')),
+    z.null(),
+  ]).optional().transform(v => {
+    if (!v) return undefined
+    if (Array.isArray(v)) return v.join(' ')
+    return v
+  }),
 })).optional()
 
 const ResumeSchema = z.object({
