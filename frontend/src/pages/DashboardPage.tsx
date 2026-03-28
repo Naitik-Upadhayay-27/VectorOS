@@ -1,12 +1,15 @@
 import { useNavigate } from 'react-router-dom'
-import { useState, useRef } from 'react'
-import { FileText, Briefcase, TrendingUp, ArrowRight, Plus, Clock, Trash2, Sparkles, Download, Send, Calendar, Eye, AlertTriangle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { FileText, Briefcase, TrendingUp, ArrowRight, Plus, Clock, Trash2, Sparkles, Download, Send, Calendar, Eye, AlertTriangle, User } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
 import { useAuthStore } from '@/store/authStore'
 import { useDraftStore, type ResumeDraft } from '@/store/draftStore'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useChatStore } from '@/store/chatStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
+import { useProfileStore } from '@/store/profileStore'
+import { apiFetch } from '@/lib/apiFetch'
+import { API_BASE } from '@/lib/config'
 import { TEMPLATES } from '@/components/resume-templates'
 
 const PAGE_W = 794
@@ -68,9 +71,22 @@ export default function DashboardPage() {
   const { drafts, deleteDraft, setActiveDraft } = useDraftStore()
   const resumeData = useTemplateResumeStore((s) => s.data)
   const { data: onboarding, openOnboarding, reset: resetOnboarding } = useOnboardingStore()
+  const { profile } = useProfileStore()
   const aiMessages = Math.max(0, useChatStore.getState().messages.length - 1)
   const hasResume = !!resumeData.personalInfo?.name
   const [deleteTarget, setDeleteTarget] = useState<ResumeDraft | null>(null)
+  const [appStats, setAppStats] = useState({ total: 0, interview: 0, offer: 0 })
+
+  useEffect(() => {
+    apiFetch(`${API_BASE}/api/applications`).then(r => r.json()).then(d => {
+      const apps = d.applications ?? []
+      setAppStats({
+        total: apps.length,
+        interview: apps.filter((a: any) => a.status === 'interview').length,
+        offer: apps.filter((a: any) => a.status === 'offer').length,
+      })
+    }).catch(() => {})
+  }, [])
 
   const loadDraft = (draftId: string) => {
     const draft = drafts.find((d) => d.id === draftId)
@@ -147,21 +163,20 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm min-w-[130px]">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">AI Edits</p>
-                <p className="text-4xl font-bold text-gray-900">{String(aiMessages).padStart(2, '0')}</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Applications</p>
+                <p className="text-4xl font-bold text-gray-900">{String(appStats.total).padStart(2, '0')}</p>
                 <p className="text-[11px] text-purple-500 mt-1 flex items-center gap-1">
-                  <Sparkles size={10} /> AI Powered
+                  <Send size={10} /> {appStats.interview} interviews
                 </p>
               </div>
-              <div className="bg-purple-600 rounded-2xl p-5 min-w-[160px] relative overflow-hidden">
+              <div className="bg-purple-600 rounded-2xl p-5 min-w-[160px] relative overflow-hidden cursor-pointer" onClick={() => navigate('/profile')}>
                 <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-white/10 rounded-full" />
-                <div className="absolute -right-1 top-2 w-10 h-10 bg-white/5 rounded-full" />
                 <p className="text-[11px] font-bold uppercase tracking-widest text-purple-200 mb-2">Target Role</p>
                 <p className="text-lg font-bold text-white leading-tight truncate max-w-[130px]">
-                  {onboarding.jobTitle || '—'}
+                  {profile.targetRoles[0] || onboarding.jobTitle || '—'}
                 </p>
                 <p className="text-[11px] text-purple-300 mt-1 truncate">
-                  {onboarding.targetDomains[0] || 'Set in onboarding'}
+                  {profile.profileCompleteness}% profile complete
                 </p>
               </div>
             </div>
@@ -256,6 +271,7 @@ export default function DashboardPage() {
                 {[
                   { icon: FileText,  label: 'Resume Editor',  sub: 'Edit & optimize with AI',    to: '/resume/resume-1', match: 'Open Editor' },
                   { icon: Briefcase, label: 'Job Search',     sub: 'Find matching opportunities', to: '/jobs',            match: 'Browse Jobs' },
+                  { icon: User,      label: 'My Profile',     sub: `${profile.profileCompleteness}% complete — add target roles`, to: '/profile', match: 'Edit Profile' },
                 ].map(({ icon: Icon, label, sub, to, match }) => (
                   <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                     <div className="flex items-start gap-4">

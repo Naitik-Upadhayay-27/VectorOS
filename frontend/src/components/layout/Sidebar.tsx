@@ -1,10 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, FileText, Briefcase, Send, BarChart2, Settings, LogOut, ChevronRight, Sparkles } from 'lucide-react'
+import { LayoutDashboard, FileText, Briefcase, Send, BarChart2, Settings, LogOut, ChevronRight, Sparkles, User } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useAuthStore } from '@/store/authStore'
+import { useProfileStore } from '@/store/profileStore'
 
 const nav = [
   { to: '/dashboard',        icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/profile',          icon: User,            label: 'My Profile' },
   { to: '/resume/resume-1',  icon: FileText,        label: 'Resume Editor' },
   { to: '/jobs',             icon: Briefcase,       label: 'Job Search' },
   { to: '/applications',     icon: Send,            label: 'Applications' },
@@ -13,6 +15,7 @@ const nav = [
 
 export default function Sidebar() {
   const { user, logout } = useAuthStore()
+  const { profile } = useProfileStore()
   const navigate = useNavigate()
 
   return (

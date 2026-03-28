@@ -1,11 +1,12 @@
-import { useState, useCallback, useRef } from 'react'
-import { Search, MapPin, Building2, ExternalLink, Zap, Filter, Wifi, Clock, ChevronRight, CheckCircle2, AlertCircle, ArrowLeft, Edit, Copy } from 'lucide-react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { Search, MapPin, Building2, ExternalLink, Zap, Filter, Wifi, Clock, ChevronRight, CheckCircle2, AlertCircle, ArrowLeft, Edit, Copy, Sparkles, TrendingUp, BookOpen } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
 import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
 import { useOnboardingStore } from '@/store/onboardingStore'
 import { useDraftStore, type ResumeDraft } from '@/store/draftStore'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
+import { useProfileStore } from '@/store/profileStore'
 import { useNavigate } from 'react-router-dom'
 import { TEMPLATES } from '@/components/resume-templates'
 import { useChatStore } from '@/store/chatStore'
@@ -119,10 +120,17 @@ export default function JobsPage() {
   const { data: onboarding } = useOnboardingStore()
   const { drafts } = useDraftStore()
   const resumeData = useTemplateResumeStore((s) => s.data)
+  const { profile } = useProfileStore()
 
-  const [query, setQuery] = useState(onboarding.jobTitle || '')
+  // Smart defaults from profile
+  const smartQuery = profile.targetRoles[0] || profile.jobTitle || onboarding.jobTitle || ''
+  const smartLocation = profile.targetLocations[0] || profile.location || onboarding.location || ''
+
+  const [query, setQuery] = useState(smartQuery)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [magicMode, setMagicMode] = useState(false)
+  const [magicLoading, setMagicLoading] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
 
   const handleQueryChange = (val: string) => {
@@ -142,9 +150,9 @@ export default function JobsPage() {
     setQuery(s)
     setShowSuggestions(false)
   }
-  const [location, setLocation] = useState(onboarding.location || '')
+  const [location, setLocation] = useState(smartLocation)
   const [typeFilter, setTypeFilter] = useState('')
-  const [remoteOnly, setRemoteOnly] = useState(false)
+  const [remoteOnly, setRemoteOnly] = useState(profile.openToRemote)
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -152,12 +160,14 @@ export default function JobsPage() {
   const [selectedDraftId, setSelectedDraftId] = useState<string>('')
   const [compatibility, setCompatibility] = useState<CompatibilityResult | null>(null)
   const [checkingCompat, setCheckingCompat] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
 
   const search = useCallback(async () => {
     if (!query.trim()) return
     setLoading(true)
     setError('')
     setJobs([])
+    setHasSearched(true)
     try {
       const params = new URLSearchParams({ q: query, location, type: typeFilter, remote: remoteOnly ? 'true' : '' })
       const res = await apiFetch(`${API_BASE}/api/jobs/search?${params}`)
@@ -170,6 +180,47 @@ export default function JobsPage() {
       setLoading(false)
     }
   }, [query, location, typeFilter, remoteOnly])
+
+  // Auto-search on mount if profile has a target role
+  useEffect(() => {
+    if (smartQuery) {
+      setLoading(true)
+      setHasSearched(true)
+      const params = new URLSearchParams({ q: smartQuery, location: smartLocation, remote: profile.openToRemote ? 'true' : '' })
+      apiFetch(`${API_BASE}/api/jobs/search?${params}`)
+        .then(r => r.json())
+        .then(d => setJobs(d.jobs ?? []))
+        .catch(() => {})
+        .finally(() => setLoading(false))
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Magic search — auto-searches using profile data
+  const startWithMagic = useCallback(async () => {
+    const magicQuery = profile.targetRoles[0] || profile.jobTitle || onboarding.jobTitle || resumeData.personalInfo?.title || ''
+    const magicLoc = profile.openToRemote ? '' : (profile.targetLocations[0] || profile.location || '')
+    if (!magicQuery) return
+    setQuery(magicQuery)
+    setLocation(magicLoc)
+    setMagicMode(true)
+    setMagicLoading(true)
+    setLoading(true)
+    setError('')
+    setJobs([])
+    setHasSearched(true)
+    try {
+      const params = new URLSearchParams({ q: magicQuery, location: magicLoc, remote: profile.openToRemote ? 'true' : '' })
+      const res = await apiFetch(`${API_BASE}/api/jobs/search?${params}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Search failed')
+      setJobs(data.jobs ?? [])
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+      setMagicLoading(false)
+    }
+  }, [profile, onboarding, resumeData])
 
   const checkCompatibility = async () => {
     if (!selectedJob) return
@@ -485,10 +536,73 @@ export default function JobsPage() {
         <div className="max-w-5xl mx-auto px-8 py-8">
 
           {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Job Search</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Search across Adzuna, Google Jobs & Himalayas in one place</p>
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Job Search</h1>
+              <p className="text-sm text-gray-400 mt-0.5">Search across Adzuna, Google Jobs & Himalayas in one place</p>
+            </div>
+            {/* Magic button */}
+            <button
+              onClick={startWithMagic}
+              disabled={magicLoading}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:opacity-70 text-white text-sm font-semibold rounded-xl shadow-lg shadow-purple-200 transition-all"
+            >
+              {magicLoading
+                ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Finding your jobs...</>
+                : <><Sparkles size={15} /> Start with Magic</>}
+            </button>
           </div>
+
+          {/* Magic mode banner */}
+          {magicMode && jobs.length > 0 && (
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl p-4 mb-4 flex items-start gap-3">
+              <Sparkles size={16} className="text-purple-500 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-purple-800">Personalized for you</p>
+                <p className="text-xs text-purple-600 mt-0.5">
+                  Showing jobs matching your profile: <span className="font-semibold">{query}</span>
+                  {profile.topSkills.length > 0 && <> · Skills: {profile.topSkills.slice(0, 3).join(', ')}</>}
+                </p>
+              </div>
+              <button onClick={() => setMagicMode(false)} className="text-xs text-purple-400 hover:text-purple-600">Dismiss</button>
+            </div>
+          )}
+
+          {/* Tips panel — shown when no jobs and not loading */}
+          {jobs.length === 0 && !loading && !hasSearched && (
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {[
+                { icon: Sparkles, title: 'Magic Search', desc: 'Instantly find jobs matched to your profile, skills, and target roles.', color: 'text-purple-500', bg: 'bg-purple-50' },
+                { icon: TrendingUp, title: 'Check Compatibility', desc: 'Run AI compatibility check to see your match score and missing keywords.', color: 'text-blue-500', bg: 'bg-blue-50' },
+                { icon: BookOpen, title: 'Tailor Your Resume', desc: 'Auto-optimize your resume for any specific role with one click.', color: 'text-green-500', bg: 'bg-green-50' },
+              ].map(({ icon: Icon, title, desc, color, bg }) => (
+                <div key={title} className={`${bg} rounded-2xl p-4 border border-white`}>
+                  <Icon size={16} className={`${color} mb-2`} />
+                  <p className="text-sm font-semibold text-gray-800 mb-1">{title}</p>
+                  <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Loading skeleton */}
+          {loading && jobs.length === 0 && (
+            <div className="space-y-3 mb-6">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-gray-100 shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3.5 bg-gray-100 rounded w-2/5" />
+                      <div className="h-3 bg-gray-100 rounded w-1/4" />
+                      <div className="h-3 bg-gray-100 rounded w-1/3" />
+                    </div>
+                    <div className="h-3 bg-gray-100 rounded w-16" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Search bar */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
@@ -612,9 +726,30 @@ export default function JobsPage() {
             ))}
 
             {!loading && jobs.length === 0 && query && (
-              <div className="text-center py-16 text-gray-400">
-                <Search size={32} className="mx-auto mb-3 opacity-30" />
-                <p className="text-sm">No jobs found. Try a different search term.</p>
+              <div className="text-center py-12 text-gray-400">
+                {loading ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm text-gray-500">Finding jobs for you...</p>
+                  </div>
+                ) : hasSearched ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <Search size={28} className="opacity-30" />
+                    <p className="text-sm font-medium text-gray-500">No jobs found</p>
+                    <p className="text-xs text-gray-400">Try a different search term or remove filters</p>
+                    <button onClick={startWithMagic} className="mt-1 flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-xl transition-colors">
+                      <Sparkles size={12} /> Try Magic Search
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-3">
+                    <Sparkles size={28} className="text-purple-300" />
+                    <p className="text-sm font-medium text-gray-500">Ready to find your next role?</p>
+                    <button onClick={startWithMagic} className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-xl transition-colors">
+                      <Sparkles size={12} /> Start with Magic
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

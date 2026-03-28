@@ -57,7 +57,7 @@ function ProgressBar({ step }: { step: string }) {
 export default function OnboardingFlow() {
   const { open, step, data, setStep, update, closeOnboarding } = useOnboardingStore()
   const { setTemplate } = useTemplateResumeStore()
-  const { markOnboarded } = useAuthStore()
+  const { markOnboarded, user } = useAuthStore()
   const navigate = useNavigate()
 
   if (!open) return null
@@ -71,14 +71,10 @@ export default function OnboardingFlow() {
     const resumeStore = useTemplateResumeStore.getState()
 
     if (data.resumeMode === 'upload') {
-      // Upload mode — parsed data is already in the store.
-      // Only patch personal info fields the user filled in onboarding
-      // without wiping the parsed experience/skills/etc.
       if (data.fullName) resumeStore.setPersonalInfo({ name: data.fullName })
       if (data.jobTitle) resumeStore.setPersonalInfo({ title: data.jobTitle })
       if (data.location) resumeStore.setContact({ location: data.location })
     } else {
-      // Scratch mode — start with a clean slate + onboarding data
       resumeStore.resetData({
         personalInfo: {
           name: data.fullName || 'Your Name',
@@ -94,6 +90,30 @@ export default function OnboardingFlow() {
         languages: [], volunteer: [],
       })
     }
+
+    // Auto-fill profile from onboarding data
+    import('@/store/profileStore').then(({ useProfileStore }) => {
+      const resumeData = useTemplateResumeStore.getState().data
+      useProfileStore.getState().fillFromOnboarding({
+        fullName: data.fullName || user?.name || '',
+        jobTitle: data.jobTitle || '',
+        location: data.location || '',
+        email: resumeData.personalInfo?.contact?.email || user?.email || '',
+        phone: resumeData.personalInfo?.contact?.phone || '',
+        linkedin: resumeData.personalInfo?.contact?.linkedin || '',
+        github: resumeData.personalInfo?.contact?.github || '',
+        summary: resumeData.summary || '',
+        currentCompany: data.currentCompany || '',
+        yearsOfExperience: data.yearsOfExperience || '',
+        employmentType: data.employmentType || 'full-time',
+        currentSalary: data.currentSalary || '',
+        expectedSalary: data.expectedSalary || '',
+        targetDomains: data.targetDomains || [],
+        targetRoles: data.jobTitle ? [data.jobTitle] : [],
+        topSkills: resumeData.skills?.flatMap(s => s.skills).slice(0, 10) || [],
+        avatar: user?.avatar || '',
+      })
+    })
 
     markOnboarded()
     closeOnboarding()

@@ -8,6 +8,7 @@ import JobsPage from '@/pages/JobsPage'
 import ApplicationsPage from '@/pages/ApplicationsPage'
 import AnalyticsPage from '@/pages/AnalyticsPage'
 import AuthCallbackPage from '@/pages/AuthCallbackPage'
+import ProfilePage from '@/pages/ProfilePage'
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow'
 import { useAuthStore } from '@/store/authStore'
 
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/resume/:id" element={<ProtectedRoute><ResumeEditorPage /></ProtectedRoute>} />
         <Route path="/jobs" element={<ProtectedRoute><JobsPage /></ProtectedRoute>} />

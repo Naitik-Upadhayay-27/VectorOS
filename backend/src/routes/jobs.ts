@@ -119,11 +119,17 @@ async function fetchJSearch(query: string, location: string): Promise<Normalised
 // ── Himalayas (free, remote only) ────────────────────────────────────────────
 async function fetchHimalayas(query: string): Promise<NormalisedJob[]> {
   try {
-    const params = new URLSearchParams({ search: query, limit: '10' })
+    const params = new URLSearchParams({ search: query, limit: '20' })
     const res = await fetch(`https://himalayas.app/jobs/api?${params}`)
     if (!res.ok) return []
     const data = await res.json() as any
-    return (data.jobs ?? []).map((j: any): NormalisedJob => ({
+    const q = query.toLowerCase().split(' ')
+    // Filter to only jobs where title contains at least one query word
+    const filtered = (data.jobs ?? []).filter((j: any) => {
+      const title = (j.title ?? '').toLowerCase()
+      return q.some(word => word.length > 2 && title.includes(word))
+    })
+    return filtered.slice(0, 8).map((j: any): NormalisedJob => ({
       id: `himalayas-${j.slug}`,
       source: 'himalayas',
       title: j.title ?? '',
@@ -306,18 +312,14 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
 
   if (!q.trim()) return res.json({ jobs: [] })
 
-  // Fetch from all sources in parallel
-  const [apify, adzuna, jsearch, himalayas, jobfeed, internships] = await Promise.all([
-    fetchApify(q, location),
-    fetchAdzuna(q, location),
+  // JSearch first (most relevant), then Adzuna, then Himalayas (filtered)
+  const [jsearch, adzuna, himalayas] = await Promise.all([
     fetchJSearch(q, location),
+    fetchAdzuna(q, ''),
     fetchHimalayas(q),
-    fetchJobFeed(q, location),
-    fetchInternships(q, location),
   ])
 
-  // Apify (LinkedIn) results go first
-  let jobs: NormalisedJob[] = [...apify, ...adzuna, ...jsearch, ...himalayas, ...jobfeed, ...internships]
+  let jobs: NormalisedJob[] = [...jsearch, ...adzuna, ...himalayas]
 
   // Deduplicate by title+company
   const seen = new Set<string>()
