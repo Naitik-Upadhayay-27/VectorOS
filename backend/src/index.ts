@@ -1,6 +1,13 @@
 // Load env FIRST before any other imports
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-require('dotenv').config()
+const dotenv = require('dotenv')
+const fs = require('fs')
+// Load .env.local first (local dev overrides), then fall back to .env
+if (fs.existsSync('.env.local')) {
+  dotenv.config({ path: '.env.local' })
+} else {
+  dotenv.config()
+}
 
 import express from 'express'
 import cors from 'cors'

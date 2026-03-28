@@ -11,9 +11,10 @@ import { useDraftStore } from '@/store/draftStore'
 interface ResumeTopBarProps {
   onOpenTemplates?: () => void
   onDownload?: () => void
+  onOpenLayout?: () => void
 }
 
-export default function ResumeTopBar({ onOpenTemplates, onDownload }: ResumeTopBarProps) {
+export default function ResumeTopBar({ onOpenTemplates, onDownload, onOpenLayout }: ResumeTopBarProps) {
   const { zoom, setZoom } = useResumeStore()
   const { toggleChat, isOpen, messages, editLog } = useChatStore()
   const { resetOnboarding } = useAuthStore()
@@ -122,7 +123,7 @@ export default function ResumeTopBar({ onOpenTemplates, onDownload }: ResumeTopB
 
       {/* Right — style/template/zoom/save/download */}
       <div className="flex items-center gap-2 shrink-0">
-        <Button variant="secondary" size="sm">
+        <Button variant="secondary" size="sm" onClick={onOpenLayout}>
           <Palette size={13} />
           Layout &amp; Style
         </Button>

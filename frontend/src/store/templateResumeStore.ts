@@ -1,15 +1,54 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { TemplateResumeData, ExperienceItem, EducationItem, SkillCategory, ProjectItem, CertificateItem, AwardItem, LanguageItem, VolunteerItem } from '@/types/resume'
+
+export type SectionKey = 'summary' | 'experience' | 'education' | 'skills' | 'projects' | 'certificates' | 'awards' | 'languages' | 'volunteer'
+
+export const DEFAULT_SECTION_ORDER: SectionKey[] = [
+  'summary', 'experience', 'education', 'skills', 'projects', 'certificates', 'awards', 'languages', 'volunteer',
+]
+
+export const SECTION_LABELS: Record<SectionKey, string> = {
+  summary: 'Professional Summary',
+  experience: 'Work Experience',
+  education: 'Education',
+  skills: 'Skills',
+  projects: 'Projects',
+  certificates: 'Certifications',
+  awards: 'Awards',
+  languages: 'Languages',
+  volunteer: 'Volunteering & Leadership',
+}
+
+export interface LayoutSettings {
+  marginTopBottom: number   // inches * 100
+  marginLeftRight: number   // inches * 100
+  spacingBetweenSections: number  // pt
+  spacingTitleContent: number     // pt
+  spacingContentBlocks: number    // pt
+}
+
+export const DEFAULT_LAYOUT: LayoutSettings = {
+  marginTopBottom: 50,
+  marginLeftRight: 50,
+  spacingBetweenSections: 10,
+  spacingTitleContent: 4,
+  spacingContentBlocks: 6,
+}
 
 interface TemplateResumeState {
   data: TemplateResumeData
   activeTemplateId: number
+  sectionOrder: SectionKey[]
+  layout: LayoutSettings
 
   setTemplate: (id: number) => void
   resetData: (data: TemplateResumeData) => void
   setPersonalInfo: (info: Partial<NonNullable<TemplateResumeData['personalInfo']>>) => void
   setContact: (contact: Partial<NonNullable<NonNullable<TemplateResumeData['personalInfo']>['contact']>>) => void
   setSummary: (summary: string) => void
+  setSectionOrder: (order: SectionKey[]) => void
+  setLayout: (layout: Partial<LayoutSettings>) => void
 
   addExperience: (item: Omit<ExperienceItem, 'id'>) => void
   updateExperience: (id: string, item: Partial<ExperienceItem>) => void
@@ -120,13 +159,18 @@ const skeletonData: TemplateResumeData = {
   ],
 }
 
-export const useTemplateResumeStore = create<TemplateResumeState>((set) => ({
-  activeTemplateId: 1,
-  data: skeletonData,
+export const useTemplateResumeStore = create<TemplateResumeState>()(
+  persist(
+    (set) => ({
+      activeTemplateId: 1,
+      data: skeletonData,
+      sectionOrder: DEFAULT_SECTION_ORDER,
+      layout: DEFAULT_LAYOUT,
 
-  setTemplate: (id) => set({ activeTemplateId: id }),
-
-  resetData: (data) => set({ data }),
+      setTemplate: (id) => set({ activeTemplateId: id }),
+      resetData: (data) => set({ data }),
+      setSectionOrder: (order) => set({ sectionOrder: order }),
+      setLayout: (layout) => set((s) => ({ layout: { ...s.layout, ...layout } })),
 
   setPersonalInfo: (info) =>
     set((s) => ({
@@ -193,5 +237,8 @@ export const useTemplateResumeStore = create<TemplateResumeState>((set) => ({
     set((s) => ({ data: { ...s.data, volunteer: [...(s.data.volunteer ?? []), { id: uid(), ...item }] } })),
   removeVolunteer: (id) =>
     set((s) => ({ data: { ...s.data, volunteer: s.data.volunteer?.filter((e) => e.id !== id) } })),
-}))
+}),
+    { name: 'vectoros-template-resume' }
+  )
+)
 

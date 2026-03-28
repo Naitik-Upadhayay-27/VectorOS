@@ -6,6 +6,7 @@ import SectionPanel from '@/components/resume-editor/SectionPanel'
 import SummaryPanel from '@/components/resume-editor/SummaryPanel'
 import TemplateLivePreview from '@/components/resume-editor/TemplateLivePreview'
 import TemplatePicker from '@/components/resume-editor/TemplatePicker'
+import LayoutStylePanel from '@/components/resume-editor/LayoutStylePanel'
 import ChatPanel from '@/components/chat/ChatPanel'
 import ResumeAnalysisPanel from '@/components/resume-editor/ResumeAnalysisPanel'
 import { useChatStore } from '@/store/chatStore'
@@ -31,6 +32,7 @@ const MAX_RIGHT = 500
 export default function ResumeEditorPage() {
   const { isOpen: chatOpen } = useChatStore()
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+  const [showLayoutPanel, setShowLayoutPanel] = useState(false)
 
   const handleDownload = () => {
     const measureEl = document.querySelector<HTMLDivElement>('[data-resume-measure]')
@@ -79,22 +81,28 @@ export default function ResumeEditorPage() {
   return (
     <AppLayout>
       <div className="flex flex-col h-screen">
-        <ResumeTopBar onOpenTemplates={() => setShowTemplatePicker(true)} onDownload={handleDownload} />
+        <ResumeTopBar onOpenTemplates={() => setShowTemplatePicker(true)} onDownload={handleDownload} onOpenLayout={() => setShowLayoutPanel(true)} />
 
         <div ref={containerRef} className="flex flex-1 overflow-hidden select-none">
 
           {/* ── Left panel ─────────────────────────────────────────────── */}
           {leftOpen && (
             <div
-              style={{ width: leftW }}
-              className="bg-surface-50 border-r border-gray-100 overflow-y-auto p-3 space-y-3 shrink-0 transition-none"
+              style={{ width: showLayoutPanel ? 300 : leftW }}
+              className="bg-surface-50 border-r border-gray-100 overflow-y-auto shrink-0 transition-none"
             >
-              <ResumeAnalysisPanel />
-              <PersonalInfoPanel />
-              <SummaryPanel />
-              {sections.map((s) => (
-                <SectionPanel key={s.type} type={s.type} title={s.title} />
-              ))}
+              {showLayoutPanel ? (
+                <LayoutStylePanel onClose={() => setShowLayoutPanel(false)} />
+              ) : (
+                <div className="p-3 space-y-3">
+                  <ResumeAnalysisPanel />
+                  <PersonalInfoPanel />
+                  <SummaryPanel />
+                  {sections.map((s) => (
+                    <SectionPanel key={s.type} type={s.type} title={s.title} />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

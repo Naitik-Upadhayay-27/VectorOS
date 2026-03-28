@@ -1,13 +1,37 @@
 import { useRef, useEffect, useState } from 'react'
-import { useTemplateResumeStore } from '@/store/templateResumeStore'
+import { useTemplateResumeStore, DEFAULT_SECTION_ORDER } from '@/store/templateResumeStore'
 import { useResumeStore } from '@/store/resumeStore'
 import { TEMPLATES } from '@/components/resume-templates'
 import { EditableContext } from './EditableContext'
 import { Pencil, Eye } from 'lucide-react'
 import { printResume } from '@/lib/printResume'
+import type { TemplateResumeData } from '@/types/resume'
 
-export interface TemplateLivePreviewHandle {
-  print: () => void
+// Map sectionOrder keys to the data keys in TemplateResumeData
+const SECTION_DATA_KEY: Record<string, keyof TemplateResumeData> = {
+  summary:      'summary',
+  experience:   'experience',
+  education:    'education',
+  skills:       'skills',
+  projects:     'projects',
+  certificates: 'certificates',
+  awards:       'awards',
+  languages:    'languages',
+  volunteer:    'volunteer',
+}
+
+/** Returns a copy of data with sections reordered according to sectionOrder.
+ *  Templates render sections in the order they appear in the data object,
+ *  so we rebuild the object with keys in the desired order. */
+function applyOrder(data: TemplateResumeData, order: string[]): TemplateResumeData {
+  const base: TemplateResumeData = { personalInfo: data.personalInfo }
+  for (const key of order) {
+    const dataKey = SECTION_DATA_KEY[key]
+    if (dataKey && dataKey in data) {
+      ;(base as any)[dataKey] = (data as any)[dataKey]
+    }
+  }
+  return base
 }
 
 const PAGE_W = 794
@@ -47,12 +71,19 @@ function computePageOffsets(container: HTMLDivElement, totalHeight: number): num
 }
 
 export default function TemplateLivePreview({ previewRef }: { previewRef?: React.RefObject<HTMLDivElement | null> }) {
-  const { data, activeTemplateId } = useTemplateResumeStore()
+  const { data, activeTemplateId, sectionOrder, layout } = useTemplateResumeStore()
   const { zoom } = useResumeStore()
   const [editMode, setEditMode] = useState(false)
 
   const template = TEMPLATES.find((t) => t.id === activeTemplateId) ?? TEMPLATES[0]
   const TemplateComponent = template.component
+
+  const orderedData = applyOrder(data, sectionOrder ?? DEFAULT_SECTION_ORDER)
+
+  // Apply layout margins as CSS vars on the template wrapper
+  const marginTB = `${(layout?.marginTopBottom ?? 50) / 100}in`
+  const marginLR = `${(layout?.marginLeftRight ?? 50) / 100}in`
+  const secSpacing = `${layout?.spacingBetweenSections ?? 10}pt`
 
   const scale = zoom / 100
 
@@ -127,7 +158,9 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
             pointerEvents: 'none',
           }}
         >
-          <TemplateComponent data={data} />
+          <div style={{ '--margin-tb': marginTB, '--margin-lr': marginLR, '--sec-spacing': secSpacing } as React.CSSProperties}>
+            <TemplateComponent data={orderedData} />
+          </div>
         </div>
 
         {/* Page stack */}
@@ -168,7 +201,9 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
                   }}
                 >
                   <div style={{ marginTop: -offset }}>
-                    <TemplateComponent data={data} />
+                    <div style={{ '--margin-tb': marginTB, '--margin-lr': marginLR, '--sec-spacing': secSpacing } as React.CSSProperties}>
+                      <TemplateComponent data={orderedData} />
+                    </div>
                   </div>
                 </div>
 
