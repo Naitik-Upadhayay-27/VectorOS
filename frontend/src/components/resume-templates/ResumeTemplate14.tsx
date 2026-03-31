@@ -218,7 +218,7 @@ const ResumeTemplate14 = ({ data }: ResumeTemplate14Props) => {
     }
 
     return (
-        <div className="resume-page bg-white" style={{ fontFamily, fontSize: `${fontSize}pt`, padding: `${marginTB} ${marginLR}` }}>
+        <div className="resume-page bg-white" style={{ fontFamily, fontSize: `${fontSize}pt`, padding: `calc(0.5in + ${marginTB}) calc(0.55in + ${marginLR})` }}>
             <div className="flex">
                 {/* Left - Coral Sidebar (contact only) */}
                 <div className="w-[2.8in] bg-gradient-to-b from-rose-500 to-orange-500 p-8 text-white min-h-full">
@@ -289,3 +289,4 @@ const ResumeTemplate14 = ({ data }: ResumeTemplate14Props) => {
 };
 
 export default ResumeTemplate14;
+

@@ -212,7 +212,7 @@ const ResumeTemplate13 = ({ data }: ResumeTemplate13Props) => {
     }
 
     return (
-        <div className="resume-page bg-[#0f172a]" style={{ fontFamily, fontSize: `${fontSize}pt`, padding: `${marginTB} ${marginLR}` }}>
+        <div className="resume-page bg-[#0f172a]" style={{ fontFamily, fontSize: `${fontSize}pt`, padding: `calc(0.5in + ${marginTB}) calc(0.55in + ${marginLR})` }}>
             {/* Header */}
             <header className="bg-gradient-to-r from-emerald-600 to-teal-600 px-10 py-8">
                 <div className="flex items-center gap-6">
@@ -274,3 +274,4 @@ const ResumeTemplate13 = ({ data }: ResumeTemplate13Props) => {
 };
 
 export default ResumeTemplate13;
+

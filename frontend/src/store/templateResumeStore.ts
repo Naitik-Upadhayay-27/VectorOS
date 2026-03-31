@@ -37,8 +37,8 @@ export const FONT_OPTIONS = [
 ]
 
 export const DEFAULT_LAYOUT: LayoutSettings = {
-  marginTopBottom: 50,
-  marginLeftRight: 50,
+  marginTopBottom: 0,
+  marginLeftRight: 0,
   fontSize: 11,
   fontFamily: "'Inter', sans-serif",
 }

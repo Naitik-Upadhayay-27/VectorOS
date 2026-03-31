@@ -9,25 +9,33 @@ import FormatToolbar from './FormatToolbar'
 
 const PAGE_W = 794
 const PAGE_H = 1123
+const PAGE_BOTTOM_MARGIN = 60 // ~0.5in reserved at bottom of each page
 
 function computePageOffsets(container: HTMLDivElement, totalHeight: number): number[] {
   const offsets: number[] = [0]
-  let nextCut = PAGE_H
+  const usableH = PAGE_H - PAGE_BOTTOM_MARGIN
+
+  let nextCut = usableH
 
   while (nextCut < totalHeight) {
     const all = Array.from(
-      container.querySelectorAll<HTMLElement>('p, li, h1, h2, h3, h4, h5, h6, span, div')
+      container.querySelectorAll<HTMLElement>('p, li, h1, h2, h3, h4, h5, h6, div[style], section')
     )
 
     let bestY = nextCut
     let bestDelta = Infinity
 
     for (const el of all) {
-      const rect = el.getBoundingClientRect()
-      const containerRect = container.getBoundingClientRect()
-      const elBottom = rect.bottom - containerRect.top
+      // Use offsetTop relative to container — works even when off-screen
+      let offsetTop = 0
+      let node: HTMLElement | null = el
+      while (node && node !== container) {
+        offsetTop += node.offsetTop
+        node = node.offsetParent as HTMLElement | null
+      }
+      const elBottom = offsetTop + el.offsetHeight
 
-      if (elBottom <= nextCut && elBottom > nextCut - 120) {
+      if (elBottom <= nextCut && elBottom > nextCut - 150) {
         const delta = nextCut - elBottom
         if (delta < bestDelta) {
           bestDelta = delta
@@ -37,7 +45,7 @@ function computePageOffsets(container: HTMLDivElement, totalHeight: number): num
     }
 
     offsets.push(bestY)
-    nextCut = bestY + PAGE_H
+    nextCut = bestY + usableH
   }
 
   return offsets
@@ -72,7 +80,7 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
     const recalc = () => {
       const h = el.scrollHeight
       setTotalHeight(h)
-      if (h <= PAGE_H) {
+      if (h <= PAGE_H - PAGE_BOTTOM_MARGIN) {
         setPageOffsets([0])
       } else {
         setPageOffsets(computePageOffsets(el, h))
@@ -113,17 +121,18 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
           </button>
         </div>
 
-        {/* Hidden measurement render */}
+        {/* Hidden measurement render — must be in flow for offsetTop to work */}
         <div
           ref={measureRef}
           data-resume-measure
           style={{
             position: 'absolute',
             top: 0,
-            left: '-9999px',
+            left: 0,
             width: PAGE_W,
             visibility: 'hidden',
             pointerEvents: 'none',
+            zIndex: -1,
           }}
         >
           <TemplateComponent data={data} />

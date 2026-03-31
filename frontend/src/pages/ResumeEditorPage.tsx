@@ -34,9 +34,17 @@ export default function ResumeEditorPage() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [showLayoutPanel, setShowLayoutPanel] = useState(false)
 
-  const handleDownload = () => {
+  const [downloading, setDownloading] = useState(false)
+
+  const handleDownload = async () => {
     const measureEl = document.querySelector<HTMLDivElement>('[data-resume-measure]')
-    if (measureEl) printResume(measureEl)
+    if (!measureEl) return
+    setDownloading(true)
+    try {
+      await printResume(measureEl, 'resume')
+    } finally {
+      setDownloading(false)
+    }
   }
 
   // Panel visibility
@@ -81,7 +89,7 @@ export default function ResumeEditorPage() {
   return (
     <AppLayout>
       <div className="flex flex-col h-screen">
-        <ResumeTopBar onOpenTemplates={() => setShowTemplatePicker(true)} onDownload={handleDownload} onOpenLayout={() => setShowLayoutPanel(true)} />
+        <ResumeTopBar onOpenTemplates={() => setShowTemplatePicker(true)} onDownload={handleDownload} onOpenLayout={() => setShowLayoutPanel(true)} downloading={downloading} />
 
         <div ref={containerRef} className="flex flex-1 overflow-hidden select-none">
 

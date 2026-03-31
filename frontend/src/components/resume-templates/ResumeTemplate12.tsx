@@ -180,7 +180,7 @@ const ResumeTemplate12 = ({ data }: ResumeTemplate12Props) => {
     }
 
     return (
-        <div className="resume-page bg-white" style={{ fontFamily, fontSize: `${fontSize}pt`, padding: `${marginTB} ${marginLR}` }}>
+        <div className="resume-page bg-white" style={{ fontFamily, fontSize: `${fontSize}pt`, padding: `calc(0.5in + ${marginTB}) calc(0.55in + ${marginLR})` }}>
             {/* Header - Clean Centered */}
             <header className="text-center mb-8 pb-6 border-b border-gray-200">
                 <h1 className="text-[32px] font-normal tracking-wide text-gray-900 mb-1" style={{ fontFamily: "'Georgia', serif" }}>
@@ -223,3 +223,4 @@ const ResumeTemplate12 = ({ data }: ResumeTemplate12Props) => {
 };
 
 export default ResumeTemplate12;
+

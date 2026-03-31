@@ -12,6 +12,11 @@ import ResumeTemplate12 from './ResumeTemplate12'
 import ResumeTemplate13 from './ResumeTemplate13'
 import ResumeTemplate14 from './ResumeTemplate14'
 import ResumeTemplate15 from './ResumeTemplate15'
+import ResumeTemplate16 from './ResumeTemplate16'
+import ResumeTemplate17 from './ResumeTemplate17'
+import ResumeTemplate18 from './ResumeTemplate18'
+import ResumeTemplate19 from './ResumeTemplate19'
+import ResumeTemplate20 from './ResumeTemplate20'
 import type { TemplateResumeData } from '@/types/resume'
 import type { ComponentType } from 'react'
 
@@ -36,6 +41,11 @@ export const TEMPLATES: TemplateConfig[] = [
   { id: 12, name: 'Template 12',     component: ResumeTemplate12, thumbnail: '#f97316' },
   { id: 13, name: 'Template 13',     component: ResumeTemplate13, thumbnail: '#84cc16' },
   { id: 14, name: 'Template 14',     component: ResumeTemplate14, thumbnail: '#a855f7' },
-  { id: 15, name: 'Template 15',     component: ResumeTemplate15, thumbnail: '#0ea5e9' },
+  { id: 15, name: 'Corporate Elite',  component: ResumeTemplate15, thumbnail: '#0ea5e9' },
+  { id: 16, name: 'IIM Classic',      component: ResumeTemplate16, thumbnail: '#1a1a1a' },
+  { id: 17, name: 'Tech Modern',      component: ResumeTemplate17, thumbnail: '#2d7d7d' },
+  { id: 18, name: 'PM Classic',       component: ResumeTemplate18, thumbnail: '#2c2c2c' },
+  { id: 19, name: 'Startup Green',    component: ResumeTemplate19, thumbnail: '#2e7d32' },
+  { id: 20, name: 'Fintech Pro',      component: ResumeTemplate20, thumbnail: '#1a1a2e' },
 ]
 

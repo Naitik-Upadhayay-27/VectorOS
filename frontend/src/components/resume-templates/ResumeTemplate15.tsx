@@ -200,7 +200,7 @@ const ResumeTemplate15 = ({ data }: ResumeTemplate15Props) => {
     }
 
     return (
-        <div className="resume-page bg-white" style={{ fontFamily, fontSize: `${fontSize}pt`, padding: `${marginTB} ${marginLR}` }}>
+        <div className="resume-page bg-white" style={{ fontFamily, fontSize: `${fontSize}pt`, padding: `calc(0.5in + ${marginTB}) calc(0.55in + ${marginLR})` }}>
             {/* Header */}
             <header className="border-b-4 border-double border-gray-900 pb-4 mb-6">
                 <h1 className="text-[28px] font-bold text-center text-gray-900 tracking-wide mb-1">
@@ -242,3 +242,4 @@ const ResumeTemplate15 = ({ data }: ResumeTemplate15Props) => {
 };
 
 export default ResumeTemplate15;
+

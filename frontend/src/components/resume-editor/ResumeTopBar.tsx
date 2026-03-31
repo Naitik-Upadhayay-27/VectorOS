@@ -12,9 +12,10 @@ interface ResumeTopBarProps {
   onOpenTemplates?: () => void
   onDownload?: () => void
   onOpenLayout?: () => void
+  downloading?: boolean
 }
 
-export default function ResumeTopBar({ onOpenTemplates, onDownload, onOpenLayout }: ResumeTopBarProps) {
+export default function ResumeTopBar({ onOpenTemplates, onDownload, onOpenLayout, downloading }: ResumeTopBarProps) {
   const { zoom, setZoom } = useResumeStore()
   const { toggleChat, isOpen, messages, editLog } = useChatStore()
   const { resetOnboarding } = useAuthStore()
@@ -156,9 +157,10 @@ export default function ResumeTopBar({ onOpenTemplates, onDownload, onOpenLayout
           {saved ? 'Saved!' : 'Save Draft'}
         </button>
 
-        <Button size="sm" onClick={onDownload}>
-          <Download size={13} />
-          Download PDF
+        <Button size="sm" onClick={onDownload} disabled={downloading}>
+          {downloading
+            ? <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating...</>
+            : <><Download size={13} /> Download PDF</>}
         </Button>
       </div>
     </div>
