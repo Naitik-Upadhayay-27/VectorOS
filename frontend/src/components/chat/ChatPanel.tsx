@@ -116,6 +116,10 @@ export default function ChatPanel() {
   const [input, setInput] = useState('')
   const [editedMsgIds, setEditedMsgIds] = useState<Set<string>>(new Set())
   const [streamingId, setStreamingId] = useState<string | null>(null)
+  // msgId → pending proposed edits (waiting for user confirmation)
+  const [pendingProposals, setPendingProposals] = useState<Record<string, ResumeEdits>>({})
+  // msgId → dismissed proposals
+  const [dismissedProposals, setDismissedProposals] = useState<Set<string>>(new Set())
   const bottomRef = useRef<HTMLDivElement>(null)
   const triggerProcessed = useRef<string | null>(null)
 
@@ -180,15 +184,35 @@ export default function ChatPanel() {
       addMessage({ id: msgId, role: 'assistant', content: replyText })
 
       if (data.resumeEdits && Object.keys(data.resumeEdits).length > 0) {
+        // AI confirmed apply — apply immediately and show summary
         applyResumeEdits(data.resumeEdits)
         setEditedMsgIds((prev) => new Set([...prev, msgId]))
         addEditLogEntry(replyText)
+      } else if (data.proposedEdits && Object.keys(data.proposedEdits).length > 0) {
+        // AI is proposing changes — wait for user confirmation
+        setPendingProposals((prev) => ({ ...prev, [msgId]: data.proposedEdits }))
       }
     } catch (err: any) {
       setTyping(false)
       addMessage({ role: 'assistant', content: `Sorry, something went wrong: ${err.message}` })
     }
   }, [messages, resumeText, resumeData, editLog, onboardingData, user, tokensLeft])
+
+  const applyProposal = useCallback((msgId: string) => {
+    const edits = pendingProposals[msgId]
+    if (!edits) return
+    applyResumeEdits(edits)
+    setEditedMsgIds((prev) => new Set([...prev, msgId]))
+    setPendingProposals((prev) => { const n = { ...prev }; delete n[msgId]; return n })
+    addEditLogEntry(`Applied proposed changes from message ${msgId}`)
+    // Send a follow-up so AI summarises what it did
+    sendMessage('Applied. Now tell me exactly what changes you made and where.')
+  }, [pendingProposals, sendMessage])
+
+  const dismissProposal = useCallback((msgId: string) => {
+    setPendingProposals((prev) => { const n = { ...prev }; delete n[msgId]; return n })
+    setDismissedProposals((prev) => new Set([...prev, msgId]))
+  }, [])
 
   if (!isOpen) return null
 
@@ -251,6 +275,22 @@ export default function ChatPanel() {
                   <div className="flex items-center gap-1 px-2 py-1 bg-green-50 border border-green-100 rounded-lg self-start">
                     <CheckCheck size={11} className="text-green-500" />
                     <span className="text-xs text-green-600 font-medium">Applied to resume</span>
+                  </div>
+                )}
+                {pendingProposals[id] && !dismissedProposals.has(id) && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <button
+                      onClick={() => applyProposal(id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold rounded-lg transition-colors"
+                    >
+                      <CheckCheck size={11} /> Apply Changes
+                    </button>
+                    <button
+                      onClick={() => dismissProposal(id)}
+                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold rounded-lg transition-colors"
+                    >
+                      Dismiss
+                    </button>
                   </div>
                 )}
               </div>

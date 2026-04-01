@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { TemplateResumeData } from '@/types/resume'
 import type { ChatMessage } from '@/types'
 import type { EditLogEntry } from './chatStore'
+import type { ATSResult } from './atsStore'
 
 export interface ResumeDraft {
   id: string
@@ -11,6 +12,7 @@ export interface ResumeDraft {
   resumeData: TemplateResumeData
   chatMessages: ChatMessage[]
   editLog: EditLogEntry[]
+  atsResult?: ATSResult | null
   savedAt: string
 }
 

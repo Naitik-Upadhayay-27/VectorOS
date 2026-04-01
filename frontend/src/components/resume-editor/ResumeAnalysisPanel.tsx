@@ -1,25 +1,12 @@
-import { useState } from 'react'
-import { ChevronDown, ChevronUp, FileSearch, Target, Star, Zap, AlertCircle, CheckCircle2, TrendingUp, RotateCcw, Wand2 } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { ChevronDown, ChevronUp, FileSearch, Target, Star, Zap, AlertCircle, CheckCircle2, TrendingUp, RotateCcw, Wand2, X, Plus, Search } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
 import { useChatStore } from '@/store/chatStore'
+import { useAtsStore } from '@/store/atsStore'
 import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
-
-interface ATSResult {
-  overallScore: number
-  breakdown: {
-    keywordMatch:        { score: number; found: string[];       missing: string[] }
-    formatting:          { score: number; issues: string[] }
-    sectionCompleteness: { score: number; present: string[];     missing: string[] }
-    quantification:      { score: number; examples: string[];    suggestions: string[] }
-    actionVerbs:         { score: number; weak: string[];        suggestions: string[] }
-  }
-  topIssues:   string[]
-  quickWins:   string[]
-  gapAnalysis: string
-}
 
 function ScoreRing({ score }: { score: number }) {
   const color = score >= 75 ? '#22c55e' : score >= 50 ? '#f59e0b' : '#ef4444'
@@ -29,8 +16,7 @@ function ScoreRing({ score }: { score: number }) {
     <svg width="72" height="72" className="shrink-0">
       <circle cx="36" cy="36" r={r} fill="none" stroke="#f3f4f6" strokeWidth="6" />
       <circle cx="36" cy="36" r={r} fill="none" stroke={color} strokeWidth="6"
-        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
-        transform="rotate(-90 36 36)" />
+        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" transform="rotate(-90 36 36)" />
       <text x="36" y="40" textAnchor="middle" fontSize="14" fontWeight="700" fill={color}>{score}</text>
     </svg>
   )
@@ -49,39 +35,129 @@ function MiniBar({ score, label }: { score: number; label: string }) {
   )
 }
 
+
+function TargetRolesPicker({ roles, onChange }: { roles: string[]; onChange: (r: string[]) => void }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const inputRef = useRef<HTMLInputElement>(null)
+  const dropRef = useRef<HTMLDivElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Debounced API search
+  const search = useCallback((q: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (!q.trim()) { setSuggestions([]); return }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await apiFetch(`${API_BASE}/api/ai/job-titles?q=${encodeURIComponent(q)}`)
+        const data = await res.json()
+        setSuggestions(data.titles ?? [])
+      } catch { setSuggestions([]) }
+    }, 200)
+  }, [])
+
+  const add = (title: string) => {
+    if (!roles.includes(title)) onChange([...roles, title])
+    setQuery('')
+    setSuggestions([])
+    setOpen(false)
+    inputRef.current?.focus()
+  }
+
+  const remove = (title: string) => onChange(roles.filter(r => r !== title))
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!dropRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const showCustomAdd = open && query.trim() &&
+    !suggestions.some(s => s.toLowerCase() === query.toLowerCase().trim())
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+        <Target size={11} className="text-brand-500" /> Target Roles
+        <span className="text-gray-400 font-normal">(select one or more)</span>
+      </p>
+
+      {roles.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {roles.map(r => (
+            <span key={r} className="flex items-center gap-1 px-2 py-0.5 bg-brand-50 border border-brand-200 text-brand-700 text-xs rounded-full font-medium">
+              {r}
+              <button onClick={() => remove(r)} className="hover:text-red-500 transition-colors ml-0.5">
+                <X size={9} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="relative" ref={dropRef}>
+        <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={e => { setQuery(e.target.value); setOpen(true); search(e.target.value) }}
+          onFocus={() => setOpen(true)}
+          placeholder="Search 73k+ job titles..."
+          className="w-full pl-7 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 placeholder:text-gray-400"
+        />
+
+        {open && (suggestions.length > 0 || showCustomAdd) && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 overflow-y-auto max-h-64">
+            {suggestions.map(s => (
+              <button key={s} onMouseDown={e => { e.preventDefault(); add(s) }}
+                className={clsx('w-full text-left px-3 py-2 text-xs transition-colors',
+                  roles.includes(s) ? 'bg-brand-50 text-brand-600 font-medium' : 'text-gray-700 hover:bg-gray-50')}>
+                {s}
+              </button>
+            ))}
+            {showCustomAdd && (
+              <button onMouseDown={e => { e.preventDefault(); add(query.trim()) }}
+                className="w-full text-left px-3 py-2 text-xs text-brand-600 font-medium hover:bg-brand-50 border-t border-gray-100 flex items-center gap-1.5 transition-colors">
+                <Plus size={10} /> Add "{query.trim()}"
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+
 export default function ResumeAnalysisPanel() {
   const [open, setOpen]       = useState(true)
   const [mode, setMode]       = useState<'analyze' | 'tailor'>('analyze')
   const [loading, setLoading] = useState(false)
-  const [result, setResult]   = useState<ATSResult | null>(null)
   const [error, setError]     = useState<string | null>(null)
   const [jd, setJd]           = useState('')
 
+  const { result, setResult } = useAtsStore()
   const { data } = useTemplateResumeStore()
   const { data: onboardingData } = useOnboardingStore()
   const { triggerMessage } = useChatStore()
+
+  const defaultRole = onboardingData.jobTitle || data.personalInfo?.title || ''
+  const [targetRoles, setTargetRoles] = useState<string[]>(defaultRole ? [defaultRole] : [])
 
   const fixResume = () => {
     if (!result) return
     const missing = result.breakdown.keywordMatch.missing ?? []
     const issues  = result.topIssues ?? []
     const wins    = result.quickWins ?? []
-
-    // Build a tight imperative command — no markdown, no formatting
-    // This ensures the AI enters EDIT mode and applies changes directly
-    const parts: string[] = [
-      'Apply all of the following fixes directly to my resume right now:',
-    ]
-    if (missing.length > 0)
-      parts.push(`1. Add these missing keywords naturally into my skills and experience: ${missing.join(', ')}.`)
-    if (issues.length > 0)
-      parts.push(`2. Fix these issues: ${issues.join('; ')}.`)
-    if (wins.length > 0)
-      parts.push(`3. Apply these quick wins: ${wins.join('; ')}.`)
-    if (result.gapAnalysis)
-      parts.push(`4. Address this gap: ${result.gapAnalysis}`)
+    const parts: string[] = ['Apply all of the following fixes directly to my resume right now:']
+    if (missing.length > 0) parts.push(`1. Add these missing keywords naturally into my skills and experience: ${missing.join(', ')}.`)
+    if (issues.length > 0)  parts.push(`2. Fix these issues: ${issues.join('; ')}.`)
+    if (wins.length > 0)    parts.push(`3. Apply these quick wins: ${wins.join('; ')}.`)
+    if (result.gapAnalysis) parts.push(`4. Address this gap: ${result.gapAnalysis}`)
     parts.push('Make all edits now and confirm what you changed.')
-
     triggerMessage(parts.join('\n'))
   }
 
@@ -94,15 +170,14 @@ export default function ResumeAnalysisPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           resumeData: data,
-          // Target role = what they want to become (onboarding job title)
-          targetRole: onboardingData.jobTitle || data.personalInfo?.title,
-          // Target domains = industries they want to work in
+          targetRole: targetRoles.length > 0
+            ? targetRoles.join(', ')
+            : (onboardingData.jobTitle || data.personalInfo?.title),
+          targetRoles,
           targetDomains: onboardingData.targetDomains,
-          // Current role = where they are now (for gap analysis)
           currentRole: data.personalInfo?.title || onboardingData.jobTitle,
           currentCompany: onboardingData.currentCompany,
           yearsOfExperience: onboardingData.yearsOfExperience,
-          // Tailor mode: paste JD overrides everything
           jobDescription: mode === 'tailor' && jd ? jd : undefined,
         }),
       })
@@ -121,177 +196,166 @@ export default function ResumeAnalysisPanel() {
 
   return (
     <div className="border border-gray-100 rounded-xl bg-white shadow-card overflow-hidden mb-3">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors"
-      >
+      <button onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors">
         <span className="text-sm font-semibold text-gray-700">Resume Analysis</span>
         {open ? <ChevronUp size={15} className="text-gray-400" /> : <ChevronDown size={15} className="text-gray-400" />}
       </button>
 
       {open && (
-      <div className="p-4 space-y-3">
-        {/* Mode toggle */}
-        <div className="grid grid-cols-2 gap-2">
-          {(['analyze', 'tailor'] as const).map((m) => (
-            <button key={m} onClick={() => { setMode(m); setResult(null) }}
-              className={clsx('flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all',
-                mode === m ? 'border-brand-500 bg-brand-50' : 'border-gray-200 hover:border-gray-300')}>
-              {m === 'analyze'
-                ? <FileSearch size={15} className={mode === m ? 'text-brand-500' : 'text-gray-400'} />
-                : <Target size={15} className={mode === m ? 'text-brand-500' : 'text-gray-400'} />}
-              <div>
-                <p className={clsx('text-xs font-semibold', mode === m ? 'text-brand-700' : 'text-gray-600')}>
-                  {m === 'analyze' ? 'ATS Score' : 'Tailor to Job'}
-                </p>
-                <p className="text-xs text-gray-400">{m === 'analyze' ? 'Full ATS analysis' : 'Match job description'}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* Tailor mode — JD input */}
-        {mode === 'tailor' && (
-          <textarea
-            rows={3}
-            value={jd}
-            onChange={(e) => setJd(e.target.value)}
-            placeholder="Paste the job description here..."
-            className="w-full px-3 py-2 text-xs rounded-lg border border-gray-200 resize-none focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 placeholder:text-gray-400"
-          />
-        )}
-
-        {error && (
-          <div className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600">
-            <AlertCircle size={13} /> {error}
-          </div>
-        )}
-
-        {/* Run button */}
-        {!result && (
-          <button onClick={runATS} disabled={loading}
-            className="w-full py-2.5 bg-brand-500 text-white text-xs font-semibold rounded-xl hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
-            {loading
-              ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyzing...</>
-              : <><Zap size={13} /> {mode === 'analyze' ? 'Run ATS Analysis' : 'Analyze & Tailor'}</>}
-          </button>
-        )}
-
-        {/* Results */}
-        {result && (
-          <div className="space-y-3">
-            {/* Score header */}
-            <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-              <ScoreRing score={result.overallScore} />
-              <div>
-                <p className="text-xs text-gray-500 mb-0.5">ATS Score</p>
-                <p className={clsx('text-lg font-bold', scoreColor(result.overallScore))}>
-                  {scoreLabel(result.overallScore)}
-                </p>
-                <p className="text-xs text-gray-400">{result.overallScore}/100 — {
-                  result.overallScore >= 75 ? 'Likely to pass ATS screening'
-                  : result.overallScore >= 50 ? 'May be filtered by some ATS'
-                  : 'High risk of ATS rejection'
-                }</p>
-              </div>
-            </div>
-
-            {/* Score breakdown bars */}
-            <div className="space-y-2 px-1">
-              <MiniBar score={result.breakdown.keywordMatch.score}        label="Keyword Match" />
-              <MiniBar score={result.breakdown.formatting.score}          label="Formatting" />
-              <MiniBar score={result.breakdown.sectionCompleteness.score} label="Completeness" />
-              <MiniBar score={result.breakdown.quantification.score}      label="Quantification" />
-              <MiniBar score={result.breakdown.actionVerbs.score}         label="Action Verbs" />
-            </div>
-
-            {/* Gap analysis */}
-            {result.gapAnalysis && (
-              <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 leading-relaxed">
-                <p className="font-semibold mb-1 flex items-center gap-1.5"><TrendingUp size={12} /> Gap Analysis</p>
-                {result.gapAnalysis}
-              </div>
-            )}
-
-            {/* Quick wins */}
-            {result.quickWins?.length > 0 && (
-              <div className="p-3 bg-green-50 border border-green-100 rounded-xl">
-                <p className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1.5">
-                  <CheckCircle2 size={12} /> Quick Wins
-                </p>
-                <ul className="space-y-1">
-                  {result.quickWins.map((w, i) => (
-                    <li key={i} className="text-xs text-green-700 flex items-start gap-1.5">
-                      <span className="mt-0.5 shrink-0">•</span>{w}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Top issues */}
-            {result.topIssues?.length > 0 && (
-              <div className="p-3 bg-red-50 border border-red-100 rounded-xl">
-                <p className="text-xs font-semibold text-red-700 mb-2 flex items-center gap-1.5">
-                  <AlertCircle size={12} /> Top Issues
-                </p>
-                <ul className="space-y-1">
-                  {result.topIssues.map((issue, i) => (
-                    <li key={i} className="text-xs text-red-700 flex items-start gap-1.5">
-                      <span className="mt-0.5 shrink-0">•</span>{issue}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Missing keywords */}
-            {result.breakdown.keywordMatch.missing?.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-gray-600 mb-1.5">Missing Keywords</p>
-                <div className="flex flex-wrap gap-1">
-                  {result.breakdown.keywordMatch.missing.map((kw) => (
-                    <span key={kw} className="px-2 py-0.5 bg-red-50 text-red-600 text-xs rounded-full border border-red-100">{kw}</span>
-                  ))}
+        <div className="p-4 space-y-3">
+          {/* Mode toggle */}
+          <div className="grid grid-cols-2 gap-2">
+            {(['analyze', 'tailor'] as const).map((m) => (
+              <button key={m} onClick={() => { setMode(m); setResult(null) }}
+                className={clsx('flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all',
+                  mode === m ? 'border-brand-500 bg-brand-50' : 'border-gray-200 hover:border-gray-300')}>
+                {m === 'analyze'
+                  ? <FileSearch size={15} className={mode === m ? 'text-brand-500' : 'text-gray-400'} />
+                  : <Target size={15} className={mode === m ? 'text-brand-500' : 'text-gray-400'} />}
+                <div>
+                  <p className={clsx('text-xs font-semibold', mode === m ? 'text-brand-700' : 'text-gray-600')}>
+                    {m === 'analyze' ? 'ATS Score' : 'Tailor to Job'}
+                  </p>
+                  <p className="text-xs text-gray-400">{m === 'analyze' ? 'Full ATS analysis' : 'Match job description'}</p>
                 </div>
-              </div>
-            )}
+              </button>
+            ))}
+          </div>
 
-            {/* Fix Resume — sends all issues to chat AI */}
-            <button
-              onClick={fixResume}
-              className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-brand-500 text-white text-xs font-semibold rounded-xl hover:opacity-90 flex items-center justify-center gap-2 transition-all shadow-sm"
-            >
-              <Wand2 size={13} /> Fix Resume with AI
-            </button>
+          {/* Target roles — analyze mode */}
+          {mode === 'analyze' && (
+            <TargetRolesPicker
+              roles={targetRoles}
+              onChange={(r) => { setTargetRoles(r); setResult(null) }}
+            />
+          )}
 
-            {/* Re-analyze after edits */}
-            <button
-              onClick={runATS}
-              disabled={loading}
-              className="w-full py-2.5 bg-brand-500 text-white text-xs font-semibold rounded-xl hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
-            >
+          {/* JD input — tailor mode */}
+          {mode === 'tailor' && (
+            <textarea rows={3} value={jd} onChange={(e) => setJd(e.target.value)}
+              placeholder="Paste the job description here..."
+              className="w-full px-3 py-2 text-xs rounded-lg border border-gray-200 resize-none focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 placeholder:text-gray-400" />
+          )}
+
+          {error && (
+            <div className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600">
+              <AlertCircle size={13} /> {error}
+            </div>
+          )}
+
+          {!result && (
+            <button onClick={runATS}
+              disabled={loading || (mode === 'analyze' && targetRoles.length === 0)}
+              className="w-full py-2.5 bg-brand-500 text-white text-xs font-semibold rounded-xl hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
               {loading
                 ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyzing...</>
-                : <><RotateCcw size={12} /> Re-analyze after edits</>}
+                : <><Zap size={13} /> {mode === 'analyze' ? 'Run ATS Analysis' : 'Analyze & Tailor'}</>}
             </button>
-          </div>
-        )}
+          )}
 
-        {!result && !loading && (
-          <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Star size={11} className="text-amber-500 fill-amber-500" />
-              <span className="text-xs font-semibold text-amber-700">How it works</span>
+          {result && (
+            <div className="space-y-3">
+              {targetRoles.length > 0 && (
+                <p className="text-xs text-gray-400 text-center">
+                  Scored against: <span className="font-medium text-gray-600">{targetRoles.join(' · ')}</span>
+                </p>
+              )}
+
+              <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                <ScoreRing score={result.overallScore} />
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">ATS Score</p>
+                  <p className={clsx('text-lg font-bold', scoreColor(result.overallScore))}>
+                    {scoreLabel(result.overallScore)}
+                  </p>
+                  <p className="text-xs text-gray-400">{result.overallScore}/100 — {
+                    result.overallScore >= 75 ? 'Likely to pass ATS screening'
+                    : result.overallScore >= 50 ? 'May be filtered by some ATS'
+                    : 'High risk of ATS rejection'
+                  }</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 px-1">
+                <MiniBar score={result.breakdown.keywordMatch.score}        label="Keyword Match" />
+                <MiniBar score={result.breakdown.formatting.score}          label="Formatting" />
+                <MiniBar score={result.breakdown.sectionCompleteness.score} label="Completeness" />
+                <MiniBar score={result.breakdown.quantification.score}      label="Quantification" />
+                <MiniBar score={result.breakdown.actionVerbs.score}         label="Action Verbs" />
+              </div>
+
+              {result.gapAnalysis && (
+                <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 leading-relaxed">
+                  <p className="font-semibold mb-1 flex items-center gap-1.5"><TrendingUp size={12} /> Gap Analysis</p>
+                  {result.gapAnalysis}
+                </div>
+              )}
+
+              {result.quickWins?.length > 0 && (
+                <div className="p-3 bg-green-50 border border-green-100 rounded-xl">
+                  <p className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1.5">
+                    <CheckCircle2 size={12} /> Quick Wins
+                  </p>
+                  <ul className="space-y-1">
+                    {result.quickWins.map((w, i) => (
+                      <li key={i} className="text-xs text-green-700 flex items-start gap-1.5"><span className="mt-0.5 shrink-0">•</span>{w.replace(/\*\*/g, '')}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {result.topIssues?.length > 0 && (
+                <div className="p-3 bg-red-50 border border-red-100 rounded-xl">
+                  <p className="text-xs font-semibold text-red-700 mb-2 flex items-center gap-1.5">
+                    <AlertCircle size={12} /> Top Issues
+                  </p>
+                  <ul className="space-y-1">
+                    {result.topIssues.map((issue, i) => (
+                      <li key={i} className="text-xs text-red-700 flex items-start gap-1.5"><span className="mt-0.5 shrink-0">•</span>{issue.replace(/\*\*/g, '')}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {result.breakdown.keywordMatch.missing?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 mb-1.5">Missing Keywords</p>
+                  <div className="flex flex-wrap gap-1">
+                    {result.breakdown.keywordMatch.missing.map((kw) => (
+                      <span key={kw} className="px-2 py-0.5 bg-red-50 text-red-600 text-xs rounded-full border border-red-100">{kw}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button onClick={fixResume}
+                className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-brand-500 text-white text-xs font-semibold rounded-xl hover:opacity-90 flex items-center justify-center gap-2 transition-all shadow-sm">
+                <Wand2 size={13} /> Fix Resume with AI
+              </button>
+
+              <button onClick={runATS} disabled={loading}
+                className="w-full py-2.5 bg-brand-500 text-white text-xs font-semibold rounded-xl hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
+                {loading
+                  ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyzing...</>
+                  : <><RotateCcw size={12} /> Re-analyze</>}
+              </button>
             </div>
-            <p className="text-xs text-amber-600">
-              Uses the same scoring criteria as Workday, Greenhouse & Lever — keyword density, section completeness, quantification rate, and action verb strength.
-            </p>
-          </div>
-        )}
-      </div>
+          )}
+
+          {!result && !loading && (
+            <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Star size={11} className="text-amber-500 fill-amber-500" />
+                <span className="text-xs font-semibold text-amber-700">How it works</span>
+              </div>
+              <p className="text-xs text-amber-600">
+                Add one or more target roles above. The ATS score combines all selected positions for a comprehensive analysis.
+              </p>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
 }
-

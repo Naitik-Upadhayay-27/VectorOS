@@ -121,22 +121,24 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
           </button>
         </div>
 
-        {/* Hidden measurement render — must be in flow for offsetTop to work */}
-        <div
-          ref={measureRef}
-          data-resume-measure
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: PAGE_W,
-            visibility: 'hidden',
-            pointerEvents: 'none',
-            zIndex: -1,
-          }}
-        >
-          <TemplateComponent data={data} />
-        </div>
+        {/* Hidden measurement render — always non-editable, used only for height/pagination */}
+        <EditableContext.Provider value={{ editMode: false }}>
+          <div
+            ref={measureRef}
+            data-resume-measure
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: PAGE_W,
+              visibility: 'hidden',
+              pointerEvents: 'none',
+              zIndex: -1,
+            }}
+          >
+            <TemplateComponent data={data} />
+          </div>
+        </EditableContext.Provider>
 
         {/* Page stack */}
         <div

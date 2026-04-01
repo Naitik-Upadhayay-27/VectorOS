@@ -8,6 +8,7 @@ import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useChatStore } from '@/store/chatStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
 import { useProfileStore } from '@/store/profileStore'
+import { useAtsStore } from '@/store/atsStore'
 import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
 import { TEMPLATES } from '@/components/resume-templates'
@@ -96,6 +97,8 @@ export default function DashboardPage() {
     const chatStore = useChatStore.getState()
     chatStore.clearMessages()
     draft.chatMessages.forEach((msg) => chatStore.addMessage(msg))
+    // Restore ATS result for this draft (null if never run)
+    useAtsStore.getState().setResult(draft.atsResult ?? null)
     setActiveDraft(draftId)
     navigate('/resume/resume-1')
   }
@@ -240,6 +243,7 @@ export default function DashboardPage() {
                 onClick={() => {
                   resetOnboarding()
                   useChatStore.getState().clearMessages()
+                  useAtsStore.getState().clearResult()
                   useDraftStore.getState().setActiveDraft(null)
                   openOnboarding()
                 }}

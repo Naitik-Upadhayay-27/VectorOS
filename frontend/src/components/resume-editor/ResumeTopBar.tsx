@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useDraftStore } from '@/store/draftStore'
+import { useAtsStore } from '@/store/atsStore'
 
 interface ResumeTopBarProps {
   onOpenTemplates?: () => void
@@ -47,6 +48,7 @@ export default function ResumeTopBar({ onOpenTemplates, onDownload, onOpenLayout
       resumeData: data,
       chatMessages: messages,
       editLog,
+      atsResult: useAtsStore.getState().result,
     })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -55,7 +57,6 @@ export default function ResumeTopBar({ onOpenTemplates, onDownload, onOpenLayout
   const handleStartNew = () => {
     resetOnboarding()
     resetOnboarding2()
-    // Reset to skeleton (empty template), not empty object
     const { resetData } = useTemplateResumeStore.getState()
     resetData({
       personalInfo: { name: '', title: '', contact: {} },
@@ -66,6 +67,7 @@ export default function ResumeTopBar({ onOpenTemplates, onDownload, onOpenLayout
       projects: [],
     })
     useChatStore.getState().clearMessages()
+    useAtsStore.getState().clearResult()
     useDraftStore.getState().setActiveDraft(null)
     openOnboarding()
   }

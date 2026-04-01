@@ -200,14 +200,30 @@ export const useTemplateResumeStore = create<TemplateResumeState>()(
   addExperience: (item) =>
     set((s) => ({ data: { ...s.data, experience: [...(s.data.experience ?? []), { id: uid(), ...item }] } })),
   updateExperience: (id, item) =>
-    set((s) => ({ data: { ...s.data, experience: s.data.experience?.map((e) => e.id === id ? { ...e, ...item } : e) } })),
+    set((s) => ({
+      data: {
+        ...s.data,
+        experience: s.data.experience?.map((e) => e.id === id ? {
+          ...e, ...item,
+          ...(item.description ? { description: item.description.filter((d) => d.replace(/<[^>]*>/g, '').trim() !== '') } : {}),
+        } : e),
+      },
+    })),
   removeExperience: (id) =>
     set((s) => ({ data: { ...s.data, experience: s.data.experience?.filter((e) => e.id !== id) } })),
 
   addEducation: (item) =>
     set((s) => ({ data: { ...s.data, education: [...(s.data.education ?? []), { id: uid(), ...item }] } })),
   updateEducation: (id, item) =>
-    set((s) => ({ data: { ...s.data, education: s.data.education?.map((e) => e.id === id ? { ...e, ...item } : e) } })),
+    set((s) => ({
+      data: {
+        ...s.data,
+        education: s.data.education?.map((e) => e.id === id ? {
+          ...e, ...item,
+          ...(item.description ? { description: item.description.filter((d) => d.replace(/<[^>]*>/g, '').trim() !== '') } : {}),
+        } : e),
+      },
+    })),
   removeEducation: (id) =>
     set((s) => ({ data: { ...s.data, education: s.data.education?.filter((e) => e.id !== id) } })),
 
@@ -221,7 +237,15 @@ export const useTemplateResumeStore = create<TemplateResumeState>()(
   addProject: (item) =>
     set((s) => ({ data: { ...s.data, projects: [...(s.data.projects ?? []), { id: uid(), ...item }] } })),
   updateProject: (id, item) =>
-    set((s) => ({ data: { ...s.data, projects: s.data.projects?.map((e) => e.id === id ? { ...e, ...item } : e) } })),
+    set((s) => ({
+      data: {
+        ...s.data,
+        projects: s.data.projects?.map((e) => e.id === id ? {
+          ...e, ...item,
+          ...(Array.isArray(item.description) ? { description: item.description.filter((d) => d.replace(/<[^>]*>/g, '').trim() !== '') } : {}),
+        } : e),
+      },
+    })),
   removeProject: (id) =>
     set((s) => ({ data: { ...s.data, projects: s.data.projects?.filter((e) => e.id !== id) } })),
 

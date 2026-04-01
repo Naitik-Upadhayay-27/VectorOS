@@ -1,9 +1,46 @@
 import { Router, Response } from 'express'
 import { authenticate, AuthRequest } from '../middleware/auth'
 import { generateText, generateChat } from '../lib/ai'
+import * as fs from 'fs'
+import * as path from 'path'
 
 const router = Router()
 router.use(authenticate)
+
+// Load job titles once at startup
+const jobTitlesPath = path.join(__dirname, '../data/job_titles.json')
+const toTitleCase = (s: string) =>
+  s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+
+const JOB_TITLES: string[] = (() => {
+  try {
+    const raw = JSON.parse(fs.readFileSync(jobTitlesPath, 'utf-8'))
+    return Array.from(new Set(
+      (raw['job-titles'] as string[]).map((t: string) => toTitleCase(t.trim())).filter(Boolean)
+    )) as string[]
+  } catch { return [] }
+})()
+
+// GET /api/ai/job-titles?q=engineer
+router.get('/job-titles', (req: AuthRequest, res: Response) => {
+  const q = String(req.query.q ?? '').toLowerCase().trim()
+  if (!q) return res.json({ titles: [] })
+  // Two full passes: starts-with first, then word-boundary starts, then contains
+  const startsWith: string[] = []
+  const wordStarts: string[] = []
+  const contains: string[] = []
+  for (const t of JOB_TITLES) {
+    const tl = t.toLowerCase()
+    if (tl.startsWith(q)) {
+      startsWith.push(t)
+    } else if (tl.split(/\s+/).some(word => word.startsWith(q))) {
+      wordStarts.push(t)
+    } else if (tl.includes(q)) {
+      contains.push(t)
+    }
+  }
+  res.json({ titles: [...startsWith, ...wordStarts, ...contains].slice(0, 20) })
+})
 
 // POST /api/ai/rewrite-bullet
 router.post('/rewrite-bullet', async (req: AuthRequest, res: Response) => {
@@ -45,34 +82,44 @@ router.post('/chat', async (req: AuthRequest, res: Response) => {
   try {
     const systemPrompt = `You are an expert career coach and resume editor embedded inside a resume builder app.
 
-You have two modes:
+You have three modes:
 1. ADVICE mode — answer questions, give feedback, suggest improvements in plain text
-2. EDIT mode — when the user asks you to change, update, rewrite, add, or remove something in their resume, you MUST apply the edit directly
+2. PROPOSE mode — when the user asks you to change, update, rewrite, add, or remove something, you MUST first propose the changes and ask for confirmation BEFORE applying them
+3. APPLY mode — only when the user explicitly confirms (says "yes", "apply", "do it", "go ahead", "confirm", "looks good", "sure", etc.) after a proposal
 
-When in EDIT mode, respond with ONLY valid JSON in this exact format — no markdown fences, no text before or after, just the raw JSON object:
+PROPOSE mode (default for all edit requests):
+Respond with ONLY valid JSON — no markdown fences, no text before or after:
 {
-  "reply": "<friendly confirmation message explaining what you changed>",
-  "resumeEdits": {
-    "summary": "<new summary string, only if changed>",
-    "personalInfo": { "name": "...", "title": "...", "contact": { "email": "...", "phone": "...", "location": "...", "linkedin": "...", "github": "..." } },
+  "reply": "<friendly message listing exactly what you plan to change, section by section, and asking 'Should I apply these changes?'>",
+  "proposedEdits": {
+    "summary": "<new summary string, only if changing>",
+    "personalInfo": { "name": "...", "title": "...", "contact": { ... } },
     "experience": [{ "id": "<existing id or 'new'>", "title": "...", "company": "...", "location": "...", "startDate": "...", "endDate": "...", "description": ["bullet 1", "bullet 2"] }],
     "education": [{ "id": "<existing id or 'new'>", "degree": "...", "institution": "...", "location": "...", "graduationDate": "...", "gpa": "..." }],
     "skills": [{ "id": "<existing id or 'new'>", "category": "...", "skills": ["skill1", "skill2"] }],
     "projects": [{ "id": "<existing id or 'new'>", "name": "...", "role": "...", "link": "...", "startDate": "...", "endDate": "...", "description": ["bullet 1"], "technologies": ["tech1"] }],
-    "deleteExperience": ["<id to delete>"],
-    "deleteEducation": ["<id to delete>"],
-    "deleteSkills": ["<id to delete>"],
-    "deleteProjects": ["<id to delete>"]
+    "deleteExperience": ["<id>"],
+    "deleteEducation": ["<id>"],
+    "deleteSkills": ["<id>"],
+    "deleteProjects": ["<id>"]
   }
 }
 
-RULES for EDIT mode:
-- Only include fields that actually need to change in resumeEdits
+APPLY mode (only when user confirms a previous proposal):
+Respond with ONLY valid JSON:
+{
+  "reply": "<confirmation message listing every change made and where — be specific: 'Added React, Node.js to Technical Skills', 'Rewrote 3 bullets in your Full Stack Developer role', etc.>",
+  "resumeEdits": { <same structure as proposedEdits> }
+}
+
+RULES:
+- NEVER apply edits without user confirmation first — always use PROPOSE mode for edit requests
+- In PROPOSE mode, the reply must clearly list every planned change so the user knows exactly what will happen
+- In APPLY mode, the reply must summarize every change actually made, with specific field/section names
+- Only include fields that actually need to change
 - For existing items, use their real id from the resume data. For new items, use "new" as the id
-- For partial updates to an existing item, include the full item with all fields
-- If the user only wants advice, respond in plain text — do NOT include resumeEdits
-- Section ordering is controlled by the template and CANNOT be changed. If asked to move a section, explain and offer to improve content instead
-- When in EDIT mode, respond with ONLY the JSON object — no text before or after it
+- If the user only wants advice or asks a question, respond in plain text — do NOT include proposedEdits or resumeEdits
+- Section ordering cannot be changed via chat
 
 User profile:
 - Name: ${userContext?.name ?? 'Unknown'}
@@ -121,9 +168,13 @@ ${JSON.stringify(resumeData ?? resumeContext ?? {}, null, 2)}`
         const jsonStr = cleaned.slice(jsonStart, jsonEnd + 1)
         const parsed = JSON.parse(jsonStr)
 
-        // Valid edit response
+        // Valid edit response (applied)
         if (parsed.reply !== undefined && parsed.resumeEdits !== undefined) {
           return res.json({ reply: String(parsed.reply), resumeEdits: parsed.resumeEdits })
+        }
+        // Proposal response (pending confirmation)
+        if (parsed.reply !== undefined && parsed.proposedEdits !== undefined) {
+          return res.json({ reply: String(parsed.reply), proposedEdits: parsed.proposedEdits })
         }
         // Valid advice response (JSON with just reply)
         if (parsed.reply !== undefined) {
@@ -160,26 +211,43 @@ JOB DESCRIPTION:\n${description}`)
 
 // POST /api/ai/ats-score
 router.post('/ats-score', async (req: AuthRequest, res: Response) => {
-  const { resumeData, targetRole, targetDomains, currentRole, currentCompany, yearsOfExperience, jobDescription } = req.body
+  const { resumeData, targetRole, targetRoles, targetDomains, currentRole, currentCompany, yearsOfExperience, jobDescription } = req.body
   if (!resumeData) return res.status(400).json({ error: 'resumeData is required' })
   try {
+    // Support both single targetRole and multi targetRoles array
+    const rolesLabel = Array.isArray(targetRoles) && targetRoles.length > 0
+      ? targetRoles.join(', ')
+      : (targetRole ?? 'Not specified')
     const targetContext = jobDescription
       ? `Job Description provided:\n${jobDescription}`
-      : `Target Role: ${targetRole ?? 'Not specified'}\nTarget Industries: ${Array.isArray(targetDomains) && targetDomains.length > 0 ? targetDomains.join(', ') : 'Not specified'}`
+      : `Target Role(s): ${rolesLabel}\nTarget Industries: ${Array.isArray(targetDomains) && targetDomains.length > 0 ? targetDomains.join(', ') : 'Not specified'}`
 
-    const prompt = `You are an ATS expert. Score this resume against the TARGET ROLE below (not current role). Return ONLY valid JSON:
+    const today = new Date().toISOString().split('T')[0] // e.g. 2026-04-01
+
+    const prompt = `You are a senior ATS specialist and resume reviewer. Today's date is ${today}. Score this resume honestly and accurately.
+
+IMPORTANT SCORING RULES:
+- overallScore = weighted average: keywordMatch×35% + sectionCompleteness×25% + actionVerbs×20% + quantification×15% + formatting×5%
+- Do NOT penalize dates that are in the future relative to today if they represent ongoing roles, current education, or internships that started before today — these are valid
+- formatting score should reflect actual resume structure issues (missing sections, bad layout, HTML artifacts like <br> tags in text fields) — a clean structured resume should score 70+
+- Missing keywords must be SHORT strings (2-4 words max), not sentences or paragraphs
+- Be realistic: a resume with 80 keyword match should not score below 55 overall
+- quickWins must be concise actionable items (1 sentence each, no markdown bold)
+- topIssues must be concise (1-2 sentences each, no markdown bold)
+
+Return ONLY valid JSON, no markdown fences:
 {
   "overallScore":<0-100>,
   "breakdown":{
-    "keywordMatch":{"score":<0-100>,"found":[<string>],"missing":[<string>]},
-    "formatting":{"score":<0-100>,"issues":[<string>]},
+    "keywordMatch":{"score":<0-100>,"found":[<short string>],"missing":[<2-4 word keyword>]},
+    "formatting":{"score":<0-100>,"issues":[<short string>]},
     "sectionCompleteness":{"score":<0-100>,"present":[<string>],"missing":[<string>]},
-    "quantification":{"score":<0-100>,"examples":[<string>],"suggestions":[<string>]},
-    "actionVerbs":{"score":<0-100>,"weak":[<string>],"suggestions":[<string>]}
+    "quantification":{"score":<0-100>,"examples":[<string>],"suggestions":[<short string>]},
+    "actionVerbs":{"score":<0-100>,"weak":[<string>],"suggestions":[<short string>]}
   },
-  "topIssues":[<string>],
-  "quickWins":[<string>],
-  "gapAnalysis":"<string>"
+  "topIssues":[<1-2 sentence string>],
+  "quickWins":[<1 sentence actionable string>],
+  "gapAnalysis":"<2-4 sentence honest summary>"
 }
 ${targetContext}
 Current Role: ${currentRole ?? 'Not specified'} | Company: ${currentCompany ?? 'Not specified'} | Experience: ${yearsOfExperience ?? 'Not specified'}
