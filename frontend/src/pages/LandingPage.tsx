@@ -180,13 +180,13 @@ export default function LandingPage() {
             onClick={() => navigate('/signup')}
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-black border border-purple-500 text-white font-semibold text-sm transition-all shadow-[0_0_16px_rgba(168,85,247,0.5)] hover:shadow-[0_0_28px_rgba(168,85,247,0.8)] hover:border-purple-400 hover:bg-black/80"
           >
-            Start for Free <ArrowRight size={15} />
+            Build My Resume <ArrowRight size={15} />
           </button>
           <button
             onClick={() => navigate('/login')}
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-black border border-purple-500/40 text-white/70 font-medium text-sm transition-all hover:border-purple-400 hover:text-white hover:shadow-[0_0_16px_rgba(168,85,247,0.4)]"
           >
-            Sign In
+            Find Your Job <ArrowRight size={15} />
           </button>
         </div>
       </HeroGeometric>

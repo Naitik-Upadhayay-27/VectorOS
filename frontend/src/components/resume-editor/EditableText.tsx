@@ -24,7 +24,16 @@ export default function EditableText({
   const lastSaved = useRef(value)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Sync external value into DOM only when not focused
+  // Set initial content on mount
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.innerHTML = value
+    lastSaved.current = value
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Sync external value into DOM only when not focused (e.g. AI updates)
   useLayoutEffect(() => {
     const el = ref.current
     if (!el || isFocused.current) return
@@ -97,7 +106,6 @@ export default function EditableText({
       onBlur={handleBlur}
       onInput={handleInput}
       onKeyDown={handleKeyDown}
-      dangerouslySetInnerHTML={{ __html: value }}
       className={[
         className,
         'outline-none cursor-text',
