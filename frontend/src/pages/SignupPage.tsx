@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
 import { API_BASE } from '@/lib/config'
@@ -10,9 +10,12 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { login } = useAuthStore()
+  const { login, user } = useAuthStore()
   const { openOnboarding } = useOnboardingStore()
   const navigate = useNavigate()
+
+  // Already logged in
+  if (user) return <Navigate to="/dashboard" replace />
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,6 +31,7 @@ export default function SignupPage() {
       if (!res.ok) throw new Error(data.error ?? 'Signup failed')
       login(data.user, data.token, data.refreshToken)
       navigate('/dashboard')
+      // Only new signups get onboarding
       setTimeout(() => openOnboarding(), 50)
     } catch (err: any) {
       setError(err.message)

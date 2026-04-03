@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { useOnboardingStore } from '@/store/onboardingStore'
 import { API_BASE } from '@/lib/config'
 
 export default function LoginPage() {
@@ -9,9 +8,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { login, hasOnboarded } = useAuthStore()
-  const { openOnboarding } = useOnboardingStore()
+  const { login, user } = useAuthStore()
   const navigate = useNavigate()
+
+  // Already logged in — go straight to dashboard
+  if (user) return <Navigate to="/dashboard" replace />
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,12 +27,7 @@ export default function LoginPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Login failed')
       login(data.user, data.token, data.refreshToken)
-      if (!hasOnboarded) {
-        navigate('/dashboard')
-        setTimeout(() => openOnboarding(), 50)
-      } else {
-        navigate('/dashboard')
-      }
+      navigate('/dashboard')
     } catch (err: any) {
       setError(err.message)
     } finally {

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '@/store/authStore'
 import { FileText, Target, BarChart2, MessageSquare, ArrowRight, CheckCircle, Upload, Brain, Sparkles, Send, TrendingUp } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { ContainerScroll } from '@/components/ui/container-scroll-animation'
@@ -97,6 +98,7 @@ const howItWorksData = [
 
 export default function LandingPage() {
   const navigate = useNavigate()
+  const { user } = useAuthStore()
 
   return (
     <div className="min-h-screen bg-[#030303] text-white">
@@ -118,18 +120,29 @@ export default function LandingPage() {
 
         {/* Auth buttons */}
         <div className="flex items-center gap-3 shrink-0">
-          <button
-            onClick={() => navigate('/login')}
-            className="text-sm text-white/50 hover:text-white transition-colors px-3 py-1.5"
-          >
-            Sign In
-          </button>
-          <button
-            onClick={() => navigate('/signup')}
-            className="text-sm px-5 py-2 rounded-full bg-black border border-purple-500 text-white font-semibold transition-all shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.7)] hover:border-purple-400"
-          >
-            Get Started
-          </button>
+          {user ? (
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="text-sm px-5 py-2 rounded-full bg-black border border-purple-500 text-white font-semibold transition-all shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.7)] hover:border-purple-400"
+            >
+              Dashboard
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => navigate('/login')}
+                className="text-sm text-white/50 hover:text-white transition-colors px-3 py-1.5"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => navigate('/signup')}
+                className="text-sm px-5 py-2 rounded-full bg-black border border-purple-500 text-white font-semibold transition-all shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.7)] hover:border-purple-400"
+              >
+                Get Started
+              </button>
+            </>
+          )}
         </div>
       </nav>
 
@@ -177,17 +190,19 @@ export default function LandingPage() {
         {/* 4. CTA buttons */}
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <button
-            onClick={() => navigate('/signup')}
+            onClick={() => navigate(user ? '/dashboard' : '/signup')}
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-black border border-purple-500 text-white font-semibold text-sm transition-all shadow-[0_0_16px_rgba(168,85,247,0.5)] hover:shadow-[0_0_28px_rgba(168,85,247,0.8)] hover:border-purple-400 hover:bg-black/80"
           >
-            Build My Resume <ArrowRight size={15} />
+            {user ? 'Go to Dashboard' : 'Build My Resume'} <ArrowRight size={15} />
           </button>
+          {!user && (
           <button
             onClick={() => navigate('/login')}
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-black border border-purple-500/40 text-white/70 font-medium text-sm transition-all hover:border-purple-400 hover:text-white hover:shadow-[0_0_16px_rgba(168,85,247,0.4)]"
           >
             Find Your Job <ArrowRight size={15} />
           </button>
+          )}
         </div>
       </HeroGeometric>
 

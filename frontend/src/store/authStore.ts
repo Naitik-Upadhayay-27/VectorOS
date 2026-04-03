@@ -23,9 +23,23 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       refreshToken: null,
       hasOnboarded: false,
-      login: (user, token, refreshToken) => set({ user, token, refreshToken: refreshToken ?? null }),
+      login: (user, token, refreshToken) => {
+        // Clear all previous user's data before setting new session
+        import('@/store/chatStore').then(({ useChatStore }) => useChatStore.getState().clearMessages())
+        import('@/store/templateResumeStore').then(({ useTemplateResumeStore }) =>
+          useTemplateResumeStore.getState().resetData({
+            personalInfo: { name: '', title: '', contact: {} },
+            summary: '', experience: [], education: [], skills: [], projects: [],
+          })
+        )
+        import('@/store/draftStore').then(({ useDraftStore }) => {
+          useDraftStore.getState().loadForUser(user.id)
+        })
+        import('@/store/atsStore').then(({ useAtsStore }) => useAtsStore.getState().clearResult())
+        set({ user, token, refreshToken: refreshToken ?? null })
+      },
       logout: () => {
-        // Clear all user-specific state on logout
+        // Clear all user-specific state on logout but preserve hasOnboarded
         import('@/store/chatStore').then(({ useChatStore }) => useChatStore.getState().clearMessages())
         import('@/store/templateResumeStore').then(({ useTemplateResumeStore }) =>
           useTemplateResumeStore.getState().resetData({
@@ -35,7 +49,8 @@ export const useAuthStore = create<AuthState>()(
         )
         import('@/store/onboardingStore').then(({ useOnboardingStore }) => useOnboardingStore.getState().reset())
         import('@/store/draftStore').then(({ useDraftStore }) => useDraftStore.getState().setActiveDraft(null))
-        set({ user: null, token: null, refreshToken: null, hasOnboarded: false })
+        // Keep hasOnboarded so returning users skip onboarding on next login
+        set((s) => ({ user: null, token: null, refreshToken: null, hasOnboarded: s.hasOnboarded }))
       },
       updateUser: (updates) =>
         set((state) => ({ user: state.user ? { ...state.user, ...updates } : null })),
