@@ -25,36 +25,22 @@ export const useAuthStore = create<AuthState>()(
       hasOnboarded: false,
       login: (user, token, refreshToken) => {
         const prevUserId = get().user?.id
-
         if (prevUserId && prevUserId !== user.id) {
-          // Different account — save current user's resume, clear stores, load new user's data
-          import('@/store/templateResumeStore').then(({ useTemplateResumeStore }) => {
-            // Save outgoing user's resume
-            const currentData = useTemplateResumeStore.getState().data
-            localStorage.setItem(`vectoros-resume-${prevUserId}`, JSON.stringify(currentData))
-
-            // Load incoming user's resume (or blank if first time)
-            const saved = localStorage.getItem(`vectoros-resume-${user.id}`)
-            if (saved) {
-              try { useTemplateResumeStore.getState().resetData(JSON.parse(saved)) }
-              catch { useTemplateResumeStore.getState().resetData({ personalInfo: { name: '', title: '', contact: {} }, summary: '', experience: [], education: [], skills: [], projects: [] }) }
-            } else {
-              useTemplateResumeStore.getState().resetData({ personalInfo: { name: '', title: '', contact: {} }, summary: '', experience: [], education: [], skills: [], projects: [] })
-            }
-          })
+          // Different account — clear current stores
           import('@/store/chatStore').then(({ useChatStore }) => useChatStore.getState().clearMessages())
+          import('@/store/templateResumeStore').then(({ useTemplateResumeStore }) =>
+            useTemplateResumeStore.getState().resetData({
+              personalInfo: { name: '', title: '', contact: {} },
+              summary: '', experience: [], education: [], skills: [], projects: [],
+            })
+          )
           import('@/store/atsStore').then(({ useAtsStore }) => useAtsStore.getState().clearResult())
+          import('@/store/draftStore').then(({ useDraftStore }) => useDraftStore.getState().clearDrafts())
         }
-
-        // Always load this user's drafts
-        import('@/store/draftStore').then(({ useDraftStore }) => {
-          useDraftStore.getState().loadForUser(user.id)
-        })
-
         set({ user, token, refreshToken: refreshToken ?? null })
+        // loadDrafts is called by App.tsx useEffect on user?.id change
       },
       logout: () => {
-        // Clear all user-specific state on logout but preserve hasOnboarded
         import('@/store/chatStore').then(({ useChatStore }) => useChatStore.getState().clearMessages())
         import('@/store/templateResumeStore').then(({ useTemplateResumeStore }) =>
           useTemplateResumeStore.getState().resetData({
@@ -63,8 +49,7 @@ export const useAuthStore = create<AuthState>()(
           })
         )
         import('@/store/onboardingStore').then(({ useOnboardingStore }) => useOnboardingStore.getState().reset())
-        import('@/store/draftStore').then(({ useDraftStore }) => useDraftStore.getState().setActiveDraft(null))
-        // Keep hasOnboarded so returning users skip onboarding on next login
+        import('@/store/draftStore').then(({ useDraftStore }) => useDraftStore.getState().clearDrafts())
         set((s) => ({ user: null, token: null, refreshToken: null, hasOnboarded: s.hasOnboarded }))
       },
       updateUser: (updates) =>

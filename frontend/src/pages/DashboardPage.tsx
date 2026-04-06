@@ -92,12 +92,14 @@ export default function DashboardPage() {
   const loadDraft = (draftId: string) => {
     const draft = drafts.find((d) => d.id === draftId)
     if (!draft) return
-    useTemplateResumeStore.getState().resetData(draft.resumeData)
-    useTemplateResumeStore.getState().setTemplate(draft.templateId)
+    const store = useTemplateResumeStore.getState()
+    store.resetData(draft.resumeData)
+    store.setTemplate(draft.templateId)
+    if (draft.sectionOrder?.length) store.setSectionOrder(draft.sectionOrder)
+    if (draft.layout && Object.keys(draft.layout).length) store.setLayout(draft.layout)
     const chatStore = useChatStore.getState()
     chatStore.clearMessages()
     draft.chatMessages.forEach((msg) => chatStore.addMessage(msg))
-    // Restore ATS result for this draft (null if never run)
     useAtsStore.getState().setResult(draft.atsResult ?? null)
     setActiveDraft(draftId)
     navigate('/resume/resume-1')

@@ -164,8 +164,10 @@ RESUME:
 
 // ── GET /api/resumes ─────────────────────────────────────────────────────────
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const resumes = await Resume.find({ userId: req.userId }).sort({ updatedAt: -1 }).select('-experience -education -skills -projects -certificates -awards -languages -volunteer')
-  res.json({ resumes })
+  try {
+    const resumes = await Resume.find({ userId: req.userId }).sort({ updatedAt: -1 })
+    res.json({ resumes })
+  } catch (err: any) { res.status(500).json({ error: err.message }) }
 })
 
 // ── POST /api/resumes ────────────────────────────────────────────────────────
@@ -180,26 +182,32 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
 // ── GET /api/resumes/:id ─────────────────────────────────────────────────────
 router.get('/:id', async (req: AuthRequest, res: Response) => {
-  const resume = await Resume.findOne({ _id: req.params.id, userId: req.userId })
-  if (!resume) return res.status(404).json({ error: 'Resume not found' })
-  res.json({ resume })
+  try {
+    const resume = await Resume.findOne({ _id: req.params.id, userId: req.userId })
+    if (!resume) return res.status(404).json({ error: 'Resume not found' })
+    res.json({ resume })
+  } catch (err: any) { res.status(500).json({ error: err.message }) }
 })
 
 // ── PUT /api/resumes/:id ─────────────────────────────────────────────────────
 router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const resume = await Resume.findOneAndUpdate(
-    { _id: req.params.id, userId: req.userId },
-    { ...req.body, updatedAt: new Date() },
-    { new: true, upsert: false }
-  )
-  if (!resume) return res.status(404).json({ error: 'Resume not found' })
-  res.json({ resume })
+  try {
+    const resume = await Resume.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      { ...req.body, updatedAt: new Date() },
+      { new: true, upsert: false }
+    )
+    if (!resume) return res.status(404).json({ error: 'Resume not found' })
+    res.json({ resume })
+  } catch (err: any) { res.status(500).json({ error: err.message }) }
 })
 
 // ── DELETE /api/resumes/:id ──────────────────────────────────────────────────
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  await Resume.findOneAndDelete({ _id: req.params.id, userId: req.userId })
-  res.json({ success: true })
+  try {
+    await Resume.findOneAndDelete({ _id: req.params.id, userId: req.userId })
+    res.json({ success: true })
+  } catch (err: any) { res.status(500).json({ error: err.message }) }
 })
 
 // ── POST /api/resumes/parse ──────────────────────────────────────────────────

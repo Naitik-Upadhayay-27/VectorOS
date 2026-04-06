@@ -21,7 +21,7 @@ export default function ResumeTopBar({ onOpenTemplates, onDownload, onOpenLayout
   const { toggleChat, isOpen, messages, editLog } = useChatStore()
   const { resetOnboarding } = useAuthStore()
   const { openOnboarding, reset: resetOnboarding2 } = useOnboardingStore()
-  const { data, activeTemplateId } = useTemplateResumeStore()
+  const { data, activeTemplateId, sectionOrder, layout } = useTemplateResumeStore()
   const { saveDraft, activeDraftId, drafts } = useDraftStore()
 
   // Draft name — editable
@@ -46,6 +46,8 @@ export default function ResumeTopBar({ onOpenTemplates, onDownload, onOpenLayout
       name: draftName,
       templateId: activeTemplateId,
       resumeData: data,
+      sectionOrder,
+      layout,
       chatMessages: messages,
       editLog,
       atsResult: useAtsStore.getState().result,

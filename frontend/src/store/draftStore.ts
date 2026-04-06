@@ -1,15 +1,19 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import type { TemplateResumeData } from '@/types/resume'
 import type { ChatMessage } from '@/types'
 import type { EditLogEntry } from './chatStore'
 import type { ATSResult } from './atsStore'
+import type { SectionKey, LayoutSettings } from './templateResumeStore'
+import { apiFetch } from '@/lib/apiFetch'
+import { API_BASE } from '@/lib/config'
 
 export interface ResumeDraft {
   id: string
   name: string
   templateId: number
   resumeData: TemplateResumeData
+  sectionOrder: SectionKey[]
+  layout: LayoutSettings
   chatMessages: ChatMessage[]
   editLog: EditLogEntry[]
   atsResult?: ATSResult | null
@@ -19,72 +23,141 @@ export interface ResumeDraft {
 interface DraftState {
   drafts: ResumeDraft[]
   activeDraftId: string | null
-  currentUserId: string | null
-  saveDraft: (draft: Omit<ResumeDraft, 'savedAt'>) => void
-  deleteDraft: (id: string) => void
-  renameDraft: (id: string, name: string) => void
+  loading: boolean
+  // Actions
+  loadDrafts: () => Promise<void>
+  saveDraft: (draft: Omit<ResumeDraft, 'savedAt'>) => Promise<void>
+  deleteDraft: (id: string) => Promise<void>
+  renameDraft: (id: string, name: string) => Promise<void>
   setActiveDraft: (id: string | null) => void
-  loadForUser: (userId: string) => void
+  clearDrafts: () => void
 }
 
-// Per-user draft storage in localStorage
-const getUserDrafts = (userId: string): ResumeDraft[] => {
-  try {
-    return JSON.parse(localStorage.getItem(`vectoros-drafts-${userId}`) ?? '[]')
-  } catch { return [] }
+// Convert backend resume doc → frontend ResumeDraft
+function docToDraft(doc: any): ResumeDraft {
+  const { _id, name, templateId, chatMessages, editLog, atsResult, sectionOrder, layout, updatedAt, ...rest } = doc
+  const resumeData: TemplateResumeData = {
+    personalInfo: rest.personalInfo,
+    summary: rest.summary,
+    experience: rest.experience ?? [],
+    education: rest.education ?? [],
+    skills: rest.skills ?? [],
+    projects: rest.projects ?? [],
+    certificates: rest.certificates,
+    awards: rest.awards,
+    languages: rest.languages,
+    volunteer: rest.volunteer,
+  }
+  return {
+    id: _id,
+    name: name ?? 'Untitled Resume',
+    templateId: templateId ?? 1,
+    resumeData,
+    sectionOrder: sectionOrder ?? [],
+    layout: layout ?? {},
+    chatMessages: chatMessages ?? [],
+    editLog: editLog ?? [],
+    atsResult: atsResult ?? null,
+    savedAt: updatedAt ?? new Date().toISOString(),
+  }
 }
 
-const saveUserDrafts = (userId: string, drafts: ResumeDraft[]) => {
-  localStorage.setItem(`vectoros-drafts-${userId}`, JSON.stringify(drafts))
+// Convert frontend ResumeDraft → backend payload
+function draftToPayload(draft: Omit<ResumeDraft, 'savedAt'>) {
+  return {
+    name: draft.name,
+    templateId: draft.templateId,
+    sectionOrder: draft.sectionOrder,
+    layout: draft.layout,
+    chatMessages: draft.chatMessages,
+    editLog: draft.editLog,
+    atsResult: draft.atsResult ?? null,
+    ...draft.resumeData,
+  }
 }
 
-export const useDraftStore = create<DraftState>()(
-  persist(
-    (set, get) => ({
-      drafts: [],
-      activeDraftId: null,
-      currentUserId: null,
+export const useDraftStore = create<DraftState>()((set) => ({
+  drafts: [],
+  activeDraftId: null,
+  loading: false,
 
-      loadForUser: (userId: string) => {
-        const drafts = getUserDrafts(userId)
-        set({ drafts, activeDraftId: null, currentUserId: userId })
-      },
+  loadDrafts: async () => {
+    set({ loading: true })
+    try {
+      const res = await apiFetch(`${API_BASE}/api/resumes`)
+      const data = await res.json()
+      const drafts: ResumeDraft[] = (data.resumes ?? []).map(docToDraft)
+      set({ drafts, loading: false })
+    } catch {
+      set({ loading: false })
+    }
+  },
 
-      saveDraft: (draft) =>
-        set((state) => {
-          const existing = state.drafts.findIndex((d) => d.id === draft.id)
-          const entry: ResumeDraft = { ...draft, savedAt: new Date().toISOString() }
-          let updated: ResumeDraft[]
-          if (existing >= 0) {
-            updated = [...state.drafts]
-            updated[existing] = entry
-          } else {
-            updated = [entry, ...state.drafts]
-          }
-          if (state.currentUserId) saveUserDrafts(state.currentUserId, updated)
-          return { drafts: updated, activeDraftId: draft.id }
-        }),
+  saveDraft: async (draft) => {
+    const payload = draftToPayload(draft)
+    try {
+      // If id looks like a MongoDB ObjectId (24 hex chars), update; otherwise create
+      const isNew = !draft.id || draft.id.length !== 24
+      let saved: any
+      if (isNew) {
+        const res = await apiFetch(`${API_BASE}/api/resumes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const data = await res.json()
+        saved = docToDraft(data.resume)
+      } else {
+        const res = await apiFetch(`${API_BASE}/api/resumes/${draft.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const data = await res.json()
+        saved = docToDraft(data.resume)
+      }
+      set((state) => {
+        const existing = state.drafts.findIndex((d) => d.id === saved.id || d.id === draft.id)
+        if (existing >= 0) {
+          const updated = [...state.drafts]
+          updated[existing] = saved
+          return { drafts: updated, activeDraftId: saved.id }
+        }
+        return { drafts: [saved, ...state.drafts], activeDraftId: saved.id }
+      })
+    } catch (e) {
+      console.error('Failed to save draft:', e)
+    }
+  },
 
-      deleteDraft: (id) =>
-        set((state) => {
-          const updated = state.drafts.filter((d) => d.id !== id)
-          if (state.currentUserId) saveUserDrafts(state.currentUserId, updated)
-          return {
-            drafts: updated,
-            activeDraftId: state.activeDraftId === id ? null : state.activeDraftId,
-          }
-        }),
+  deleteDraft: async (id) => {
+    try {
+      await apiFetch(`${API_BASE}/api/resumes/${id}`, { method: 'DELETE' })
+      set((state) => ({
+        drafts: state.drafts.filter((d) => d.id !== id),
+        activeDraftId: state.activeDraftId === id ? null : state.activeDraftId,
+      }))
+    } catch (e) {
+      console.error('Failed to delete draft:', e)
+    }
+  },
 
-      renameDraft: (id, name) =>
-        set((state) => {
-          const updated = state.drafts.map((d) => d.id === id ? { ...d, name } : d)
-          if (state.currentUserId) saveUserDrafts(state.currentUserId, updated)
-          return { drafts: updated }
-        }),
+  renameDraft: async (id, name) => {
+    try {
+      await apiFetch(`${API_BASE}/api/resumes/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      set((state) => ({
+        drafts: state.drafts.map((d) => d.id === id ? { ...d, name } : d),
+      }))
+    } catch (e) {
+      console.error('Failed to rename draft:', e)
+    }
+  },
 
-      setActiveDraft: (id) => set({ activeDraftId: id }),
-    }),
-    { name: 'vectoros-drafts-meta', partialize: (s) => ({ currentUserId: s.currentUserId, activeDraftId: s.activeDraftId }) }
-  )
-)
+  setActiveDraft: (id) => set({ activeDraftId: id }),
 
+  clearDrafts: () => set({ drafts: [], activeDraftId: null }),
+}))

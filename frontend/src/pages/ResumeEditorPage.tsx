@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import ResumeTopBar from '@/components/resume-editor/ResumeTopBar'
 import PersonalInfoPanel from '@/components/resume-editor/PersonalInfoPanel'
@@ -10,6 +10,9 @@ import LayoutStylePanel from '@/components/resume-editor/LayoutStylePanel'
 import ChatPanel from '@/components/chat/ChatPanel'
 import ResumeAnalysisPanel from '@/components/resume-editor/ResumeAnalysisPanel'
 import { useChatStore } from '@/store/chatStore'
+import { useTemplateResumeStore } from '@/store/templateResumeStore'
+import { useDraftStore } from '@/store/draftStore'
+import { useAtsStore } from '@/store/atsStore'
 import { PanelLeftClose, PanelLeftOpen, GripVertical } from 'lucide-react'
 import { printResume } from '@/lib/printResume'
 
@@ -30,11 +33,34 @@ const MIN_RIGHT = 260
 const MAX_RIGHT = 500
 
 export default function ResumeEditorPage() {
-  const { isOpen: chatOpen } = useChatStore()
+  const { isOpen: chatOpen, messages, editLog } = useChatStore()
+  const { data, activeTemplateId, sectionOrder, layout } = useTemplateResumeStore()
+  const { saveDraft, activeDraftId, drafts } = useDraftStore()
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [showLayoutPanel, setShowLayoutPanel] = useState(false)
-
   const [downloading, setDownloading] = useState(false)
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Auto-save 4s after any resume change (only if there's an active draft)
+  useEffect(() => {
+    if (!activeDraftId) return
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(() => {
+      const activeDraft = drafts.find(d => d.id === activeDraftId)
+      saveDraft({
+        id: activeDraftId,
+        name: activeDraft?.name ?? 'Untitled Resume',
+        templateId: activeTemplateId,
+        resumeData: data,
+        sectionOrder,
+        layout,
+        chatMessages: messages,
+        editLog,
+        atsResult: useAtsStore.getState().result,
+      })
+    }, 4000)
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
+  }, [data, activeTemplateId, sectionOrder, layout])
 
   const handleDownload = async () => {
     const measureEl = document.querySelector<HTMLDivElement>('[data-resume-measure]')
