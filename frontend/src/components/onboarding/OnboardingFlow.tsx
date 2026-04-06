@@ -12,8 +12,6 @@ import { AILoader } from '@/components/ui/AILoader'
 import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
 import { DOMAINS } from '@/lib/domains'
-import { apiFetch } from '@/lib/apiFetch'
-import { API_BASE } from '@/lib/config'
 import {
   Upload, FileText, Sparkles, ChevronRight, ChevronLeft,
   Check, X, Search, Briefcase, MapPin, DollarSign,
