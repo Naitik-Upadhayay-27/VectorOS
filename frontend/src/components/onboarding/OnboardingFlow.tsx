@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useOnboardingStore } from '@/store/onboardingStore'
@@ -9,6 +9,8 @@ import { useResumeUploadStore } from '@/store/resumeUploadStore'
 import { TEMPLATES } from '@/components/resume-templates'
 import { sampleData } from '@/lib/sampleResumeData'
 import { AILoader } from '@/components/ui/AILoader'
+import { apiFetch } from '@/lib/apiFetch'
+import { API_BASE } from '@/lib/config'
 import { DOMAINS } from '@/lib/domains'
 import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
@@ -17,7 +19,6 @@ import {
   Check, X, Search, Briefcase, MapPin, DollarSign,
   Building2, Clock, Target
 } from 'lucide-react'
-import { useState } from 'react'
 
 const PAGE_W = 794
 const PAGE_H = 1123
@@ -388,6 +389,63 @@ function StepTemplate() {
 }
 
 // ── Step 3 — Personal details ───────────────────────────────────────────────
+function JobTitleTypeahead({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [query, setQuery] = useState(value)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [open, setOpen] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dropRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!dropRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const search = (q: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (!q.trim()) { setSuggestions([]); return }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await apiFetch(`${API_BASE}/api/ai/job-titles?q=${encodeURIComponent(q)}`)
+        const data = await res.json()
+        setSuggestions(data.titles ?? [])
+      } catch { setSuggestions([]) }
+    }, 200)
+  }
+
+  return (
+    <div>
+      <label className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1.5">
+        <Briefcase size={15} className="text-purple-400" /> Current / Desired Job Title *
+      </label>
+      <div className="relative" ref={dropRef}>
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={e => { setQuery(e.target.value); onChange(e.target.value); setOpen(true); search(e.target.value) }}
+          onFocus={() => setOpen(true)}
+          placeholder="e.g. Full Stack Developer"
+          className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 placeholder:text-gray-400 transition-colors"
+        />
+        {open && suggestions.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 overflow-y-auto max-h-48">
+            {suggestions.map(s => (
+              <button key={s} onMouseDown={e => { e.preventDefault(); setQuery(s); onChange(s); setSuggestions([]); setOpen(false) }}
+                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-600 transition-colors">
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function StepPersonal() {
   const { data, update, setStep } = useOnboardingStore()
   const resumeData = useTemplateResumeStore.getState().data
@@ -425,10 +483,7 @@ function StepPersonal() {
           value={data.fullName}
           onChange={(v) => update({ fullName: v })}
         />
-        <Field
-          icon={<Briefcase size={15} className="text-purple-400" />}
-          label="Current / Desired Job Title *"
-          placeholder="Senior Software Engineer"
+        <JobTitleTypeahead
           value={data.jobTitle}
           onChange={(v) => update({ jobTitle: v })}
         />

@@ -29,15 +29,14 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const { user } = useAuthStore()
-  const { loadForUser, currentUserId } = useDraftStore()
+  const { loadForUser } = useDraftStore()
   const resumeData = useTemplateResumeStore((s) => s.data)
 
-  // On page refresh, reload drafts and resume for the persisted user
+  // On page refresh, always reload drafts and resume for the persisted user
   useEffect(() => {
     if (!user) return
-    if (user.id !== currentUserId) {
-      loadForUser(user.id)
-    }
+    // Always load drafts from per-user localStorage key (drafts array is not persisted in zustand)
+    loadForUser(user.id)
     // Restore per-user resume from localStorage if available
     const saved = localStorage.getItem(`vectoros-resume-${user.id}`)
     if (saved) {
