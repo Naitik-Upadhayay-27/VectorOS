@@ -3,6 +3,29 @@ node_modules/
 frontend/node_modules/
 backend/node_modules/
 
+# Python virtual environment
+job_scraper/venv/
+job_scraper/.venv/
+venv/
+.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Python eggs / dist
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Job scraper runtime files
+job_scraper/debug_page.html
+job_scraper/.env
+
+
 # Environment variables
 .env
 frontend/.env
