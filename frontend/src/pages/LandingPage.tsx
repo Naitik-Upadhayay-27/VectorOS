@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { FileText, Target, BarChart2, MessageSquare, ArrowRight, CheckCircle, Upload, Brain, Sparkles, Send, TrendingUp } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -99,6 +100,14 @@ const howItWorksData = [
 export default function LandingPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
+
+  useEffect(() => {
+    if (window.location.hash === '#pricing') {
+      setTimeout(() => {
+        document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-[#030303] text-white">

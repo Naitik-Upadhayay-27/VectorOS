@@ -73,8 +73,11 @@ export default function DashboardPage() {
   const resumeData = useTemplateResumeStore((s) => s.data)
   const { data: onboarding, openOnboarding, reset: resetOnboarding } = useOnboardingStore()
   const { profile } = useProfileStore()
-  const aiMessages = Math.max(0, useChatStore.getState().messages.length - 1)
+  // Reactive — subscribes to store so count updates live
+  const aiMessages = useChatStore((s) => Math.max(0, s.messages.filter(m => m.role === 'assistant').length - 1))
+  const atsResult = useAtsStore((s) => s.result)
   const hasResume = !!resumeData.personalInfo?.name
+  const activeDraft = drafts[0] // most recently saved
   const [deleteTarget, setDeleteTarget] = useState<ResumeDraft | null>(null)
   const [appStats, setAppStats] = useState({ total: 0, interview: 0, offer: 0 })
 
@@ -321,25 +324,96 @@ export default function DashboardPage() {
               <div>
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Activity</h2>
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
-                  {[
-                    { icon: Send,     label: 'Resume Created',      sub: hasResume ? `"${resumeData.personalInfo?.name?.split(' ')[0]}'s Resume" is ready` : 'No resume yet',  time: 'TODAY',     status: 'Ready',       statusColor: 'bg-purple-100 text-purple-600' },
-                    { icon: Calendar, label: 'AI Coach Session',     sub: `${aiMessages} AI edits applied this session`,                                                          time: 'TODAY',     status: 'Active',      statusColor: 'bg-green-100 text-green-600' },
-                    { icon: Eye,      label: 'ATS Analysis',         sub: 'Run analysis to see your score',                                                                       time: 'PENDING',   status: 'Pending',     statusColor: 'bg-amber-100 text-amber-600' },
-                  ].map(({ icon: Icon, label, sub, time, status, statusColor }) => (
-                    <div key={label} className="flex items-start gap-3 px-4 py-3.5">
-                      <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shrink-0 mt-0.5">
-                        <Icon size={13} className="text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-semibold text-gray-800">{label}</p>
-                          <span className="text-[10px] font-bold text-gray-400 tracking-wide">{time}</span>
-                        </div>
-                        <p className="text-xs text-gray-400 mt-0.5 truncate">{sub}</p>
-                        <span className={`inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColor}`}>{status}</span>
-                      </div>
+                  {/* Resume Created — real draft name + date */}
+                  <div className="flex items-start gap-3 px-4 py-3.5">
+                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <Send size={13} className="text-white" />
                     </div>
-                  ))}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-gray-800">Resume</p>
+                        <span className="text-[10px] font-bold text-gray-400 tracking-wide">
+                          {activeDraft ? new Date(activeDraft.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">
+                        {activeDraft ? `"${activeDraft.name}" — last saved` : 'No resume saved yet'}
+                      </p>
+                      <span className={`inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${activeDraft ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
+                        {activeDraft ? 'Saved' : 'Not started'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* AI Coach Session — real message count */}
+                  <div className="flex items-start gap-3 px-4 py-3.5">
+                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <Calendar size={13} className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-gray-800">AI Coach Session</p>
+                        <span className="text-[10px] font-bold text-gray-400 tracking-wide">TODAY</span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {aiMessages > 0 ? `${aiMessages} AI response${aiMessages !== 1 ? 's' : ''} this session` : 'No AI edits yet this session'}
+                      </p>
+                      <span className={`inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${aiMessages > 0 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                        {aiMessages > 0 ? 'Active' : 'Idle'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ATS Analysis — real score if available */}
+                  <div className="flex items-start gap-3 px-4 py-3.5">
+                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <Eye size={13} className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-gray-800">ATS Analysis</p>
+                        <span className="text-[10px] font-bold text-gray-400 tracking-wide">
+                          {atsResult ? 'DONE' : 'PENDING'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {atsResult
+                          ? `Score: ${atsResult.overallScore}/100 — ${atsResult.overallScore >= 75 ? 'Good' : atsResult.overallScore >= 50 ? 'Needs Work' : 'Poor'}`
+                          : 'Run analysis to see your score'}
+                      </p>
+                      <span className={`inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        atsResult
+                          ? atsResult.overallScore >= 75 ? 'bg-green-100 text-green-600'
+                          : atsResult.overallScore >= 50 ? 'bg-amber-100 text-amber-600'
+                          : 'bg-red-100 text-red-600'
+                          : 'bg-amber-100 text-amber-600'
+                      }`}>
+                        {atsResult ? `${atsResult.overallScore}/100` : 'Pending'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Applications */}
+                  <div className="flex items-start gap-3 px-4 py-3.5">
+                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <Briefcase size={13} className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-gray-800">Applications</p>
+                        <span className="text-[10px] font-bold text-gray-400 tracking-wide">TOTAL</span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {appStats.total > 0
+                          ? `${appStats.total} applied · ${appStats.interview} interviews · ${appStats.offer} offers`
+                          : 'No applications tracked yet'}
+                      </p>
+                      <span className={`inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${appStats.total > 0 ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                        {appStats.total > 0 ? `${appStats.total} tracked` : 'Start applying'}
+                      </span>
+                    </div>
+                  </div>
+
                   <div className="px-4 py-3">
                     <button
                       onClick={() => navigate('/applications')}
@@ -358,7 +432,9 @@ export default function DashboardPage() {
                   <p className="text-xs font-bold uppercase tracking-widest text-purple-300">AI Coach</p>
                 </div>
                 <p className="text-sm leading-relaxed text-white/90">
-                  {hasResume
+                  {atsResult
+                    ? `Your ATS score is ${atsResult.overallScore}/100. ${atsResult.overallScore < 75 ? `Focus on: ${atsResult.quickWins?.[0] ?? 'improving keyword match'}.` : 'Great score! Keep optimizing for your target role.'}`
+                    : hasResume
                     ? `"Your resume looks strong. Run an ATS analysis to find missing keywords for ${onboarding.jobTitle || 'your target role'} and boost your match rate."`
                     : '"Upload your resume to get personalized AI coaching. I\'ll analyze your experience and suggest improvements for your target role."'}
                 </p>

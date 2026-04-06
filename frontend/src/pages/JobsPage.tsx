@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Search, MapPin, Building2, ExternalLink, Zap, Filter, Wifi, Clock, ChevronRight, CheckCircle2, AlertCircle, ArrowLeft, Edit, Copy, Sparkles, TrendingUp, BookOpen } from 'lucide-react'
+import { Search, MapPin, Building2, ExternalLink, Zap, Filter, Wifi, Clock, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, ArrowLeft, Edit, Copy, Sparkles, TrendingUp, BookOpen, FileText } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
 import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
@@ -298,7 +298,7 @@ export default function JobsPage() {
             </button>
 
             <div className="grid grid-cols-5 gap-6">
-              {/* Left — job detail */}
+              {/* Left — job header + meta */}
               <div className="col-span-3 space-y-5">
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                   <div className="flex items-start gap-4 mb-4">
@@ -322,7 +322,6 @@ export default function JobsPage() {
                       </div>
                     </div>
                   </div>
-
                   {selectedJob.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-4">
                       {selectedJob.tags.map((t) => (
@@ -330,41 +329,36 @@ export default function JobsPage() {
                       ))}
                     </div>
                   )}
-
-                  <div className="flex gap-3">
-                    <a href={selectedJob.url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-full transition-colors">
-                      Apply Now <ExternalLink size={13} />
-                    </a>
-                  </div>
+                  <a href={selectedJob.url} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-full transition-colors">
+                    Apply Now <ExternalLink size={13} />
+                  </a>
                 </div>
 
-                {/* Description */}
+                {/* Job description */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                   <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <span className="w-1 h-5 bg-purple-500 rounded-full inline-block" />
-                    The Role
+                    <span className="w-1 h-5 bg-purple-500 rounded-full inline-block" /> The Role
                   </h2>
                   <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-                    {selectedJob.description}
+                    {selectedJob.description.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim()}
                   </div>
                 </div>
 
-                {/* Job meta details */}
+                {/* Job meta */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                   <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <span className="w-1 h-5 bg-indigo-500 rounded-full inline-block" />
-                    Job Details
+                    <span className="w-1 h-5 bg-indigo-500 rounded-full inline-block" /> Job Details
                   </h2>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     {[
-                      { label: 'Company',        value: selectedJob.company },
-                      { label: 'Location',       value: selectedJob.location || 'Not specified' },
-                      { label: 'Employment Type',value: selectedJob.type || 'Not specified' },
-                      { label: 'Salary',         value: selectedJob.salary },
-                      { label: 'Remote',         value: selectedJob.remote ? 'Yes' : 'No' },
-                      { label: 'Source',         value: SOURCE_LABELS[selectedJob.source] },
-                      { label: 'Posted',         value: selectedJob.postedAt ? new Date(selectedJob.postedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown' },
+                      { label: 'Company',         value: selectedJob.company },
+                      { label: 'Location',        value: selectedJob.location || 'Not specified' },
+                      { label: 'Employment Type', value: selectedJob.type || 'Not specified' },
+                      { label: 'Salary',          value: selectedJob.salary },
+                      { label: 'Remote',          value: selectedJob.remote ? 'Yes' : 'No' },
+                      { label: 'Source',          value: SOURCE_LABELS[selectedJob.source] },
+                      { label: 'Posted',          value: selectedJob.postedAt ? new Date(selectedJob.postedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown' },
                     ].map(({ label, value }) => (
                       <div key={label}>
                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">{label}</p>
@@ -373,92 +367,68 @@ export default function JobsPage() {
                     ))}
                   </div>
                 </div>
-
-                {/* Tags / Skills */}
-                {selectedJob.tags.length > 0 && (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                    <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <span className="w-1 h-5 bg-rose-500 rounded-full inline-block" />
-                      Skills & Keywords
-                    </h2>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedJob.tags.map((t) => (
-                        <span key={t} className="text-xs border border-gray-200 text-gray-600 px-3 py-1 rounded-full bg-gray-50">{t}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Apply CTA */}
-                <div className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white">
-                  <h2 className="text-base font-bold mb-1">Ready to apply?</h2>
-                  <p className="text-purple-200 text-sm mb-4">Check your compatibility first, then apply directly on {selectedJob.company}'s page.</p>
-                  <a href={selectedJob.url} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-white text-purple-700 text-sm font-semibold rounded-full hover:bg-purple-50 transition-colors">
-                    Apply Now <ExternalLink size={13} />
-                  </a>
-                </div>
               </div>
 
-              {/* Right — AI compatibility */}
+              {/* Right — resume selector → compatibility → job description */}
               <div className="col-span-2 space-y-4">
-                {/* Resume selector — thumbnail grid */}
+                {/* Resume selector */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <h3 className="text-sm font-bold text-gray-800 mb-3">Select Resume</h3>
-                  <div className="flex gap-3 overflow-x-auto pb-2">
-                    {/* Current resume */}
-                    <button
-                      onClick={() => { setSelectedDraftId(''); setCompatibility(null) }}
-                      className="flex flex-col items-center gap-1.5 shrink-0"
-                    >
-                      <CurrentResumeThumbnail active={selectedDraftId === ''} />
-                      <span className="text-[11px] text-gray-500 font-medium max-w-[143px] truncate">
-                        Current Resume
-                      </span>
-                    </button>
 
-                    {/* Saved drafts */}
-                    {drafts.map((draft) => (
-                      <button
-                        key={draft.id}
-                        onClick={() => { setSelectedDraftId(draft.id); setCompatibility(null) }}
-                        className="flex flex-col items-center gap-1.5 shrink-0"
-                      >
-                        <ResumeThumbnail draft={draft} active={selectedDraftId === draft.id} />
-                        <span className="text-[11px] text-gray-500 font-medium max-w-[143px] truncate">
-                          {draft.name}
-                        </span>
+                  {drafts.length === 0 && !resumeData.personalInfo?.name ? (
+                    <div className="flex flex-col items-center justify-center py-6 text-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center">
+                        <FileText size={20} className="text-purple-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-700">No resume yet</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Create a resume to check compatibility</p>
+                      </div>
+                      <button onClick={() => navigate('/resume/resume-1')}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-xl transition-colors">
+                        Create Resume
                       </button>
-                    ))}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-3 overflow-x-auto pb-2">
+                      {resumeData.personalInfo?.name && (
+                        <button onClick={() => { setSelectedDraftId(''); setCompatibility(null) }}
+                          className="flex flex-col items-center gap-1.5 shrink-0">
+                          <CurrentResumeThumbnail active={selectedDraftId === ''} />
+                          <span className="text-[11px] text-gray-500 font-medium max-w-[143px] truncate">Current Resume</span>
+                        </button>
+                      )}
+                      {drafts.map((draft) => (
+                        <button key={draft.id} onClick={() => { setSelectedDraftId(draft.id); setCompatibility(null) }}
+                          className="flex flex-col items-center gap-1.5 shrink-0">
+                          <ResumeThumbnail draft={draft} active={selectedDraftId === draft.id} />
+                          <span className="text-[11px] text-gray-500 font-medium max-w-[143px] truncate">{draft.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
-                  <button
-                    onClick={checkCompatibility}
-                    disabled={checkingCompat}
-                    className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
-                  >
-                    {checkingCompat
-                      ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyzing...</>
-                      : <><Zap size={14} /> Check Compatibility</>}
-                  </button>
+                  {(drafts.length > 0 || resumeData.personalInfo?.name) && (
+                    <button onClick={checkCompatibility} disabled={checkingCompat}
+                      className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors">
+                      {checkingCompat
+                        ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyzing...</>
+                        : <><Zap size={14} /> Check Compatibility</>}
+                    </button>
+                  )}
                 </div>
 
                 {/* Compatibility result */}
                 {compatibility && (
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-                    {/* Score */}
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-bold text-gray-800">Match Intelligence</h3>
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold border-2 ${
                         compatibility.overallScore >= 75 ? 'border-green-400 text-green-600 bg-green-50'
                         : compatibility.overallScore >= 50 ? 'border-amber-400 text-amber-600 bg-amber-50'
                         : 'border-red-400 text-red-600 bg-red-50'
-                      }`}>
-                        {compatibility.overallScore}%
-                      </div>
+                      }`}>{compatibility.overallScore}%</div>
                     </div>
-
-                    {/* Breakdown bars */}
                     {[
                       { label: 'Technical Skills', score: compatibility.breakdown.technical },
                       { label: 'Domain Experience', score: compatibility.breakdown.experience },
@@ -474,13 +444,7 @@ export default function JobsPage() {
                         </div>
                       </div>
                     ))}
-
-                    {/* Recommendation */}
-                    <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-600 italic leading-relaxed">
-                      "{compatibility.recommendation}"
-                    </div>
-
-                    {/* Matched skills */}
+                    <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-600 italic leading-relaxed">"{compatibility.recommendation}"</div>
                     {compatibility.matchedSkills.length > 0 && (
                       <div>
                         <p className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5"><CheckCircle2 size={12} className="text-green-500" /> Strengths</p>
@@ -491,8 +455,6 @@ export default function JobsPage() {
                         </div>
                       </div>
                     )}
-
-                    {/* Missing skills */}
                     {compatibility.missingSkills.length > 0 && (
                       <div>
                         <p className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5"><AlertCircle size={12} className="text-amber-500" /> Missing Keywords</p>
@@ -503,8 +465,6 @@ export default function JobsPage() {
                         </div>
                       </div>
                     )}
-
-                    {/* Actions */}
                     <div className="pt-2 border-t border-gray-100 space-y-2">
                       <button onClick={() => editWithDraft(false)}
                         className="w-full flex items-center justify-center gap-2 py-2.5 border border-purple-200 text-purple-600 text-sm font-semibold rounded-xl hover:bg-purple-50 transition-colors">
@@ -521,6 +481,29 @@ export default function JobsPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Job description — below resume selector */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <span className="w-1 h-5 bg-indigo-500 rounded-full inline-block" /> Job Details
+                  </h2>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    {[
+                      { label: 'Company',         value: selectedJob.company },
+                      { label: 'Location',        value: selectedJob.location || 'Not specified' },
+                      { label: 'Employment Type', value: selectedJob.type || 'Not specified' },
+                      { label: 'Salary',          value: selectedJob.salary },
+                      { label: 'Remote',          value: selectedJob.remote ? 'Yes' : 'No' },
+                      { label: 'Source',          value: SOURCE_LABELS[selectedJob.source] },
+                      { label: 'Posted',          value: selectedJob.postedAt ? new Date(selectedJob.postedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown' },
+                    ].map(({ label, value }) => (
+                      <div key={label}>
+                        <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">{label}</p>
+                        <p className="text-gray-800 font-medium text-xs">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -551,6 +534,69 @@ export default function JobsPage() {
                 ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Finding your jobs...</>
                 : <><Sparkles size={15} /> Start with Magic</>}
             </button>
+          </div>
+
+          {/* Search bar — always at top */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+            <div className="flex gap-3">
+              <div className="relative flex-1" ref={searchRef}>
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+                <input
+                  value={query}
+                  onChange={(e) => handleQueryChange(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { setShowSuggestions(false); search() } if (e.key === 'Escape') setShowSuggestions(false) }}
+                  onFocus={() => query.length >= 2 && setShowSuggestions(suggestions.length > 0)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                  placeholder="Job title, skill, or company..."
+                  className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400"
+                />
+                {showSuggestions && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 overflow-hidden">
+                    {suggestions.map((s) => (
+                      <button
+                        key={s}
+                        onMouseDown={() => selectSuggestion(s)}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                      >
+                        <Search size={12} className="text-gray-300 shrink-0" />
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="relative">
+                <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Location (optional)"
+                  className="pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 w-48"
+                />
+              </div>
+              <button
+                onClick={search}
+                disabled={loading || !query.trim()}
+                className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"
+              >
+                {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Search size={15} />}
+                Search
+              </button>
+            </div>
+            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-50">
+              <Filter size={13} className="text-gray-400" />
+              <span className="text-xs text-gray-400 font-medium">Filters:</span>
+              {['full_time', 'part_time', 'contract', 'internship'].map((t) => (
+                <button key={t} onClick={() => setTypeFilter(typeFilter === t ? '' : t)}
+                  className={`text-xs px-3 py-1 rounded-full border transition-colors ${typeFilter === t ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-500 hover:border-purple-300'}`}>
+                  {t.replace('_', ' ')}
+                </button>
+              ))}
+              <button onClick={() => setRemoteOnly(!remoteOnly)}
+                className={`text-xs px-3 py-1 rounded-full border transition-colors flex items-center gap-1 ${remoteOnly ? 'bg-green-500 text-white border-green-500' : 'border-gray-200 text-gray-500 hover:border-green-300'}`}>
+                <Wifi size={10} /> Remote only
+              </button>
+            </div>
           </div>
 
           {/* Magic mode banner */}
@@ -603,71 +649,6 @@ export default function JobsPage() {
               ))}
             </div>
           )}
-
-          {/* Search bar */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
-            <div className="flex gap-3">
-              <div className="relative flex-1" ref={searchRef}>
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
-                <input
-                  value={query}
-                  onChange={(e) => handleQueryChange(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { setShowSuggestions(false); search() } if (e.key === 'Escape') setShowSuggestions(false) }}
-                  onFocus={() => query.length >= 2 && setShowSuggestions(suggestions.length > 0)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                  placeholder="Job title, skill, or company..."
-                  className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400"
-                />
-                {showSuggestions && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 overflow-hidden">
-                    {suggestions.map((s) => (
-                      <button
-                        key={s}
-                        onMouseDown={() => selectSuggestion(s)}
-                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left hover:bg-purple-50 hover:text-purple-700 transition-colors"
-                      >
-                        <Search size={12} className="text-gray-300 shrink-0" />
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="relative">
-                <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Location (optional)"
-                  className="pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 w-48"
-                />
-              </div>
-              <button
-                onClick={search}
-                disabled={loading || !query.trim()}
-                className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"
-              >
-                {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Search size={15} />}
-                Search
-              </button>
-            </div>
-
-            {/* Filters */}
-            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-50">
-              <Filter size={13} className="text-gray-400" />
-              <span className="text-xs text-gray-400 font-medium">Filters:</span>
-              {['full_time', 'part_time', 'contract', 'internship'].map((t) => (
-                <button key={t} onClick={() => setTypeFilter(typeFilter === t ? '' : t)}
-                  className={`text-xs px-3 py-1 rounded-full border transition-colors ${typeFilter === t ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-500 hover:border-purple-300'}`}>
-                  {t.replace('_', ' ')}
-                </button>
-              ))}
-              <button onClick={() => setRemoteOnly(!remoteOnly)}
-                className={`text-xs px-3 py-1 rounded-full border transition-colors flex items-center gap-1 ${remoteOnly ? 'bg-green-500 text-white border-green-500' : 'border-gray-200 text-gray-500 hover:border-green-300'}`}>
-                <Wifi size={10} /> Remote only
-              </button>
-            </div>
-          </div>
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600 flex items-center gap-2">

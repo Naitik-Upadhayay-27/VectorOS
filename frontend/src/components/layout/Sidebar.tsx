@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, FileText, Briefcase, Send, BarChart2, Settings, LogOut, ChevronRight, Sparkles, User } from 'lucide-react'
+import { LayoutDashboard, FileText, Briefcase, Send, BarChart2, LogOut, ChevronRight, Sparkles, User } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useAuthStore } from '@/store/authStore'
 import { useProfileStore } from '@/store/profileStore'
@@ -57,7 +57,9 @@ export default function Sidebar() {
             <p className="text-xs text-white font-semibold">Upgrade to Pro</p>
           </div>
           <p className="text-[11px] text-white/30 mb-2.5 leading-relaxed">Unlimited AI rewrites + auto-apply</p>
-          <button className="w-full flex items-center justify-between px-3 py-1.5 bg-black border border-purple-500 text-white text-xs font-semibold rounded-full hover:shadow-[0_0_12px_rgba(168,85,247,0.5)] transition-all">
+          <button
+            onClick={() => { window.location.href = '/#pricing' }}
+            className="w-full flex items-center justify-between px-3 py-1.5 bg-black border border-purple-500 text-white text-xs font-semibold rounded-full hover:shadow-[0_0_12px_rgba(168,85,247,0.5)] transition-all">
             Upgrade <ChevronRight size={11} />
           </button>
         </div>
@@ -65,10 +67,6 @@ export default function Sidebar() {
 
       {/* Bottom */}
       <div className="px-3 pb-4 border-t border-white/[0.06] pt-3 space-y-0.5">
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-white/40 hover:text-white/80 hover:bg-white/[0.05] transition-all">
-          <Settings size={16} />
-          Settings
-        </button>
         <button
           onClick={() => { logout(); navigate('/') }}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all"

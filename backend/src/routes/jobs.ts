@@ -4,6 +4,22 @@ import { authenticate, AuthRequest } from '../middleware/auth'
 const router = Router()
 router.use(authenticate)
 
+// ── Simple in-memory cache (5 min TTL) ──────────────────────────────────────
+const cache = new Map<string, { jobs: NormalisedJob[]; ts: number }>()
+const CACHE_TTL = 5 * 60 * 1000
+
+function getCached(key: string): NormalisedJob[] | null {
+  const entry = cache.get(key)
+  if (!entry) return null
+  if (Date.now() - entry.ts > CACHE_TTL) { cache.delete(key); return null }
+  return entry.jobs
+}
+
+function setCached(key: string, jobs: NormalisedJob[]) {
+  cache.set(key, { jobs, ts: Date.now() })
+}
+router.use(authenticate)
+
 // ── Normalised job shape ─────────────────────────────────────────────────────
 export interface NormalisedJob {
   id: string
@@ -149,113 +165,6 @@ async function fetchHimalayas(query: string): Promise<NormalisedJob[]> {
   } catch { return [] }
 }
 
-// ── Job Feed API (RapidAPI) ──────────────────────────────────────────────────
-async function fetchJobFeed(query: string, location: string): Promise<NormalisedJob[]> {
-  const key = process.env.JSEARCH_API_KEY // reuse same RapidAPI key
-  if (!key) return []
-
-  try {
-    const params = new URLSearchParams({
-      description_type: 'text',
-      title_filter: query,
-      ...(location ? { location_filter: location } : {}),
-      limit: '10',
-    })
-    const res = await fetch(`https://job-posting-feed-api.p.rapidapi.com/active-ats-6m?${params}`, {
-      headers: {
-        'x-rapidapi-key': key,
-        'x-rapidapi-host': 'job-posting-feed-api.p.rapidapi.com',
-        'Content-Type': 'application/json',
-      },
-    })
-    if (!res.ok) {
-      console.error(`[JobFeed] HTTP ${res.status}:`, await res.text())
-      return []
-    }
-    const data = await res.json() as any
-    const jobs = data.jobs ?? data.data ?? data.results ?? data ?? []
-    const arr = Array.isArray(jobs) ? jobs : []
-    console.log(`[JobFeed] Got ${arr.length} results`)
-    return arr.map((j: any): NormalisedJob => ({
-      id: `jobfeed-${j.id ?? j.job_id ?? Math.random()}`,
-      source: 'jsearch', // display as Google Jobs since same key
-      title: j.title ?? j.job_title ?? '',
-      company: j.company ?? j.employer_name ?? j.organization ?? 'Unknown',
-      location: j.location ?? j.job_location ?? j.city ?? '',
-      type: j.employment_type ?? j.job_type ?? 'full-time',
-      salary: j.salary ?? j.compensation ?? 'Not specified',
-      description: j.description ?? j.job_description ?? '',
-      url: j.url ?? j.apply_url ?? j.job_url ?? '',
-      postedAt: j.date_posted ?? j.posted_at ?? j.created_at ?? '',
-      logo: j.company_logo ?? j.logo ?? undefined,
-      remote: (j.remote ?? false) || (j.location ?? '').toLowerCase().includes('remote'),
-      tags: j.skills ?? j.tags ?? j.keywords ?? [],
-    }))
-  } catch (e) {
-    console.error('[JobFeed] Error:', e)
-    return []
-  }
-}
-// ── Apify LinkedIn Jobs Scraper ──────────────────────────────────────────────
-async function fetchApify(query: string, location: string): Promise<NormalisedJob[]> {
-  const token = process.env.APIFY_TOKEN
-  if (!token) {
-    console.warn('[Apify] Skipped — APIFY_TOKEN not set')
-    return []
-  }
-
-  try {
-    // Run actor synchronously and get dataset items directly
-    const input = {
-      title: query,
-      location: location || undefined,
-      rows: 20,
-      publishedAt: '',
-      contractType: '',
-      experienceLevel: '',
-      workType: '',
-    }
-
-    const res = await fetch(
-      `https://api.apify.com/v2/acts/scrapier~linkedin-jobs-scraper/run-sync-get-dataset-items?token=${token}&timeout=60`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      }
-    )
-
-    if (!res.ok) {
-      console.error(`[Apify] HTTP ${res.status}:`, await res.text())
-      return []
-    }
-
-    const data = await res.json() as any[]
-    const arr = Array.isArray(data) ? data : []
-    console.log(`[Apify] Got ${arr.length} LinkedIn jobs`)
-
-    return arr.map((j: any): NormalisedJob => ({
-      id: `apify-${j.id ?? j.jobId ?? Math.random()}`,
-      source: 'linkedin' as const,
-      title: j.title ?? j.jobTitle ?? '',
-      company: j.companyName ?? j.company ?? 'Unknown',
-      location: j.location ?? j.jobLocation ?? '',
-      type: j.contractType ?? j.employmentType ?? 'Full-time',
-      salary: j.salary ?? 'Not specified',
-      description: j.description ?? j.jobDescription ?? '',
-      url: j.jobUrl ?? j.url ?? j.applyUrl ?? '',
-      postedAt: j.postedAt ?? j.publishedAt ?? '',
-      logo: j.companyLogo ?? j.logo ?? undefined,
-      remote: (j.workType ?? '').toLowerCase().includes('remote') ||
-              (j.location ?? '').toLowerCase().includes('remote'),
-      tags: j.skills ?? [],
-    }))
-  } catch (e) {
-    console.error('[Apify] Error:', e)
-    return []
-  }
-}
-
 // ── Internships API (RapidAPI) ───────────────────────────────────────────────
 async function fetchInternships(query: string, location: string): Promise<NormalisedJob[]> {
   const key = process.env.JSEARCH_API_KEY
@@ -312,7 +221,13 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
 
   if (!q.trim()) return res.json({ jobs: [] })
 
-  // JSearch first (most relevant), then Adzuna, then Himalayas (filtered)
+  const cacheKey = `${q}|${location}|${type}|${remote}`.toLowerCase()
+  const cached = getCached(cacheKey)
+  if (cached) {
+    console.log(`[Jobs] Cache hit for "${q}"`)
+    return res.json({ jobs: cached, total: cached.length, cached: true })
+  }
+
   const [jsearch, adzuna, himalayas] = await Promise.all([
     fetchJSearch(q, location),
     fetchAdzuna(q, ''),
@@ -330,10 +245,10 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
     return true
   })
 
-  // Filters
   if (type) jobs = jobs.filter((j) => j.type.toLowerCase().includes(type.toLowerCase()))
   if (remote === 'true') jobs = jobs.filter((j) => j.remote)
 
+  setCached(cacheKey, jobs)
   res.json({ jobs, total: jobs.length })
 })
 

@@ -100,16 +100,12 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="mt-4">
             <button
               onClick={() => window.location.href = `${API_BASE}/api/auth/google`}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 border border-white/[0.08] rounded-xl text-sm font-medium text-white/50 hover:border-purple-500/40 hover:text-white/70 transition-all">
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-white/[0.08] rounded-xl text-sm font-medium text-white/50 hover:border-purple-500/40 hover:text-white/70 transition-all">
               <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="" />
               Google
-            </button>
-            <button className="flex items-center justify-center gap-2 px-4 py-2.5 border border-white/[0.08] rounded-xl text-sm font-medium text-white/50 hover:border-purple-500/40 hover:text-white/70 transition-all">
-              <img src="https://www.linkedin.com/favicon.ico" className="w-4 h-4" alt="" />
-              LinkedIn
             </button>
           </div>
 
