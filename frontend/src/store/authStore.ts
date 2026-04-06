@@ -24,18 +24,33 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       hasOnboarded: false,
       login: (user, token, refreshToken) => {
-        // Clear all previous user's data before setting new session
-        import('@/store/chatStore').then(({ useChatStore }) => useChatStore.getState().clearMessages())
-        import('@/store/templateResumeStore').then(({ useTemplateResumeStore }) =>
-          useTemplateResumeStore.getState().resetData({
-            personalInfo: { name: '', title: '', contact: {} },
-            summary: '', experience: [], education: [], skills: [], projects: [],
+        const prevUserId = get().user?.id
+
+        if (prevUserId && prevUserId !== user.id) {
+          // Different account — save current user's resume, clear stores, load new user's data
+          import('@/store/templateResumeStore').then(({ useTemplateResumeStore }) => {
+            // Save outgoing user's resume
+            const currentData = useTemplateResumeStore.getState().data
+            localStorage.setItem(`vectoros-resume-${prevUserId}`, JSON.stringify(currentData))
+
+            // Load incoming user's resume (or blank if first time)
+            const saved = localStorage.getItem(`vectoros-resume-${user.id}`)
+            if (saved) {
+              try { useTemplateResumeStore.getState().resetData(JSON.parse(saved)) }
+              catch { useTemplateResumeStore.getState().resetData({ personalInfo: { name: '', title: '', contact: {} }, summary: '', experience: [], education: [], skills: [], projects: [] }) }
+            } else {
+              useTemplateResumeStore.getState().resetData({ personalInfo: { name: '', title: '', contact: {} }, summary: '', experience: [], education: [], skills: [], projects: [] })
+            }
           })
-        )
+          import('@/store/chatStore').then(({ useChatStore }) => useChatStore.getState().clearMessages())
+          import('@/store/atsStore').then(({ useAtsStore }) => useAtsStore.getState().clearResult())
+        }
+
+        // Always load this user's drafts
         import('@/store/draftStore').then(({ useDraftStore }) => {
           useDraftStore.getState().loadForUser(user.id)
         })
-        import('@/store/atsStore').then(({ useAtsStore }) => useAtsStore.getState().clearResult())
+
         set({ user, token, refreshToken: refreshToken ?? null })
       },
       logout: () => {

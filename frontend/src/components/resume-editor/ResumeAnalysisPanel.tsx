@@ -7,6 +7,8 @@ import { useChatStore } from '@/store/chatStore'
 import { useAtsStore } from '@/store/atsStore'
 import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
+import { AILoader } from '@/components/ui/AILoader'
+import { AnimatePresence } from 'framer-motion'
 
 function ScoreRing({ score }: { score: number }) {
   const color = score >= 75 ? '#22c55e' : score >= 50 ? '#f59e0b' : '#ef4444'
@@ -245,13 +247,17 @@ export default function ResumeAnalysisPanel() {
           )}
 
           {!result && (
-            <button onClick={runATS}
-              disabled={loading || (mode === 'analyze' && targetRoles.length === 0)}
-              className="w-full py-2.5 bg-brand-500 text-white text-xs font-semibold rounded-xl hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
-              {loading
-                ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyzing...</>
-                : <><Zap size={13} /> {mode === 'analyze' ? 'Run ATS Analysis' : 'Analyze & Tailor'}</>}
-            </button>
+            <AnimatePresence mode="wait">
+              {loading ? (
+                <AILoader key="loader" type="ats" />
+              ) : (
+                <button onClick={runATS}
+                  disabled={mode === 'analyze' && targetRoles.length === 0}
+                  className="w-full py-2.5 bg-brand-500 text-white text-xs font-semibold rounded-xl hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
+                  <Zap size={13} /> {mode === 'analyze' ? 'Run ATS Analysis' : 'Analyze & Tailor'}
+                </button>
+              )}
+            </AnimatePresence>
           )}
 
           {result && (
@@ -337,7 +343,7 @@ export default function ResumeAnalysisPanel() {
               <button onClick={runATS} disabled={loading}
                 className="w-full py-2.5 bg-brand-500 text-white text-xs font-semibold rounded-xl hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
                 {loading
-                  ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyzing...</>
+                  ? <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyzing...</>
                   : <><RotateCcw size={12} /> Re-analyze</>}
               </button>
             </div>

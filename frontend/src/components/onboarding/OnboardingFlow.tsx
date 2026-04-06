@@ -8,6 +8,7 @@ import { useChatStore } from '@/store/chatStore'
 import { useResumeUploadStore } from '@/store/resumeUploadStore'
 import { TEMPLATES } from '@/components/resume-templates'
 import { sampleData } from '@/lib/sampleResumeData'
+import { AILoader } from '@/components/ui/AILoader'
 import { DOMAINS } from '@/lib/domains'
 import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
@@ -256,31 +257,28 @@ function StepStart() {
 
       <div className="grid grid-cols-2 gap-4 flex-1">
         {/* Upload */}
+        {uploading ? (
+          <div className="col-span-2 flex items-center justify-center rounded-2xl border border-brand-100 bg-brand-50/30">
+            <AILoader type="parsing" />
+          </div>
+        ) : (
         <button
           onClick={() => !uploading && fileRef.current?.click()}
           disabled={uploading}
           className="group flex flex-col items-center justify-center gap-4 p-6 rounded-2xl border-2 border-dashed border-gray-200 hover:border-brand-400 hover:bg-brand-50/40 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-center"
         >
           <div className="w-14 h-14 rounded-2xl bg-brand-50 group-hover:bg-brand-100 flex items-center justify-center transition-colors">
-            {uploading
-              ? <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-              : <Upload size={24} className="text-brand-500" />
-            }
+            <Upload size={24} className="text-brand-500" />
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-800 mb-1">
-              {uploading ? 'Parsing resume...' : 'Upload Resume'}
-            </p>
+            <p className="text-sm font-bold text-gray-800 mb-1">Upload Resume</p>
             <p className="text-xs text-gray-500 leading-relaxed">
-              {uploading
-                ? 'AI is extracting your information'
-                : 'Import your existing PDF and we\'ll parse it automatically'}
+              Import your existing PDF and we'll parse it automatically
             </p>
           </div>
-          {!uploading && (
-            <span className="text-xs bg-brand-50 text-brand-600 px-3 py-1 rounded-full font-medium">PDF only · max 10 MB</span>
-          )}
+          <span className="text-xs bg-brand-50 text-brand-600 px-3 py-1 rounded-full font-medium">PDF only · max 10 MB</span>
         </button>
+        )}
         <input
           ref={fileRef}
           type="file"
@@ -289,11 +287,11 @@ function StepStart() {
           onChange={handleFile}
         />
 
-        {/* Scratch */}
+        {/* Scratch — hide while uploading */}
+        {!uploading && (
         <button
           onClick={() => { update({ resumeMode: 'scratch' }); setStep('template') }}
-          disabled={uploading}
-          className="group flex flex-col items-center justify-center gap-4 p-6 rounded-2xl border-2 border-dashed border-gray-200 hover:border-purple-400 hover:bg-purple-50/40 disabled:opacity-60 disabled:cursor-not-allowed transition-all text-center"
+          className="group flex flex-col items-center justify-center gap-4 p-6 rounded-2xl border-2 border-dashed border-gray-200 hover:border-purple-400 hover:bg-purple-50/40 transition-all text-center"
         >
           <div className="w-14 h-14 rounded-2xl bg-purple-50 group-hover:bg-purple-100 flex items-center justify-center transition-colors">
             <FileText size={24} className="text-purple-500" />
@@ -304,6 +302,7 @@ function StepStart() {
           </div>
           <span className="text-xs bg-purple-50 text-purple-600 px-3 py-1 rounded-full font-medium">Recommended</span>
         </button>
+        )}
       </div>
     </motion.div>
   )

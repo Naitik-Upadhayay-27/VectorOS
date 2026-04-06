@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, X, Bot, CheckCheck, Sparkles } from 'lucide-react'
+import { Send, X, Bot, CheckCheck, Sparkles, RotateCcw } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useChatStore } from '@/store/chatStore'
 import { useResumeUploadStore } from '@/store/resumeUploadStore'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
 import { useAuthStore } from '@/store/authStore'
+import { useSnapshotStore } from '@/store/snapshotStore'
+import { AILoader } from '@/components/ui/AILoader'
 import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
 
@@ -47,31 +49,75 @@ function applyResumeEdits(edits: ResumeEdits) {
   edits.deleteProjects?.forEach((id) => store.removeProject(id))
 }
 
-// Simple markdown renderer: bold, bullets, line breaks
+// Strips leaked JSON blocks and code fences from AI text
+function sanitizeReply(text: string): string {
+  return text
+    .replace(/```json[\s\S]*?```/g, '')
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/^\s*\{[\s\S]*\}\s*$/m, '') // bare JSON object
+    .trim()
+}
+
+// Full markdown renderer: headings, bullets, numbered lists, bold, italic
 function MarkdownText({ text }: { text: string }) {
-  const lines = text.split('\n')
+  const clean = sanitizeReply(text)
+  const lines = clean.split('\n')
   return (
-    <div className="space-y-1">
+    <div className="space-y-0.5">
       {lines.map((line, i) => {
-        if (!line.trim()) return <div key={i} className="h-1" />
-        // Bullet points
-        const isBullet = /^[-•*]\s/.test(line.trim())
-        const content = isBullet ? line.trim().replace(/^[-•*]\s/, '') : line
-        // Bold: **text**
-        const parts = content.split(/(\*\*[^*]+\*\*)/)
-        const rendered = parts.map((p, j) =>
-          p.startsWith('**') && p.endsWith('**')
-            ? <strong key={j} className="font-semibold text-gray-800">{p.slice(2, -2)}</strong>
-            : <span key={j}>{p}</span>
-        )
+        const trimmed = line.trim()
+        if (!trimmed) return <div key={i} className="h-2" />
+
+        // ## Heading
+        if (trimmed.startsWith('## ')) {
+          return <p key={i} className="font-semibold text-gray-800 text-xs mt-2 mb-0.5">{trimmed.slice(3)}</p>
+        }
+        // # Heading
+        if (trimmed.startsWith('# ')) {
+          return <p key={i} className="font-bold text-gray-800 text-xs mt-2 mb-0.5">{trimmed.slice(2)}</p>
+        }
+
+        // Bullet: - or • or *
+        const isBullet = /^[-•*]\s/.test(trimmed)
+        // Numbered: 1. 2. etc
+        const isNumbered = /^\d+\.\s/.test(trimmed)
+
+        const rawContent = isBullet
+          ? trimmed.replace(/^[-•*]\s/, '')
+          : isNumbered
+          ? trimmed.replace(/^\d+\.\s/, '')
+          : trimmed
+
+        // Inline bold **text** and italic *text*
+        const renderInline = (str: string) => {
+          const parts = str.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g)
+          return parts.map((p, j) => {
+            if (p.startsWith('**') && p.endsWith('**'))
+              return <strong key={j} className="font-semibold text-gray-800">{p.slice(2, -2)}</strong>
+            if (p.startsWith('*') && p.endsWith('*'))
+              return <em key={j} className="italic">{p.slice(1, -1)}</em>
+            return <span key={j}>{p}</span>
+          })
+        }
+
         if (isBullet) {
-          return <div key={i} className="flex items-start gap-1.5"><span className="text-brand-400 mt-0.5 shrink-0">•</span><span>{rendered}</span></div>
+          return (
+            <div key={i} className="flex items-start gap-1.5 pl-1">
+              <span className="text-brand-400 mt-0.5 shrink-0 text-[10px]">•</span>
+              <span className="flex-1">{renderInline(rawContent)}</span>
+            </div>
+          )
         }
-        // Heading: starts with #
-        if (line.trim().startsWith('# ')) {
-          return <p key={i} className="font-bold text-gray-800 text-xs mt-2">{line.trim().slice(2)}</p>
+        if (isNumbered) {
+          const num = trimmed.match(/^(\d+)\./)?.[1]
+          return (
+            <div key={i} className="flex items-start gap-1.5 pl-1">
+              <span className="text-brand-400 mt-0.5 shrink-0 font-medium text-[10px] w-3">{num}.</span>
+              <span className="flex-1">{renderInline(rawContent)}</span>
+            </div>
+          )
         }
-        return <p key={i}>{rendered}</p>
+        return <p key={i} className="leading-relaxed">{renderInline(rawContent)}</p>
       })}
     </div>
   )
@@ -113,13 +159,11 @@ export default function ChatPanel() {
   const resumeData = useTemplateResumeStore((s) => s.data)
   const onboardingData = useOnboardingStore((s) => s.data)
   const user = useAuthStore((s) => s.user)
+  const { push: pushSnapshot, remove: removeSnapshot, snapshots } = useSnapshotStore()
   const [input, setInput] = useState('')
   const [editedMsgIds, setEditedMsgIds] = useState<Set<string>>(new Set())
+  const [revertedMsgIds, setRevertedMsgIds] = useState<Set<string>>(new Set())
   const [streamingId, setStreamingId] = useState<string | null>(null)
-  // msgId → pending proposed edits (waiting for user confirmation)
-  const [pendingProposals, setPendingProposals] = useState<Record<string, ResumeEdits>>({})
-  // msgId → dismissed proposals
-  const [dismissedProposals, setDismissedProposals] = useState<Set<string>>(new Set())
   const bottomRef = useRef<HTMLDivElement>(null)
   const triggerProcessed = useRef<string | null>(null)
 
@@ -170,7 +214,7 @@ export default function ChatPanel() {
       setTyping(false)
       if (!res.ok) throw new Error(data.error ?? 'AI request failed')
 
-      // Safety net: if reply looks like raw JSON (AI leaked it), extract the reply field
+      // Safety net: strip any leaked JSON from the reply text
       let replyText: string = data.reply ?? ''
       if (replyText.trim().startsWith('{')) {
         try {
@@ -178,19 +222,17 @@ export default function ChatPanel() {
           if (parsed.reply) replyText = String(parsed.reply)
         } catch {}
       }
+      replyText = sanitizeReply(replyText)
 
       const msgId = crypto.randomUUID()
       setStreamingId(msgId)
       addMessage({ id: msgId, role: 'assistant', content: replyText })
 
       if (data.resumeEdits && Object.keys(data.resumeEdits).length > 0) {
-        // AI confirmed apply — apply immediately and show summary
+        pushSnapshot(msgId, replyText.slice(0, 60), useTemplateResumeStore.getState().data)
         applyResumeEdits(data.resumeEdits)
         setEditedMsgIds((prev) => new Set([...prev, msgId]))
         addEditLogEntry(replyText)
-      } else if (data.proposedEdits && Object.keys(data.proposedEdits).length > 0) {
-        // AI is proposing changes — wait for user confirmation
-        setPendingProposals((prev) => ({ ...prev, [msgId]: data.proposedEdits }))
       }
     } catch (err: any) {
       setTyping(false)
@@ -198,21 +240,14 @@ export default function ChatPanel() {
     }
   }, [messages, resumeText, resumeData, editLog, onboardingData, user, tokensLeft])
 
-  const applyProposal = useCallback((msgId: string) => {
-    const edits = pendingProposals[msgId]
-    if (!edits) return
-    applyResumeEdits(edits)
-    setEditedMsgIds((prev) => new Set([...prev, msgId]))
-    setPendingProposals((prev) => { const n = { ...prev }; delete n[msgId]; return n })
-    addEditLogEntry(`Applied proposed changes from message ${msgId}`)
-    // Send a follow-up so AI summarises what it did
-    sendMessage('Applied. Now tell me exactly what changes you made and where.')
-  }, [pendingProposals, sendMessage])
-
-  const dismissProposal = useCallback((msgId: string) => {
-    setPendingProposals((prev) => { const n = { ...prev }; delete n[msgId]; return n })
-    setDismissedProposals((prev) => new Set([...prev, msgId]))
-  }, [])
+  const revertEdit = useCallback((msgId: string) => {
+    const snapshot = snapshots[msgId]
+    if (!snapshot) return
+    useTemplateResumeStore.getState().resetData(snapshot.resumeData)
+    removeSnapshot(msgId)
+    setEditedMsgIds((prev) => { const n = new Set(prev); n.delete(msgId); return n })
+    setRevertedMsgIds((prev) => new Set([...prev, msgId]))
+  }, [snapshots, removeSnapshot])
 
   if (!isOpen) return null
 
@@ -232,7 +267,7 @@ export default function ChatPanel() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={clearMessages} className="text-xs text-gray-400 hover:text-gray-600">Clear</button>
+          <button onClick={() => { clearMessages(); useSnapshotStore.getState().clear() }} className="text-xs text-gray-400 hover:text-gray-600">Clear</button>
           <button onClick={toggleChat} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400">
             <X size={14} />
           </button>
@@ -271,26 +306,26 @@ export default function ChatPanel() {
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
-                {wasEdited && (
-                  <div className="flex items-center gap-1 px-2 py-1 bg-green-50 border border-green-100 rounded-lg self-start">
-                    <CheckCheck size={11} className="text-green-500" />
-                    <span className="text-xs text-green-600 font-medium">Applied to resume</span>
+                {wasEdited && !revertedMsgIds.has(id) && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 px-2 py-1 bg-green-50 border border-green-100 rounded-lg">
+                      <CheckCheck size={11} className="text-green-500" />
+                      <span className="text-xs text-green-600 font-medium">Applied to resume</span>
+                    </div>
+                    {snapshots[id] && (
+                      <button
+                        onClick={() => revertEdit(id)}
+                        className="flex items-center gap-1 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors"
+                      >
+                        <RotateCcw size={10} /> Revert
+                      </button>
+                    )}
                   </div>
                 )}
-                {pendingProposals[id] && !dismissedProposals.has(id) && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <button
-                      onClick={() => applyProposal(id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold rounded-lg transition-colors"
-                    >
-                      <CheckCheck size={11} /> Apply Changes
-                    </button>
-                    <button
-                      onClick={() => dismissProposal(id)}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold rounded-lg transition-colors"
-                    >
-                      Dismiss
-                    </button>
+                {revertedMsgIds.has(id) && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 border border-gray-100 rounded-lg self-start">
+                    <RotateCcw size={11} className="text-gray-400" />
+                    <span className="text-xs text-gray-400">Reverted</span>
                   </div>
                 )}
               </div>
@@ -303,12 +338,8 @@ export default function ChatPanel() {
             <div className="w-6 h-6 bg-brand-500 rounded-full flex items-center justify-center shrink-0">
               <Bot size={12} className="text-white" />
             </div>
-            <div className="bg-gray-50 border border-gray-100 px-3 py-2 rounded-2xl rounded-tl-sm">
-              <div className="flex gap-1">
-                {[0, 1, 2].map((i) => (
-                  <span key={i} className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-                ))}
-              </div>
+            <div className="bg-gray-50 border border-gray-100 px-4 py-3 rounded-2xl rounded-tl-sm">
+              <AILoader type="chat" variant="inline" />
             </div>
           </div>
         )}

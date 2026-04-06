@@ -13,6 +13,7 @@ import ProfilePage from '@/pages/ProfilePage'
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow'
 import { useAuthStore } from '@/store/authStore'
 import { useDraftStore } from '@/store/draftStore'
+import { useTemplateResumeStore } from '@/store/templateResumeStore'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore()
@@ -29,13 +30,26 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   const { user } = useAuthStore()
   const { loadForUser, currentUserId } = useDraftStore()
+  const resumeData = useTemplateResumeStore((s) => s.data)
 
-  // On page refresh, reload drafts for the persisted user
+  // On page refresh, reload drafts and resume for the persisted user
   useEffect(() => {
-    if (user && user.id !== currentUserId) {
+    if (!user) return
+    if (user.id !== currentUserId) {
       loadForUser(user.id)
     }
+    // Restore per-user resume from localStorage if available
+    const saved = localStorage.getItem(`vectoros-resume-${user.id}`)
+    if (saved) {
+      try { useTemplateResumeStore.getState().resetData(JSON.parse(saved)) } catch {}
+    }
   }, [user?.id])
+
+  // Auto-save resume to per-user key whenever it changes
+  useEffect(() => {
+    if (!user?.id) return
+    localStorage.setItem(`vectoros-resume-${user.id}`, JSON.stringify(resumeData))
+  }, [resumeData, user?.id])
 
   return (
     <>
