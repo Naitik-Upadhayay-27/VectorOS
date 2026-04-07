@@ -216,6 +216,44 @@ async function fetchInternships(query: string, location: string): Promise<Normal
   }
 }
 
+// Python scraper URL — same EC2, different port
+const SCRAPER_URL = process.env.SCRAPER_URL || 'http://localhost:8002'
+
+async function fetchFromScraper(q: string, location: string, type: string, remote: string): Promise<NormalisedJob[]> {
+  try {
+    const params = new URLSearchParams({ q, location, limit: '20' })
+    if (type) params.set('type', type)
+    if (remote === 'true') params.set('remote', 'true')
+
+    const res = await fetch(`${SCRAPER_URL}/jobs/search?${params}`, {
+      signal: AbortSignal.timeout(30000), // 30s timeout
+    })
+    if (!res.ok) throw new Error(`Scraper HTTP ${res.status}`)
+
+    const data = await res.json() as any
+    const jobs: any[] = data.jobs ?? []
+
+    return jobs.map((j: any): NormalisedJob => ({
+      id:          `linkedin-${j.job_id}`,
+      source:      'linkedin',
+      title:       j.title ?? '',
+      company:     j.company ?? '',
+      location:    j.location ?? '',
+      type:        j.employment_type ?? 'Full-time',
+      salary:      j.salary ?? 'Not specified',
+      description: j.description ?? '',
+      url:         j.url ?? '',
+      postedAt:    j.posted_at ?? '',
+      logo:        undefined,
+      remote:      j.remote ?? false,
+      tags:        j.tags ?? [],
+    }))
+  } catch (e: any) {
+    console.warn(`[Jobs] Scraper unavailable: ${e.message} — falling back to free APIs`)
+    return []
+  }
+}
+
 router.get('/search', async (req: AuthRequest, res: Response) => {
   const { q = '', location = '', type = '', remote = '' } = req.query as Record<string, string>
 
@@ -228,13 +266,19 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
     return res.json({ jobs: cached, total: cached.length, cached: true })
   }
 
-  const [jsearch, adzuna, himalayas] = await Promise.all([
-    fetchJSearch(q, location),
-    fetchAdzuna(q, ''),
-    fetchHimalayas(q),
-  ])
+  // Try LinkedIn scraper first (real-time, most relevant)
+  let jobs: NormalisedJob[] = await fetchFromScraper(q, location, type, remote)
 
-  let jobs: NormalisedJob[] = [...jsearch, ...adzuna, ...himalayas]
+  // Fallback to free APIs if scraper is down
+  if (jobs.length === 0) {
+    console.log(`[Jobs] Using fallback APIs for "${q}"`)
+    const [jsearch, adzuna, himalayas] = await Promise.all([
+      fetchJSearch(q, location),
+      fetchAdzuna(q, ''),
+      fetchHimalayas(q),
+    ])
+    jobs = [...jsearch, ...adzuna, ...himalayas]
+  }
 
   // Deduplicate by title+company
   const seen = new Set<string>()
@@ -245,9 +289,10 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
     return true
   })
 
-  if (type) jobs = jobs.filter((j) => j.type.toLowerCase().includes(type.toLowerCase()))
+  if (type && jobs[0]?.source !== 'linkedin') jobs = jobs.filter((j) => j.type.toLowerCase().includes(type.toLowerCase()))
   if (remote === 'true') jobs = jobs.filter((j) => j.remote)
 
+  jobs = jobs.slice(0, 20)
   setCached(cacheKey, jobs)
   res.json({ jobs, total: jobs.length })
 })
