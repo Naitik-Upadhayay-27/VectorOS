@@ -287,7 +287,7 @@ async function fetchFromScraper(q: string, location: string, type: string, remot
     if (remote === 'true') params.set('remote', 'true')
 
     const res = await fetch(`${SCRAPER_URL}/jobs/search?${params}`, {
-      signal: AbortSignal.timeout(30000), // 30s timeout
+      signal: AbortSignal.timeout(60000), // 60s timeout — scraper needs time
     })
     if (!res.ok) throw new Error(`Scraper HTTP ${res.status}`)
 
