@@ -518,22 +518,16 @@ export default function JobsPage() {
       <div className="h-full overflow-y-auto bg-[#f4f5f7]">
         <div className="max-w-5xl mx-auto px-8 py-8">
 
-          {/* Header */}
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Job Search</h1>
-              <p className="text-sm text-gray-400 mt-0.5">Search across Adzuna, Google Jobs & Himalayas in one place</p>
+          {/* Header — no magic button, motivational quote */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Job Search</h1>
+            <p className="text-sm text-gray-400 mt-0.5">Search across Adzuna, Google Jobs & Himalayas in one place</p>
+            <div className="mt-4 px-4 py-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl flex items-center gap-3">
+              <span className="text-2xl shrink-0">💡</span>
+              <p className="text-sm text-purple-700 italic">
+                "The secret of getting ahead is getting started. Your next opportunity is one search away."
+              </p>
             </div>
-            {/* Magic button */}
-            <button
-              onClick={startWithMagic}
-              disabled={magicLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:opacity-70 text-white text-sm font-semibold rounded-xl shadow-lg shadow-purple-200 transition-all"
-            >
-              {magicLoading
-                ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Finding your jobs...</>
-                : <><Sparkles size={15} /> Start with Magic</>}
-            </button>
           </div>
 
           {/* Search bar — always at top */}
@@ -667,41 +661,83 @@ export default function JobsPage() {
           )}
 
           {/* Job cards */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             {jobs.map((job) => (
               <div
                 key={job.id}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-purple-100 transition-all cursor-pointer group"
-                onClick={() => setSelectedJob(job)}
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-purple-200 transition-all group overflow-hidden"
               >
-                <div className="p-5 flex items-start gap-4">
-                  {job.logo
-                    ? <img src={job.logo} alt={job.company} className="w-10 h-10 rounded-xl object-contain border border-gray-100 shrink-0" />
-                    : <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 font-bold shrink-0">{job.company[0]}</div>
-                  }
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-sm font-bold text-gray-900 group-hover:text-purple-600 transition-colors">{job.title}</h3>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
-                          <span className="flex items-center gap-1"><Building2 size={11} />{job.company}</span>
-                          <span className="flex items-center gap-1"><MapPin size={11} />{job.location}</span>
-                          {job.salary !== 'Not specified' && <span className="text-green-600 font-semibold">{job.salary}</span>}
-                          {job.postedAt && <span className="flex items-center gap-1 text-gray-400"><Clock size={10} />{timeAgo(job.postedAt)}</span>}
+                <div className="p-5">
+                  {/* Top row — logo + title + salary */}
+                  <div className="flex items-start gap-4">
+                    {job.logo
+                      ? <img src={job.logo} alt={job.company} className="w-12 h-12 rounded-xl object-contain border border-gray-100 shrink-0" />
+                      : <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 border border-purple-100 flex items-center justify-center text-purple-600 font-bold text-lg shrink-0">{job.company[0]}</div>
+                    }
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="text-base font-bold text-gray-900 group-hover:text-purple-600 transition-colors leading-tight">{job.title}</h3>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+                            <span className="flex items-center gap-1 font-medium"><Building2 size={11} />{job.company}</span>
+                            <span className="flex items-center gap-1"><MapPin size={11} />{job.location}</span>
+                            {job.postedAt && <span className="flex items-center gap-1 text-gray-400"><Clock size={10} />{timeAgo(job.postedAt)}</span>}
+                          </div>
                         </div>
+                        {job.salary !== 'Not specified' && (
+                          <span className="shrink-0 text-sm font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-100">
+                            {job.salary}
+                          </span>
+                        )}
                       </div>
-                      <ChevronRight size={16} className="text-gray-300 group-hover:text-purple-400 transition-colors shrink-0 mt-0.5" />
-                    </div>
-                    <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${SOURCE_COLORS[job.source]}`}>
-                        {SOURCE_LABELS[job.source]}
-                      </span>
-                      {job.remote && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100 flex items-center gap-1"><Wifi size={9} /> Remote</span>}
-                      {job.tags.slice(0, 3).map((t) => (
-                        <span key={t} className="text-[11px] border border-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{t}</span>
-                      ))}
                     </div>
                   </div>
+
+                  {/* Description preview */}
+                  {job.description && (
+                    <p className="mt-3 text-xs text-gray-500 leading-relaxed line-clamp-2">
+                      {job.description.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim().slice(0, 180)}...
+                    </p>
+                  )}
+
+                  {/* Tags row */}
+                  <div className="flex items-center gap-2 mt-3 flex-wrap">
+                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${SOURCE_COLORS[job.source]}`}>
+                      {SOURCE_LABELS[job.source]}
+                    </span>
+                    {job.remote && (
+                      <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-green-50 text-green-600 border border-green-100 flex items-center gap-1">
+                        <Wifi size={9} /> Remote
+                      </span>
+                    )}
+                    {job.type && job.type !== 'Not specified' && (
+                      <span className="text-[11px] px-2.5 py-1 rounded-full bg-gray-50 text-gray-500 border border-gray-100 capitalize">
+                        {job.type.replace('_', ' ')}
+                      </span>
+                    )}
+                    {job.tags.slice(0, 3).map((t) => (
+                      <span key={t} className="text-[11px] border border-gray-100 text-gray-400 px-2.5 py-1 rounded-full bg-gray-50">{t}</span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bottom action bar */}
+                <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                  <button
+                    onClick={() => setSelectedJob(job)}
+                    className="text-xs text-purple-600 font-semibold hover:text-purple-700 transition-colors flex items-center gap-1"
+                  >
+                    View Details <ChevronRight size={12} />
+                  </button>
+                  <a
+                    href={job.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5 px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    Apply Now <ExternalLink size={11} />
+                  </a>
                 </div>
               </div>
             ))}

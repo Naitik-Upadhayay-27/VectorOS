@@ -80,14 +80,49 @@ export default function OnboardingFlow() {
           name: data.fullName || 'Your Name',
           title: data.jobTitle || 'Your Job Title',
           contact: {
-            location: data.location || '',
-            email: '', phone: '', linkedin: '', github: '',
+            location: data.location || 'City, Country',
+            email: 'your.email@example.com',
+            phone: '+1 (555) 000-0000',
+            linkedin: 'linkedin.com/in/yourprofile',
+            github: 'github.com/yourusername',
           },
         },
-        summary: '',
-        experience: [], education: [], skills: [],
-        projects: [], certificates: [], awards: [],
-        languages: [], volunteer: [],
+        summary: 'Results-driven professional with experience in [your field]. Proven track record of [key achievement]. Passionate about [your area of expertise] and committed to delivering high-impact solutions.',
+        experience: [
+          {
+            id: crypto.randomUUID(),
+            title: 'Your Job Title',
+            company: 'Company Name',
+            location: 'City, Country',
+            startDate: 'Jan 2023',
+            endDate: 'Present',
+            description: [
+              'Describe your key responsibility or achievement here',
+              'Quantify your impact where possible (e.g. increased X by Y%)',
+              'Use strong action verbs to start each bullet point',
+            ],
+          },
+        ],
+        education: [
+          {
+            id: crypto.randomUUID(),
+            degree: 'Bachelor of Science in Your Major',
+            institution: 'University Name',
+            location: 'City, Country',
+            graduationDate: 'May 2022',
+            gpa: '3.8 / 4.0',
+            description: [],
+          },
+        ],
+        skills: [
+          { id: crypto.randomUUID(), category: 'Technical Skills', skills: ['Skill 1', 'Skill 2', 'Skill 3', 'Skill 4'] },
+          { id: crypto.randomUUID(), category: 'Tools & Platforms', skills: ['Tool 1', 'Tool 2', 'Tool 3'] },
+        ],
+        projects: [],
+        certificates: [],
+        awards: [],
+        languages: [],
+        volunteer: [],
       })
     }
 

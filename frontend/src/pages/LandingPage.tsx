@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuthStore } from '@/store/authStore'
-import { FileText, Target, BarChart2, MessageSquare, ArrowRight, CheckCircle, Upload, Brain, Sparkles, Send, TrendingUp } from 'lucide-react'
+import { FileText, Target, BarChart2, MessageSquare, ArrowRight, CheckCircle, Upload, Brain, Sparkles, Send, TrendingUp, Play, Pause, Volume2, VolumeX } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { ContainerScroll } from '@/components/ui/container-scroll-animation'
 import { GlobePulse } from '@/components/ui/cobe-globe-pulse'
@@ -11,6 +11,101 @@ import { RulerCarousel } from '@/components/ui/ruler-carousel'
 import RadialOrbitalTimeline from '@/components/ui/radial-orbital-timeline'
 import TypewriterText from '@/components/ui/TypewriterText'
 import { HeroGeometric } from '@/components/ui/HeroGeometric'
+
+// ── Scroll-triggered video player ───────────────────────────────────────────
+function DemoVideo() {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [playing, setPlaying] = useState(false)
+  const [muted, setMuted]     = useState(true)
+  const [ready, setReady]     = useState(false)
+
+  // Auto-play when 40% of the video is visible, pause when it leaves
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          video.play().then(() => setPlaying(true)).catch(() => {})
+        } else {
+          video.pause()
+          setPlaying(false)
+        }
+      },
+      { threshold: 0.4 }
+    )
+    observer.observe(video)
+    return () => observer.disconnect()
+  }, [ready])
+
+  const togglePlay = () => {
+    const v = videoRef.current
+    if (!v) return
+    if (v.paused) { v.play(); setPlaying(true) }
+    else          { v.pause(); setPlaying(false) }
+  }
+
+  const toggleMute = () => {
+    const v = videoRef.current
+    if (!v) return
+    v.muted = !v.muted
+    setMuted(v.muted)
+  }
+
+  return (
+    <div className="relative w-full h-full group rounded-xl overflow-hidden bg-black">
+      <video
+        ref={videoRef}
+        src="/video.mp4"
+        preload="metadata"          // loads first frame + duration, not full file
+        muted
+        loop
+        playsInline
+        className="w-full h-full object-cover rounded-xl"
+        onCanPlay={() => setReady(true)}
+      />
+
+      {/* Custom controls overlay — visible on hover */}
+      <div className="absolute inset-0 flex items-end justify-between px-4 pb-4
+                      bg-gradient-to-t from-black/60 via-transparent to-transparent
+                      opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <button
+          onClick={togglePlay}
+          className="flex items-center justify-center w-10 h-10 rounded-full
+                     bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-colors"
+        >
+          {playing
+            ? <Pause size={16} className="text-white" />
+            : <Play  size={16} className="text-white ml-0.5" />}
+        </button>
+
+        <button
+          onClick={toggleMute}
+          className="flex items-center justify-center w-10 h-10 rounded-full
+                     bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-colors"
+        >
+          {muted
+            ? <VolumeX size={16} className="text-white" />
+            : <Volume2 size={16} className="text-white" />}
+        </button>
+      </div>
+
+      {/* Play button overlay when paused and not yet interacted */}
+      {!playing && ready && (
+        <button
+          onClick={togglePlay}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <div className="w-16 h-16 rounded-full bg-white/20 hover:bg-white/30
+                          backdrop-blur-sm flex items-center justify-center
+                          transition-all hover:scale-110">
+            <Play size={24} className="text-white ml-1" />
+          </div>
+        </button>
+      )}
+    </div>
+  )
+}
 
 const features = [
   { icon: FileText,       title: 'AI Resume Builder',      desc: 'ATS-optimized templates with real-time AI rewriting and bullet point enhancement.' },
@@ -120,9 +215,27 @@ export default function LandingPage() {
 
         {/* Nav links */}
         <div className="hidden md:flex items-center gap-7">
-          {['Features', 'How it Works', 'Templates', 'Pricing', 'Blog', 'About'].map((link) => (
-            <a key={link} href="#" className="text-sm text-white/50 hover:text-white transition-colors">
-              {link}
+          {[
+            { label: 'Features',     href: '#features'    },
+            { label: 'How it Works', href: '#how-it-works'},
+            { label: 'Templates',    href: '#templates'   },
+            { label: 'Pricing',      href: '#pricing'     },
+            { label: 'Blog',         href: '#blog'        },
+            { label: 'About',        href: '#about'       },
+          ].map(({ label, href }) => (
+            <a
+              key={label}
+              href={href}
+              onClick={(e) => {
+                e.preventDefault()
+                document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' })
+              }}
+              className="text-sm text-white/50 hover:text-white transition-colors"
+            >
+              {label}
+            </a>
+          ))}
+        </div>
             </a>
           ))}
         </div>
@@ -230,33 +343,12 @@ export default function LandingPage() {
             </div>
           }
         >
-          {/* Replace src with your actual demo video path */}
-          <video
-            className="w-full h-full object-cover rounded-xl"
-            autoPlay
-            muted
-            loop
-            playsInline
-            src="/demo.mp4"
-            onError={(e) => {
-              // Fallback if video not found
-              (e.target as HTMLVideoElement).style.display = 'none';
-            }}
-          />
-          {/* Fallback screenshot / placeholder */}
-          <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-center px-8">
-            <div className="w-16 h-16 rounded-2xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center">
-              <span className="text-3xl">▶</span>
-            </div>
-            <p className="text-white/60 text-sm max-w-md">
-              Drop your demo video at <code className="text-purple-400 text-xs bg-purple-500/10 px-2 py-0.5 rounded">public/demo.mp4</code> to show it here
-            </p>
-          </div>
+          <DemoVideo />
         </ContainerScroll>
       </div>
 
       {/* How it works — Orbital Timeline */}
-      <div className="px-8 py-24 max-w-7xl mx-auto">
+      <div id="how-it-works" className="px-8 py-24 max-w-7xl mx-auto">
 
         {/* Full-width heading */}
         <motion.div
@@ -322,7 +414,7 @@ export default function LandingPage() {
       </div>
 
       {/* Features */}
-      <section className="py-12 md:py-20">
+      <section id="features" className="py-12 md:py-20">
         <div className="mx-auto max-w-5xl space-y-8 px-6 md:space-y-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -376,6 +468,7 @@ export default function LandingPage() {
       </section>
 
       {/* Ruler Carousel */}
+      <div id="templates">
       <RulerCarousel originalItems={[
         { id: 1, title: 'ATS SCORE' },
         { id: 2, title: 'AI REWRITE' },
@@ -387,6 +480,7 @@ export default function LandingPage() {
         { id: 8, title: 'JOB MATCHING' },
         { id: 9, title: 'APPLY TRACK' },
       ]} />
+      </div>
 
       {/* Pricing */}
       <div id="pricing" className="px-8 py-24 max-w-6xl mx-auto">
@@ -565,10 +659,10 @@ export default function LandingPage() {
       </div>
 
       {/* Testimonials */}
-      <TestimonialsSection />
+      <div id="blog"><TestimonialsSection /></div>
 
       {/* Globe CTA */}
-      <div className="px-8 pb-24 max-w-6xl mx-auto">
+      <div id="about" className="px-8 pb-24 max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
