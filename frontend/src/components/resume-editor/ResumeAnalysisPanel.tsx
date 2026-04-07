@@ -149,6 +149,12 @@ export default function ResumeAnalysisPanel() {
   const defaultRole = onboardingData.jobTitle || data.personalInfo?.title || ''
   const [targetRoles, setTargetRoles] = useState<string[]>(defaultRole ? [defaultRole] : [])
 
+  // Sync if onboarding/resume data loads after mount
+  useEffect(() => {
+    const role = onboardingData.jobTitle || data.personalInfo?.title || ''
+    if (role) setTargetRoles(prev => prev.length === 0 ? [role] : prev)
+  }, [onboardingData.jobTitle, data.personalInfo?.title])
+
   const fixResume = () => {
     if (!result) return
     const missing = result.breakdown.keywordMatch.missing ?? []

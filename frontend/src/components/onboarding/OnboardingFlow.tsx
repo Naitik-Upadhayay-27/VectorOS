@@ -24,9 +24,18 @@ const THUMB_SCALE = 0.19
 
 const EXPERIENCE_OPTIONS = ['Less than 1 year', '1–2 years', '3–5 years', '6–9 years', '10+ years']
 const EMPLOYMENT_OPTIONS  = ['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship', 'Open to all']
-const SALARY_RANGES       = [
-  'Under $40k', '$40k–$60k', '$60k–$80k', '$80k–$100k',
-  '$100k–$130k', '$130k–$160k', '$160k–$200k', '$200k+', 'Prefer not to say',
+
+// INR salary ranges
+const SALARY_RANGES_INR = [
+  'Under ₹3 LPA', '₹3–5 LPA', '₹5–8 LPA', '₹8–12 LPA',
+  '₹12–18 LPA', '₹18–25 LPA', '₹25–40 LPA', '₹40 LPA+', 'Prefer not to say',
+]
+
+const INDIAN_CITIES = [
+  'Mumbai, Maharashtra', 'Delhi, NCR', 'Bengaluru, Karnataka', 'Hyderabad, Telangana',
+  'Chennai, Tamil Nadu', 'Pune, Maharashtra', 'Kolkata, West Bengal', 'Ahmedabad, Gujarat',
+  'Gurgaon, Haryana', 'Noida, Uttar Pradesh', 'Jaipur, Rajasthan', 'Chandigarh',
+  'Indore, Madhya Pradesh', 'Kochi, Kerala', 'Coimbatore, Tamil Nadu', 'Remote',
 ]
 
 const slide = {
@@ -175,8 +184,8 @@ export default function OnboardingFlow() {
           <X size={16} />
         </button>
 
-        {/* Progress */}
-        <div className="px-8 pt-6 pb-0">
+        {/* Progress — padded right to avoid close button overlap */}
+        <div className="px-8 pt-6 pb-0 pr-14">
           <ProgressBar step={step} />
         </div>
 
@@ -361,8 +370,8 @@ function StepTemplate() {
         <p className="text-sm text-gray-500">All templates are ATS-friendly. You can change this anytime.</p>
       </div>
 
-      {/* Template grid */}
-      <div className="grid grid-cols-4 gap-3 overflow-y-auto max-h-64 pr-1 mb-5">
+      {/* Template grid — 3 cols for legibility */}
+      <div className="grid grid-cols-3 gap-3 overflow-y-auto max-h-64 pr-1 mb-5">
         {TEMPLATES.map((t) => {
           const Comp = t.component
           const isActive = selected === t.id
@@ -453,7 +462,8 @@ function JobTitleTypeahead({ value, onChange }: { value: string; onChange: (v: s
   return (
     <div>
       <label className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1.5">
-        <Briefcase size={15} className="text-purple-400" /> Current / Desired Job Title *
+        <Briefcase size={15} className="text-purple-400" /> Current / Desired Job Title
+        <span className="text-red-400 text-[10px] font-bold">Required</span>
       </label>
       <div className="relative" ref={dropRef}>
         <input
@@ -470,6 +480,53 @@ function JobTitleTypeahead({ value, onChange }: { value: string; onChange: (v: s
               <button key={s} onMouseDown={e => { e.preventDefault(); setQuery(s); onChange(s); setSuggestions([]); setOpen(false) }}
                 className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-600 transition-colors">
                 {s}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function LocationField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState(value)
+  const dropRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!dropRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const filtered = query.trim()
+    ? INDIAN_CITIES.filter(c => c.toLowerCase().includes(query.toLowerCase())).slice(0, 6)
+    : INDIAN_CITIES.slice(0, 6)
+
+  return (
+    <div>
+      <label className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1.5">
+        <MapPin size={15} className="text-green-400" />
+        Location
+        <span className="ml-auto text-[10px] text-gray-400 font-normal">Optional</span>
+      </label>
+      <div className="relative" ref={dropRef}>
+        <input
+          value={query}
+          onChange={e => { setQuery(e.target.value); onChange(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+          placeholder="e.g. Bengaluru, Karnataka"
+          className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 placeholder:text-gray-400 transition-colors"
+        />
+        {open && filtered.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 overflow-y-auto max-h-44">
+            {filtered.map(city => (
+              <button key={city} onMouseDown={e => { e.preventDefault(); setQuery(city); onChange(city); setOpen(false) }}
+                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-600 transition-colors flex items-center gap-2">
+                <MapPin size={11} className="text-gray-400 shrink-0" />{city}
               </button>
             ))}
           </div>
@@ -511,8 +568,9 @@ function StepPersonal() {
       <div className="space-y-4 flex-1">
         <Field
           icon={<Sparkles size={15} className="text-brand-400" />}
-          label="Full Name *"
-          placeholder="Alex Johnson"
+          label="Full Name"
+          required
+          placeholder="Rahul Sharma"
           value={data.fullName}
           onChange={(v) => update({ fullName: v })}
         />
@@ -520,10 +578,7 @@ function StepPersonal() {
           value={data.jobTitle}
           onChange={(v) => update({ jobTitle: v })}
         />
-        <Field
-          icon={<MapPin size={15} className="text-green-400" />}
-          label="Location"
-          placeholder="San Francisco, CA / Remote"
+        <LocationField
           value={data.location}
           onChange={(v) => update({ location: v })}
         />
@@ -573,16 +628,16 @@ function StepCareer() {
         <div className="grid grid-cols-2 gap-3">
           <SelectField
             icon={<DollarSign size={15} className="text-green-400" />}
-            label="Current Salary"
+            label="Current Salary (INR)"
             value={data.currentSalary}
-            options={SALARY_RANGES}
+            options={SALARY_RANGES_INR}
             onChange={(v) => update({ currentSalary: v })}
           />
           <SelectField
             icon={<DollarSign size={15} className="text-brand-400" />}
-            label="Expected Salary"
+            label="Expected Salary (INR)"
             value={data.expectedSalary}
-            options={SALARY_RANGES}
+            options={SALARY_RANGES_INR}
             onChange={(v) => update({ expectedSalary: v })}
           />
         </div>
@@ -619,10 +674,20 @@ function StepCareer() {
 function StepDomain({ onFinish }: { onFinish: () => void }) {
   const { data, update } = useOnboardingStore()
   const [query, setQuery] = useState('')
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const suggestions = query.trim()
-    ? DOMAINS.filter((d) => d.toLowerCase().includes(query.toLowerCase())).slice(0, 5)
-    : []
+  const search = (q: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (!q.trim()) { setSuggestions([]); return }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await apiFetch(`${API_BASE}/api/ai/job-titles?q=${encodeURIComponent(q)}`)
+        const d = await res.json()
+        setSuggestions(d.titles ?? [])
+      } catch { setSuggestions([]) }
+    }, 200)
+  }
 
   const toggle = (domain: string) => {
     const current = data.targetDomains
@@ -632,14 +697,15 @@ function StepDomain({ onFinish }: { onFinish: () => void }) {
         : [...current, domain],
     })
     setQuery('')
+    setSuggestions([])
   }
 
   return (
     <motion.div {...slide} className="flex flex-col flex-1">
       <div className="mb-5">
         <p className="text-xs font-semibold text-brand-500 uppercase tracking-widest mb-2">Step 5 of 5</p>
-        <h2 className="text-2xl font-bold text-gray-900 mb-1">Where do you want to work? 🎯</h2>
-        <p className="text-sm text-gray-500">Search and select domains. We'll tailor your job matches accordingly.</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-1">What domain do you want to work in? 🎯</h2>
+        <p className="text-sm text-gray-500">Select your target industries. We'll tailor your job matches accordingly.</p>
       </div>
 
       {/* Search with dropdown */}
@@ -647,20 +713,19 @@ function StepDomain({ onFinish }: { onFinish: () => void }) {
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
         <input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Type to search... e.g. Machine Learning, Finance"
+          onChange={(e) => { setQuery(e.target.value); search(e.target.value) }}
+          placeholder="Search 73k+ job titles & domains..."
           className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 placeholder:text-gray-400"
         />
 
-        {/* Dropdown suggestions */}
         {suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-y-auto max-h-48">
             {suggestions.map((domain) => {
               const active = data.targetDomains.includes(domain)
               return (
                 <button
                   key={domain}
-                  onClick={() => toggle(domain)}
+                  onMouseDown={(e) => { e.preventDefault(); toggle(domain) }}
                   className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors ${
                     active ? 'bg-brand-50 text-brand-600 font-medium' : 'text-gray-700 hover:bg-gray-50'
                   }`}
@@ -673,15 +738,11 @@ function StepDomain({ onFinish }: { onFinish: () => void }) {
                 </button>
               )
             })}
-            {query.trim() && DOMAINS.filter((d) => d.toLowerCase().includes(query.toLowerCase())).length === 0 && (
-              <p className="px-4 py-3 text-sm text-gray-400">No domains found for "{query}"</p>
-            )}
           </div>
         )}
 
-        {/* Empty query hint */}
         {!query.trim() && data.targetDomains.length === 0 && (
-          <p className="mt-2 text-xs text-gray-400">Start typing to see suggestions</p>
+          <p className="mt-2 text-xs text-gray-400">Start typing to search from 73k+ job titles</p>
         )}
       </div>
 
@@ -718,17 +779,22 @@ function StepDomain({ onFinish }: { onFinish: () => void }) {
 
 // ── Shared field components ─────────────────────────────────────────────────
 
-function Field({ icon, label, placeholder, value, onChange }: {
+function Field({ icon, label, placeholder, value, onChange, required = false }: {
   icon: React.ReactNode
   label: string
   placeholder: string
   value: string
   onChange: (v: string) => void
+  required?: boolean
 }) {
   return (
     <div>
       <label className="text-xs font-semibold text-gray-500 mb-1.5 flex items-center gap-1.5">
         {icon} {label}
+        {required
+          ? <span className="text-red-400 text-[10px] font-bold">Required</span>
+          : <span className="ml-auto text-[10px] text-gray-400 font-normal">Optional</span>
+        }
       </label>
       <input
         value={value}

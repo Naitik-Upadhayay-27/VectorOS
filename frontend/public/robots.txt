@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /signup
+
+Disallow: /dashboard
+Disallow: /resume/
+Disallow: /profile
+Disallow: /applications
+Disallow: /analytics
+Disallow: /api/
+
+Sitemap: https://vectoros.vercel.app/sitemap.xml

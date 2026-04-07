@@ -218,10 +218,8 @@ export default function LandingPage() {
           {[
             { label: 'Features',     href: '#features'    },
             { label: 'How it Works', href: '#how-it-works'},
-            { label: 'Templates',    href: '#templates'   },
             { label: 'Pricing',      href: '#pricing'     },
-            { label: 'Blog',         href: '#blog'        },
-            { label: 'About',        href: '#about'       },
+            { label: 'Testimonials', href: '#blog'        },
           ].map(({ label, href }) => (
             <a
               key={label}
