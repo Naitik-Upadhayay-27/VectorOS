@@ -236,9 +236,6 @@ export default function LandingPage() {
             </a>
           ))}
         </div>
-            </a>
-          ))}
-        </div>
 
         {/* Auth buttons */}
         <div className="flex items-center gap-3 shrink-0">
