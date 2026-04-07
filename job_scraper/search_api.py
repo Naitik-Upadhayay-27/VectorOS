@@ -4,7 +4,7 @@ Scrapes on-demand per user query, returns max 20 results.
 No DB required — results returned directly.
 
 Run:
-    venv\Scripts\python.exe -m uvicorn search_api:app --reload --port 8002
+    venv/Scripts/python.exe -m uvicorn search_api:app --reload --port 8002
 """
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
