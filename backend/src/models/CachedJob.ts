@@ -35,7 +35,7 @@ const CachedJobSchema = new Schema<ICachedJob>({
   remote:         { type: Boolean, default: false },
   tags:           { type: [String], default: [] },
   source:         { type: String, default: 'linkedin' },
-  cachedAt:       { type: Date, default: Date.now, index: true },
+  cachedAt:       { type: Date, default: Date.now },  // TTL managed by schema.index below
 })
 
 // Auto-expire after 6 hours
