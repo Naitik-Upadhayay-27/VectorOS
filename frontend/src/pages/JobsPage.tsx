@@ -112,9 +112,7 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(d / 7)}w ago`
 }
 
-import occupations from '@/lib/occupations.json'
-
-const JOB_SUGGESTIONS: string[] = occupations
+const JOB_SUGGESTIONS: string[] = []  // unused — replaced by API
 
 export default function JobsPage() {
   const navigate = useNavigate()
@@ -136,18 +134,21 @@ export default function JobsPage() {
   const [magicMode, setMagicMode] = useState(false)
   const [magicLoading, setMagicLoading] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
+  const suggestDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleQueryChange = (val: string) => {
     setQuery(val)
-    if (val.trim().length >= 2) {
-      const filtered = JOB_SUGGESTIONS.filter((s) =>
-        s.toLowerCase().includes(val.toLowerCase())
-      ).slice(0, 7)
-      setSuggestions(filtered)
-      setShowSuggestions(filtered.length > 0)
-    } else {
-      setShowSuggestions(false)
-    }
+    if (suggestDebounce.current) clearTimeout(suggestDebounce.current)
+    if (val.trim().length < 2) { setShowSuggestions(false); return }
+    suggestDebounce.current = setTimeout(async () => {
+      try {
+        const res = await apiFetch(`${API_BASE}/api/ai/job-titles?q=${encodeURIComponent(val)}`)
+        const data = await res.json()
+        const titles: string[] = data.titles ?? []
+        setSuggestions(titles)
+        setShowSuggestions(titles.length > 0)
+      } catch { setShowSuggestions(false) }
+    }, 200)
   }
 
   const selectSuggestion = (s: string) => {
@@ -185,19 +186,8 @@ export default function JobsPage() {
     }
   }, [query, location, typeFilter, remoteOnly])
 
-  // Auto-search on mount if profile has a target role
-  useEffect(() => {
-    if (smartQuery) {
-      setLoading(true)
-      setHasSearched(true)
-      const params = new URLSearchParams({ q: smartQuery, location: smartLocation, remote: profile.openToRemote ? 'true' : '' })
-      apiFetch(`${API_BASE}/api/jobs/search?${params}`)
-        .then(r => r.json())
-        .then(d => setJobs(d.jobs ?? []))
-        .catch(() => {})
-        .finally(() => setLoading(false))
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // Auto-search disabled — user must click Search or use Magic
+  // useEffect auto-search removed intentionally
 
   // Magic search — auto-searches using profile data
   const startWithMagic = useCallback(async () => {

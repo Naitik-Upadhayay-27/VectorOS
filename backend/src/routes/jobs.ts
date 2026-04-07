@@ -207,7 +207,7 @@ async function fetchHimalayas(query: string): Promise<NormalisedJob[]> {
       return q.some(word => word.length > 2 && title.includes(word))
     })
     return filtered.slice(0, 8).map((j: any): NormalisedJob => ({
-      id: `himalayas-${j.slug}`,
+      id: `himalayas-${j.slug ?? j.id ?? crypto.randomUUID()}`,
       source: 'himalayas',
       title: j.title ?? '',
       company: j.company?.name ?? 'Unknown',
