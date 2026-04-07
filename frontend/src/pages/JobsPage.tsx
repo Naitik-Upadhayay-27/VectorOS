@@ -338,29 +338,6 @@ export default function JobsPage() {
                     {selectedJob.description.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim()}
                   </div>
                 </div>
-
-                {/* Job meta */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                  <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <span className="w-1 h-5 bg-indigo-500 rounded-full inline-block" /> Job Details
-                  </h2>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    {[
-                      { label: 'Company',         value: selectedJob.company },
-                      { label: 'Location',        value: selectedJob.location || 'Not specified' },
-                      { label: 'Employment Type', value: selectedJob.type || 'Not specified' },
-                      { label: 'Salary',          value: selectedJob.salary },
-                      { label: 'Remote',          value: selectedJob.remote ? 'Yes' : 'No' },
-                      { label: 'Source',          value: SOURCE_LABELS[selectedJob.source] },
-                      { label: 'Posted',          value: selectedJob.postedAt ? new Date(selectedJob.postedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown' },
-                    ].map(({ label, value }) => (
-                      <div key={label}>
-                        <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">{label}</p>
-                        <p className="text-gray-800 font-medium">{value}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
 
               {/* Right — resume selector → compatibility → job description */}
@@ -479,23 +456,10 @@ export default function JobsPage() {
                 {/* Job description — below resume selector */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <span className="w-1 h-5 bg-indigo-500 rounded-full inline-block" /> Job Details
+                    <span className="w-1 h-5 bg-purple-500 rounded-full inline-block" /> The Role
                   </h2>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    {[
-                      { label: 'Company',         value: selectedJob.company },
-                      { label: 'Location',        value: selectedJob.location || 'Not specified' },
-                      { label: 'Employment Type', value: selectedJob.type || 'Not specified' },
-                      { label: 'Salary',          value: selectedJob.salary },
-                      { label: 'Remote',          value: selectedJob.remote ? 'Yes' : 'No' },
-                      { label: 'Source',          value: SOURCE_LABELS[selectedJob.source] },
-                      { label: 'Posted',          value: selectedJob.postedAt ? new Date(selectedJob.postedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown' },
-                    ].map(({ label, value }) => (
-                      <div key={label}>
-                        <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">{label}</p>
-                        <p className="text-gray-800 font-medium text-xs">{value}</p>
-                      </div>
-                    ))}
+                  <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                    {selectedJob.description.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim()}
                   </div>
                 </div>
               </div>
