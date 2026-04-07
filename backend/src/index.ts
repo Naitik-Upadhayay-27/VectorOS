@@ -24,6 +24,9 @@ import applicationRoutes from './routes/applications'
 const app = express()
 const PORT = Number(process.env.PORT) || 5000
 
+// Trust proxy — required on EC2/behind load balancer for rate limiting + IP detection
+app.set('trust proxy', 1)
+
 app.use(helmet())
 app.use(cors({ origin: true, credentials: true }))
 app.use(express.json({ limit: '10mb' }))
