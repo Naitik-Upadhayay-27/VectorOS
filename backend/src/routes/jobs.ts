@@ -282,7 +282,9 @@ const SCRAPER_URL = process.env.SCRAPER_URL || 'http://localhost:8002'
 
 async function fetchFromScraper(q: string, location: string, type: string, remote: string): Promise<NormalisedJob[]> {
   try {
-    const params = new URLSearchParams({ q, location, limit: '20' })
+    // When remote=true, don't restrict by location (remote jobs are global)
+    const effectiveLocation = remote === 'true' ? '' : location
+    const params = new URLSearchParams({ q, location: effectiveLocation, limit: '20' })
     if (type) params.set('type', type)
     if (remote === 'true') params.set('remote', 'true')
 
@@ -319,7 +321,7 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
   const { q = '', location = '', type = '', remote = '' } = req.query as Record<string, string>
   if (!q.trim()) return res.json({ jobs: [] })
 
-  const cacheKey = `${q}|${location}|${type}|${remote}`.toLowerCase().trim()
+  const cacheKey = `${q}|${remote === 'true' ? '' : location}|${type}|${remote}`.toLowerCase().trim()
 
   // L1 — memory
   const mem = getMemCached(cacheKey)
@@ -336,18 +338,13 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
     return res.json({ jobs: db, total: db.length, cached: true })
   }
 
-  // L3 — live scrape
-  let jobs: NormalisedJob[] = await fetchFromScraper(q, location, type, remote)
-
-  if (jobs.length === 0) {
-    console.log(`[Jobs] Scraper empty, using fallback APIs for "${q}"`)
-    const [jsearch, adzuna, himalayas] = await Promise.all([
-      fetchJSearch(q, location),
-      fetchAdzuna(q, ''),
-      fetchHimalayas(q),
-    ])
-    jobs = [...jsearch, ...adzuna, ...himalayas]
-  }
+  // L3 — free APIs first (fast), scraper disabled for now
+  const [jsearch, adzuna, himalayas] = await Promise.all([
+    fetchJSearch(q, location),
+    fetchAdzuna(q, ''),
+    fetchHimalayas(q),
+  ])
+  let jobs: NormalisedJob[] = [...jsearch, ...adzuna, ...himalayas]
 
   // Deduplicate
   const seen = new Set<string>()
