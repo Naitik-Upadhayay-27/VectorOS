@@ -4,14 +4,14 @@
 
 set -e
 
-echo "=== Installing Python 3.11 ==="
+echo "=== Installing Python ==="
 sudo apt-get update -y
-sudo apt-get install -y python3.11 python3.11-venv python3.11-dev build-essential
+sudo apt-get install -y python3 python3-venv python3-dev build-essential
 
 echo "=== Setting up scraper ==="
-cd ~/VectorOS/job_scraper   # adjust path if different
+cd ~/VectorOS/job_scraper
 
-python3.11 -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
@@ -23,7 +23,8 @@ echo "=== Starting scraper with PM2 ==="
 pm2 delete job-scraper 2>/dev/null || true
 pm2 start "venv/bin/python -m uvicorn search_api:app --host 0.0.0.0 --port 8002 --workers 2" \
   --name job-scraper \
-  --cwd ~/VectorOS/job_scraper
+  --cwd ~/VectorOS/job_scraper \
+  --interpreter none
 
 pm2 save
 pm2 startup   # follow the printed command to enable on reboot
