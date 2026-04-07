@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Search, MapPin, Building2, ExternalLink, Zap, Filter, Wifi, Clock, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, ArrowLeft, Edit, Copy, Sparkles, TrendingUp, BookOpen, FileText } from 'lucide-react'
+import { Search, MapPin, Building2, ExternalLink, Zap, Filter, Wifi, Clock, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, ArrowLeft, Edit, Copy, Sparkles, TrendingUp, BookOpen, FileText, Bookmark, BookmarkCheck } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
 import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
@@ -10,6 +10,7 @@ import { useProfileStore } from '@/store/profileStore'
 import { useNavigate } from 'react-router-dom'
 import { TEMPLATES } from '@/components/resume-templates'
 import { useChatStore } from '@/store/chatStore'
+import { useSavedJobsStore } from '@/store/savedJobsStore'
 
 const PAGE_W = 794
 const PAGE_H = 1123
@@ -118,6 +119,9 @@ const JOB_SUGGESTIONS: string[] = occupations
 export default function JobsPage() {
   const navigate = useNavigate()
   const { data: onboarding } = useOnboardingStore()
+  const { save: saveJob, unsave, isSaved, load: loadSaved } = useSavedJobsStore()
+
+  useEffect(() => { loadSaved() }, [])
   const { drafts } = useDraftStore()
   const resumeData = useTemplateResumeStore((s) => s.data)
   const { profile } = useProfileStore()
@@ -660,74 +664,83 @@ export default function JobsPage() {
             </div>
           )}
 
-          {/* Job cards */}
-          <div className="space-y-4">
-            {jobs.map((job) => (
-              <div
-                key={job.id}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-purple-200 transition-all group overflow-hidden"
-              >
-                <div className="p-5">
-                  {/* Top row — logo + title + salary */}
-                  <div className="flex items-start gap-4">
+          {/* Job cards — 2-col grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {jobs.map((job) => {
+              const bookmarked = isSaved(job.url)
+              return (
+              <div key={job.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-purple-200 transition-all group flex flex-col overflow-hidden">
+                <div className="p-5 flex-1">
+                  {/* Header */}
+                  <div className="flex items-start gap-3 mb-3">
                     {job.logo
-                      ? <img src={job.logo} alt={job.company} className="w-12 h-12 rounded-xl object-contain border border-gray-100 shrink-0" />
-                      : <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 border border-purple-100 flex items-center justify-center text-purple-600 font-bold text-lg shrink-0">{job.company[0]}</div>
+                      ? <img src={job.logo} alt={job.company} className="w-11 h-11 rounded-xl object-contain border border-gray-100 shrink-0" />
+                      : <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center text-purple-600 font-bold text-base shrink-0">{job.company[0]}</div>
                     }
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="text-base font-bold text-gray-900 group-hover:text-purple-600 transition-colors leading-tight">{job.title}</h3>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
-                            <span className="flex items-center gap-1 font-medium"><Building2 size={11} />{job.company}</span>
-                            <span className="flex items-center gap-1"><MapPin size={11} />{job.location}</span>
-                            {job.postedAt && <span className="flex items-center gap-1 text-gray-400"><Clock size={10} />{timeAgo(job.postedAt)}</span>}
-                          </div>
-                        </div>
-                        {job.salary !== 'Not specified' && (
-                          <span className="shrink-0 text-sm font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-100">
-                            {job.salary}
-                          </span>
-                        )}
+                        <h3 className="text-sm font-bold text-gray-900 group-hover:text-purple-600 transition-colors leading-snug line-clamp-2">{job.title}</h3>
+                        {/* Bookmark button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            bookmarked
+                              ? unsave(job.url)
+                              : saveJob({ jobId: job.id, title: job.title, company: job.company, location: job.location, url: job.url, description: job.description })
+                          }}
+                          className={`shrink-0 p-1.5 rounded-lg transition-all ${bookmarked ? 'text-purple-600 bg-purple-50' : 'text-gray-300 hover:text-purple-500 hover:bg-purple-50'}`}
+                          title={bookmarked ? 'Remove bookmark' : 'Save job'}
+                        >
+                          {bookmarked ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 flex-wrap">
+                        <span className="flex items-center gap-1 font-medium"><Building2 size={10} />{job.company}</span>
+                        <span className="text-gray-300">·</span>
+                        <span className="flex items-center gap-1"><MapPin size={10} />{job.location}</span>
                       </div>
                     </div>
                   </div>
 
+                  {/* Salary + time */}
+                  <div className="flex items-center gap-2 mb-3">
+                    {job.salary !== 'Not specified' && (
+                      <span className="text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-full border border-green-100">{job.salary}</span>
+                    )}
+                    {job.postedAt && (
+                      <span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={10} />{timeAgo(job.postedAt)}</span>
+                    )}
+                  </div>
+
                   {/* Description preview */}
                   {job.description && (
-                    <p className="mt-3 text-xs text-gray-500 leading-relaxed line-clamp-2">
-                      {job.description.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim().slice(0, 180)}...
+                    <p className="text-xs text-gray-500 leading-relaxed line-clamp-3 mb-3">
+                      {job.description.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim().slice(0, 200)}
                     </p>
                   )}
 
-                  {/* Tags row */}
-                  <div className="flex items-center gap-2 mt-3 flex-wrap">
-                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${SOURCE_COLORS[job.source]}`}>
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${SOURCE_COLORS[job.source]}`}>
                       {SOURCE_LABELS[job.source]}
                     </span>
-                    {job.remote && (
-                      <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-green-50 text-green-600 border border-green-100 flex items-center gap-1">
-                        <Wifi size={9} /> Remote
-                      </span>
-                    )}
+                    {job.remote && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100 flex items-center gap-1"><Wifi size={8} /> Remote</span>}
                     {job.type && job.type !== 'Not specified' && (
-                      <span className="text-[11px] px-2.5 py-1 rounded-full bg-gray-50 text-gray-500 border border-gray-100 capitalize">
-                        {job.type.replace('_', ' ')}
-                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-50 text-gray-500 border border-gray-100 capitalize">{job.type.replace('_', ' ')}</span>
                     )}
-                    {job.tags.slice(0, 3).map((t) => (
-                      <span key={t} className="text-[11px] border border-gray-100 text-gray-400 px-2.5 py-1 rounded-full bg-gray-50">{t}</span>
+                    {job.tags.slice(0, 2).map((t) => (
+                      <span key={t} className="text-[10px] border border-gray-100 text-gray-400 px-2 py-0.5 rounded-full bg-gray-50">{t}</span>
                     ))}
                   </div>
                 </div>
 
-                {/* Bottom action bar */}
-                <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                {/* Action bar */}
+                <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-2">
                   <button
                     onClick={() => setSelectedJob(job)}
                     className="text-xs text-purple-600 font-semibold hover:text-purple-700 transition-colors flex items-center gap-1"
                   >
-                    View Details <ChevronRight size={12} />
+                    View Details <ChevronRight size={11} />
                   </button>
                   <a
                     href={job.url}
@@ -740,7 +753,8 @@ export default function JobsPage() {
                   </a>
                 </div>
               </div>
-            ))}
+              )
+            })}
 
             {!loading && jobs.length === 0 && query && (
               <div className="text-center py-12 text-gray-400">

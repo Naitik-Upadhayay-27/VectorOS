@@ -1,24 +1,85 @@
 import { Router, Response } from 'express'
 import { authenticate, AuthRequest } from '../middleware/auth'
+import { CachedJob } from '../models/CachedJob'
+import { Application } from '../models/Application'
 
 const router = Router()
 router.use(authenticate)
 
-// ── Simple in-memory cache (5 min TTL) ──────────────────────────────────────
-const cache = new Map<string, { jobs: NormalisedJob[]; ts: number }>()
-const CACHE_TTL = 5 * 60 * 1000
+// ── In-memory L1 cache (1 min) + MongoDB L2 cache (6 hours) ─────────────────
+const memCache = new Map<string, { jobs: NormalisedJob[]; ts: number }>()
+const MEM_TTL  = 60 * 1000  // 1 minute
 
-function getCached(key: string): NormalisedJob[] | null {
-  const entry = cache.get(key)
-  if (!entry) return null
-  if (Date.now() - entry.ts > CACHE_TTL) { cache.delete(key); return null }
-  return entry.jobs
+function getMemCached(key: string): NormalisedJob[] | null {
+  const e = memCache.get(key)
+  if (!e) return null
+  if (Date.now() - e.ts > MEM_TTL) { memCache.delete(key); return null }
+  return e.jobs
+}
+function setMemCached(key: string, jobs: NormalisedJob[]) {
+  memCache.set(key, { jobs, ts: Date.now() })
 }
 
-function setCached(key: string, jobs: NormalisedJob[]) {
-  cache.set(key, { jobs, ts: Date.now() })
+async function getDbCached(query: string): Promise<NormalisedJob[] | null> {
+  try {
+    const docs = await CachedJob.find({ query })
+      .sort({ cachedAt: -1 })
+      .limit(20)
+      .lean()
+    if (!docs.length) return null
+    return docs.map(docToJob)
+  } catch { return null }
 }
-router.use(authenticate)
+
+async function setDbCached(query: string, jobs: NormalisedJob[]) {
+  try {
+    const ops = jobs.map(j => ({
+      updateOne: {
+        filter: { jobId: j.id.replace('linkedin-', '') },
+        update: {
+          $set: {
+            jobId: j.id.replace('linkedin-', ''),
+            query,
+            title:          j.title,
+            company:        j.company,
+            location:       j.location,
+            employmentType: j.type,
+            salary:         j.salary,
+            postedAt:       j.postedAt,
+            description:    j.description,
+            url:            j.url,
+            remote:         j.remote,
+            tags:           j.tags,
+            source:         j.source,
+            cachedAt:       new Date(),
+          }
+        },
+        upsert: true,
+      }
+    }))
+    if (ops.length) await CachedJob.bulkWrite(ops)
+  } catch (e: any) {
+    console.warn('[Jobs] DB cache write failed:', e.message)
+  }
+}
+
+function docToJob(doc: any): NormalisedJob {
+  return {
+    id:          `linkedin-${doc.jobId}`,
+    source:      doc.source ?? 'linkedin',
+    title:       doc.title ?? '',
+    company:     doc.company ?? '',
+    location:    doc.location ?? '',
+    type:        doc.employmentType ?? '',
+    salary:      doc.salary ?? 'Not specified',
+    description: doc.description ?? '',
+    url:         doc.url ?? '',
+    postedAt:    doc.postedAt ?? '',
+    logo:        undefined,
+    remote:      doc.remote ?? false,
+    tags:        doc.tags ?? [],
+  }
+}
 
 // ── Normalised job shape ─────────────────────────────────────────────────────
 export interface NormalisedJob {
@@ -256,22 +317,30 @@ async function fetchFromScraper(q: string, location: string, type: string, remot
 
 router.get('/search', async (req: AuthRequest, res: Response) => {
   const { q = '', location = '', type = '', remote = '' } = req.query as Record<string, string>
-
   if (!q.trim()) return res.json({ jobs: [] })
 
-  const cacheKey = `${q}|${location}|${type}|${remote}`.toLowerCase()
-  const cached = getCached(cacheKey)
-  if (cached) {
-    console.log(`[Jobs] Cache hit for "${q}"`)
-    return res.json({ jobs: cached, total: cached.length, cached: true })
+  const cacheKey = `${q}|${location}|${type}|${remote}`.toLowerCase().trim()
+
+  // L1 — memory
+  const mem = getMemCached(cacheKey)
+  if (mem) {
+    console.log(`[Jobs] L1 cache hit for "${q}"`)
+    return res.json({ jobs: mem, total: mem.length, cached: true })
   }
 
-  // Try LinkedIn scraper first (real-time, most relevant)
+  // L2 — MongoDB (6h TTL via TTL index)
+  const db = await getDbCached(cacheKey)
+  if (db && db.length > 0) {
+    console.log(`[Jobs] L2 DB cache hit for "${q}" (${db.length} jobs)`)
+    setMemCached(cacheKey, db)
+    return res.json({ jobs: db, total: db.length, cached: true })
+  }
+
+  // L3 — live scrape
   let jobs: NormalisedJob[] = await fetchFromScraper(q, location, type, remote)
 
-  // Fallback to free APIs if scraper is down
   if (jobs.length === 0) {
-    console.log(`[Jobs] Using fallback APIs for "${q}"`)
+    console.log(`[Jobs] Scraper empty, using fallback APIs for "${q}"`)
     const [jsearch, adzuna, himalayas] = await Promise.all([
       fetchJSearch(q, location),
       fetchAdzuna(q, ''),
@@ -280,7 +349,7 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
     jobs = [...jsearch, ...adzuna, ...himalayas]
   }
 
-  // Deduplicate by title+company
+  // Deduplicate
   const seen = new Set<string>()
   jobs = jobs.filter((j) => {
     const key = `${j.title.toLowerCase()}|${j.company.toLowerCase()}`
@@ -291,9 +360,12 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
 
   if (type && jobs[0]?.source !== 'linkedin') jobs = jobs.filter((j) => j.type.toLowerCase().includes(type.toLowerCase()))
   if (remote === 'true') jobs = jobs.filter((j) => j.remote)
-
   jobs = jobs.slice(0, 20)
-  setCached(cacheKey, jobs)
+
+  // Write to both caches
+  setMemCached(cacheKey, jobs)
+  setDbCached(cacheKey, jobs)   // async, don't await
+
   res.json({ jobs, total: jobs.length })
 })
 
@@ -303,10 +375,50 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
   res.status(404).json({ error: 'Job not found' })
 })
 
-// ── POST /api/jobs/save — save a job ─────────────────────────────────────────
+// ── POST /api/jobs/save — bookmark a job ─────────────────────────────────────
 router.post('/save', async (req: AuthRequest, res: Response) => {
-  const job = { id: crypto.randomUUID(), userId: req.userId, ...req.body, savedAt: new Date() }
-  res.status(201).json({ job })
+  try {
+    const { jobId, title, company, location, url, description } = req.body
+    const app = await Application.findOneAndUpdate(
+      { userId: req.userId, jobUrl: url },
+      {
+        userId:         req.userId,
+        jobTitle:       title,
+        company:        company,
+        location:       location,
+        jobUrl:         url,
+        jobDescription: description,
+        status:         'saved',
+      },
+      { upsert: true, new: true }
+    )
+    res.status(201).json({ application: app })
+  } catch (err: any) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+// ── DELETE /api/jobs/save — remove bookmark ───────────────────────────────────
+router.delete('/save', async (req: AuthRequest, res: Response) => {
+  try {
+    const { url } = req.body
+    await Application.findOneAndDelete({ userId: req.userId, jobUrl: url, status: 'saved' })
+    res.json({ success: true })
+  } catch (err: any) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+// ── GET /api/jobs/saved — get all bookmarked jobs ─────────────────────────────
+router.get('/saved', async (req: AuthRequest, res: Response) => {
+  try {
+    const saved = await Application.find({ userId: req.userId, status: 'saved' })
+      .sort({ createdAt: -1 })
+      .lean()
+    res.json({ jobs: saved })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
 })
 
 export default router
