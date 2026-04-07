@@ -369,10 +369,16 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
   res.json({ jobs, total: jobs.length })
 })
 
-// ── GET /api/jobs/:id — get single job detail ────────────────────────────────
-router.get('/:id', async (req: AuthRequest, res: Response) => {
-  // For now return a 404 — detail is fetched client-side from the search results cache
-  res.status(404).json({ error: 'Job not found' })
+// ── GET /api/jobs/saved — get all bookmarked jobs ─────────────────────────────
+router.get('/saved', async (req: AuthRequest, res: Response) => {
+  try {
+    const saved = await Application.find({ userId: req.userId, status: 'saved' })
+      .sort({ createdAt: -1 })
+      .lean()
+    res.json({ jobs: saved })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
 })
 
 // ── POST /api/jobs/save — bookmark a job ─────────────────────────────────────
@@ -409,16 +415,9 @@ router.delete('/save', async (req: AuthRequest, res: Response) => {
   }
 })
 
-// ── GET /api/jobs/saved — get all bookmarked jobs ─────────────────────────────
-router.get('/saved', async (req: AuthRequest, res: Response) => {
-  try {
-    const saved = await Application.find({ userId: req.userId, status: 'saved' })
-      .sort({ createdAt: -1 })
-      .lean()
-    res.json({ jobs: saved })
-  } catch (err: any) {
-    res.status(500).json({ error: err.message })
-  }
+// ── GET /api/jobs/:id — must be LAST (catches all) ───────────────────────────
+router.get('/:id', async (req: AuthRequest, res: Response) => {
+  res.status(404).json({ error: 'Job not found' })
 })
 
 export default router
