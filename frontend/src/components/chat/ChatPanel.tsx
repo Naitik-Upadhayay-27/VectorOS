@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, X, Bot, CheckCheck, Sparkles, RotateCcw } from 'lucide-react'
+import { Send, Bot, CheckCheck, Sparkles, RotateCcw } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useChatStore } from '@/store/chatStore'
 import { useResumeUploadStore } from '@/store/resumeUploadStore'
@@ -268,9 +268,6 @@ export default function ChatPanel() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => { clearMessages(); useSnapshotStore.getState().clear() }} className="text-xs text-gray-400 hover:text-gray-600">Clear</button>
-          <button onClick={toggleChat} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400">
-            <X size={14} />
-          </button>
         </div>
       </div>
 
@@ -371,20 +368,26 @@ export default function ChatPanel() {
         <div ref={bottomRef} />
       </div>
 
-      {tokensLeft <= 5 && (
-        <div className="mx-4 mb-2 p-2 bg-orange-50 border border-orange-100 rounded-lg text-xs text-orange-600 text-center">
-          {tokensLeft} tokens left — <button className="underline font-medium">upgrade for unlimited</button>
+      <div className="px-4 pb-4 pt-2 border-t border-gray-100 space-y-2">
+        {/* Token count */}
+        <div className="flex items-center justify-between text-[10px] text-gray-400">
+          <span>Say "rewrite", "add", or "improve" to edit</span>
+          <span className={tokensLeft <= 5 ? 'text-orange-500 font-semibold' : ''}>{tokensLeft} tokens left</span>
         </div>
-      )}
 
-      <div className="px-4 pb-4 pt-2 border-t border-gray-100">
+        {tokensLeft <= 5 && (
+          <div className="p-2 bg-orange-50 border border-orange-100 rounded-lg text-xs text-orange-600 text-center">
+            Out of tokens — <button className="underline font-medium">upgrade for unlimited</button>
+          </div>
+        )}
+
         <div className="flex items-end gap-2">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
             placeholder="Ask anything or say 'rewrite my summary'..."
-            rows={1}
+            rows={2}
             className="flex-1 resize-none text-xs px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 placeholder:text-gray-400"
           />
           <button onClick={() => sendMessage(input)} disabled={!input.trim() || tokensLeft <= 0}
@@ -392,9 +395,6 @@ export default function ChatPanel() {
             <Send size={14} />
           </button>
         </div>
-        <p className="text-xs text-gray-400 mt-1.5 text-center">
-          Say "rewrite", "add", "improve" to edit your resume · {tokensLeft} tokens left
-        </p>
       </div>
     </div>
   )

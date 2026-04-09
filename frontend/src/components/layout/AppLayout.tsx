@@ -1,13 +1,28 @@
+import { useState } from 'react'
 import Sidebar from './Sidebar'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      const stored = localStorage.getItem('sidebar-collapsed')
+      return stored !== null ? stored === 'true' : true
+    } catch { return true }
+  })
+
+  const toggle = () => {
+    setCollapsed((v) => {
+      const next = !v
+      try { localStorage.setItem('sidebar-collapsed', String(next)) } catch {}
+      return next
+    })
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
-      <Sidebar />
+      <Sidebar collapsed={collapsed} onToggle={toggle} />
       <main className="flex-1 overflow-hidden min-h-0">
         {children}
       </main>
     </div>
   )
 }
-

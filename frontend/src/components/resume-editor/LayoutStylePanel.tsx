@@ -115,63 +115,36 @@ export default function LayoutStylePanel({ onClose }: Props) {
             <div>
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Margins</p>
               <div className="space-y-4">
-                <SliderRow
-                  label="TOP & BOTTOM"
-                  value={layout.marginTopBottom}
-                  min={0} max={100} step={5}
+                <SliderRow label="TOP & BOTTOM" value={layout.marginTopBottom} min={0} max={100} step={5}
                   display={`${(layout.marginTopBottom / 100).toFixed(2)} in`}
-                  onChange={(v) => setLayout({ marginTopBottom: v })}
-                />
-                <SliderRow
-                  label="LEFT & RIGHT"
-                  value={layout.marginLeftRight}
-                  min={0} max={100} step={5}
+                  onChange={(v) => setLayout({ marginTopBottom: v })} />
+                <SliderRow label="LEFT & RIGHT" value={layout.marginLeftRight} min={0} max={100} step={5}
                   display={`${(layout.marginLeftRight / 100).toFixed(2)} in`}
-                  onChange={(v) => setLayout({ marginLeftRight: v })}
-                />
+                  onChange={(v) => setLayout({ marginLeftRight: v })} />
               </div>
             </div>
 
             {/* Typography */}
             <div>
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Typography</p>
-              <div className="space-y-4">
-                {/* Font Family */}
-                <div>
-                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Font</p>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {FONT_OPTIONS.map(f => (
-                      <button
-                        key={f.value}
-                        onClick={() => setLayout({ fontFamily: f.value })}
-                        className={`px-2 py-2 rounded-lg border text-xs transition-all text-left ${
-                          layout.fontFamily === f.value
-                            ? 'border-brand-400 bg-brand-50 text-brand-700 font-semibold'
-                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
-                        style={{ fontFamily: f.value }}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Font Size */}
-                <SliderRow
-                  label="TEXT SIZE"
-                  value={layout.fontSize}
-                  min={8} max={14} step={0.5}
-                  display={`${layout.fontSize} pt`}
-                  onChange={(v) => setLayout({ fontSize: v })}
-                />
+              <div className="grid grid-cols-2 gap-1.5">
+                {FONT_OPTIONS.map(f => (
+                  <button key={f.value} onClick={() => setLayout({ fontFamily: f.value })}
+                    className={`px-2 py-2 rounded-lg border text-xs transition-all text-left truncate ${
+                      layout.fontFamily === f.value
+                        ? 'border-brand-400 bg-brand-50 text-brand-700 font-semibold'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                    style={{ fontFamily: f.value }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <button
-              onClick={() => setLayout(DEFAULT_LAYOUT)}
-              className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-brand-500 transition-colors"
-            >
+            <button onClick={() => setLayout(DEFAULT_LAYOUT)}
+              className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-brand-500 transition-colors">
               <RotateCcw size={11} /> Reset to defaults
             </button>
           </div>

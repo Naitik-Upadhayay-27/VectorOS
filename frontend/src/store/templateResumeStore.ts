@@ -23,17 +23,23 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
 export interface LayoutSettings {
   marginTopBottom: number   // inches * 100
   marginLeftRight: number   // inches * 100
-  fontSize: number          // base font size in pt (10-14)
+  fontSize: number          // base font size in pt (8-14)
   fontFamily: string        // font family key
+  lineHeight: number        // line height multiplier (1.0 - 2.0)
+  accentColor: string       // hex color for headings/accents
 }
 
-export const FONT_OPTIONS = [
-  { label: 'Inter', value: "'Inter', sans-serif" },
-  { label: 'Georgia', value: "'Georgia', serif" },
-  { label: 'Times New Roman', value: "'Times New Roman', serif" },
-  { label: 'Garamond', value: "'Garamond', serif" },
-  { label: 'Arial', value: "'Arial', sans-serif" },
-  { label: 'Helvetica', value: "'Helvetica Neue', sans-serif" },
+export const ACCENT_COLORS = [
+  { label: 'Black',   value: '#111111' },
+  { label: 'Navy',    value: '#1e3a5f' },
+  { label: 'Slate',   value: '#475569' },
+  { label: 'Indigo',  value: '#4338ca' },
+  { label: 'Purple',  value: '#7c3aed' },
+  { label: 'Teal',    value: '#0d9488' },
+  { label: 'Green',   value: '#16a34a' },
+  { label: 'Red',     value: '#dc2626' },
+  { label: 'Orange',  value: '#ea580c' },
+  { label: 'Brown',   value: '#78350f' },
 ]
 
 export const DEFAULT_LAYOUT: LayoutSettings = {
@@ -41,7 +47,24 @@ export const DEFAULT_LAYOUT: LayoutSettings = {
   marginLeftRight: 0,
   fontSize: 11,
   fontFamily: "'Inter', sans-serif",
+  lineHeight: 1.5,
+  accentColor: '#111111',
 }
+
+export const FONT_OPTIONS = [
+  { label: 'Inter',            value: "'Inter', sans-serif" },
+  { label: 'Georgia',          value: "'Georgia', serif" },
+  { label: 'Times New Roman',  value: "'Times New Roman', serif" },
+  { label: 'Garamond',         value: "'Garamond', serif" },
+  { label: 'Arial',            value: "'Arial', sans-serif" },
+  { label: 'Helvetica',        value: "'Helvetica Neue', sans-serif" },
+  { label: 'Merriweather',     value: "'Merriweather', serif" },
+  { label: 'Lato',             value: "'Lato', sans-serif" },
+  { label: 'Roboto',           value: "'Roboto', sans-serif" },
+  { label: 'Open Sans',        value: "'Open Sans', sans-serif" },
+  { label: 'Playfair Display', value: "'Playfair Display', serif" },
+  { label: 'Source Sans Pro',  value: "'Source Sans 3', sans-serif" },
+]
 
 interface TemplateResumeState {
   data: TemplateResumeData

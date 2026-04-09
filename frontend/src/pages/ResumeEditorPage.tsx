@@ -13,7 +13,7 @@ import { useChatStore } from '@/store/chatStore'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useDraftStore } from '@/store/draftStore'
 import { useAtsStore } from '@/store/atsStore'
-import { PanelLeftClose, PanelLeftOpen, GripVertical } from 'lucide-react'
+import { GripVertical } from 'lucide-react'
 import { printResume } from '@/lib/printResume'
 
 const sections = [
@@ -73,7 +73,7 @@ export default function ResumeEditorPage() {
     }
   }
 
-  // Panel visibility
+  // Panel visibility — open by default
   const [leftOpen, setLeftOpen]   = useState(true)
 
   // Panel widths (px)
@@ -115,7 +115,7 @@ export default function ResumeEditorPage() {
   return (
     <AppLayout>
       <div className="flex flex-col h-screen">
-        <ResumeTopBar onOpenTemplates={() => setShowTemplatePicker(true)} onDownload={handleDownload} onOpenLayout={() => setShowLayoutPanel(true)} downloading={downloading} />
+        <ResumeTopBar onOpenTemplates={() => setShowTemplatePicker(true)} onDownload={handleDownload} onOpenLayout={() => setShowLayoutPanel(true)} downloading={downloading} onToggleSidebar={() => setLeftOpen((v) => !v)} sidebarOpen={leftOpen} />
 
         <div ref={containerRef} className="flex flex-1 overflow-hidden select-none">
 
@@ -141,28 +141,17 @@ export default function ResumeEditorPage() {
           )}
 
           {/* ── Left resize handle ─────────────────────────────────────── */}
-          <div
-            onMouseDown={leftOpen ? startDrag('left') : undefined}
-            className="relative flex items-center justify-center w-3 shrink-0 group z-10"
-            style={{ cursor: leftOpen ? 'col-resize' : 'default' }}
-          >
-            {/* Visible drag bar */}
-            {leftOpen && (
-              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-gray-200 group-hover:bg-brand-400 group-active:bg-brand-500 transition-colors" />
-            )}
-
-            {/* Toggle button — sits on the divider */}
-            <button
-              onClick={() => setLeftOpen((v) => !v)}
-              title={leftOpen ? 'Hide editor panel' : 'Show editor panel'}
-              className="absolute top-1/2 -translate-y-1/2 z-20 w-5 h-10 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center text-gray-400 hover:text-brand-500 hover:border-brand-300 transition-all"
+          {leftOpen && (
+            <div
+              onMouseDown={startDrag('left')}
+              className="relative flex items-center justify-center w-3 shrink-0 group z-10 cursor-col-resize"
             >
-              {leftOpen
-                ? <PanelLeftClose size={12} />
-                : <PanelLeftOpen  size={12} />
-              }
-            </button>
-          </div>
+              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-gray-200 group-hover:bg-brand-400 group-active:bg-brand-500 transition-colors" />
+              <div className="absolute top-1/2 -translate-y-1/2 w-4 h-8 bg-white border border-gray-200 rounded-full shadow-sm flex items-center justify-center text-gray-300 group-hover:text-brand-400 transition-colors">
+                <GripVertical size={10} />
+              </div>
+            </div>
+          )}
 
           {/* ── Center preview ─────────────────────────────────────────── */}
           <div className="flex-1 relative min-h-0 overflow-hidden">

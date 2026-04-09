@@ -86,7 +86,7 @@ function CyclingText({ messages }: { messages: string[] }) {
   }, [messages.length])
 
   return (
-    <div className="h-5 overflow-hidden relative w-48 text-center">
+    <div className="h-6 overflow-hidden relative w-full max-w-xs text-center mx-auto">
       <AnimatePresence mode="wait">
         <motion.p
           key={idx}

@@ -1,7 +1,74 @@
-import { useState } from 'react'
-import { ChevronDown, ChevronUp, Upload, Lightbulb } from 'lucide-react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { ChevronDown, ChevronUp, Upload, Lightbulb, Search } from 'lucide-react'
 import Input from '@/components/ui/Input'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
+import { apiFetch } from '@/lib/apiFetch'
+import { API_BASE } from '@/lib/config'
+
+function JobTitleInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [query, setQuery] = useState(value)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [open, setOpen] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  // Keep local query in sync if parent value changes externally
+  useEffect(() => { setQuery(value) }, [value])
+
+  const search = useCallback((q: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (!q.trim()) { setSuggestions([]); return }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await apiFetch(`${API_BASE}/api/ai/job-titles?q=${encodeURIComponent(q)}`)
+        const data = await res.json()
+        setSuggestions(data.titles ?? [])
+      } catch { setSuggestions([]) }
+    }, 200)
+  }, [])
+
+  const pick = (title: string) => {
+    setQuery(title)
+    onChange(title)
+    setSuggestions([])
+    setOpen(false)
+  }
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  return (
+    <div className="relative" ref={wrapRef}>
+      <label className="text-xs font-medium text-gray-500 block mb-1">Job Title</label>
+      <div className="relative">
+        <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <input
+          value={query}
+          onChange={e => { setQuery(e.target.value); onChange(e.target.value); setOpen(true); search(e.target.value) }}
+          onFocus={() => { setOpen(true); if (query) search(query) }}
+          placeholder="Software Engineer"
+          className="w-full pl-7 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 placeholder:text-gray-400"
+        />
+      </div>
+      {open && suggestions.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 overflow-y-auto max-h-48">
+          {suggestions.map(s => (
+            <button key={s} onMouseDown={e => { e.preventDefault(); pick(s) }}
+              className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 transition-colors">
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function PersonalInfoPanel() {
   const [open, setOpen] = useState(true)
@@ -9,6 +76,15 @@ export default function PersonalInfoPanel() {
   const { data, setPersonalInfo, setContact } = useTemplateResumeStore()
   const info = data.personalInfo ?? {}
   const contact = info.contact ?? {}
+  const photoRef = useRef<HTMLInputElement>(null)
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setPersonalInfo({ image: reader.result as string })
+    reader.readAsDataURL(file)
+  }
 
   return (
     <div className="border border-gray-100 rounded-xl bg-white shadow-card overflow-hidden">
@@ -48,11 +124,9 @@ export default function PersonalInfoPanel() {
               value={info.name ?? ''}
               onChange={(e) => setPersonalInfo({ name: e.target.value })}
             />
-            <Input
-              label="Job Title"
-              placeholder="Software Engineer"
+            <JobTitleInput
               value={info.title ?? ''}
-              onChange={(e) => setPersonalInfo({ title: e.target.value })}
+              onChange={(v) => setPersonalInfo({ title: v })}
             />
             <Input
               label="Email"

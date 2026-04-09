@@ -148,16 +148,17 @@ const ResumeSchema = z.object({
 // ── Gemini prompt ────────────────────────────────────────────────────────────
 const SCHEMA_PROMPT = `You are a resume parser. Extract all information from the resume text and return ONLY a single valid JSON object. No markdown, no code fences, no explanation — raw JSON only.
 
-CRITICAL: Never use null. Omit fields that are not present. Keep string values concise.
+CRITICAL EXTRACTION RULES:
+1. personalInfo.name: Extract the candidate's FULL NAME — it is almost always the largest text at the very top of the resume. Never leave it empty.
+2. personalInfo.contact: Extract ALL contact details — email, phone, location (city/state), LinkedIn URL, GitHub URL, website. These are usually in the header near the name.
+3. personalInfo.title: The candidate's current job title or headline (e.g. "Full Stack Developer", "Software Engineer").
+4. Never use null. Omit fields that are not present. Keep string values concise.
+5. Split bullet points into separate array items (max 5 bullets per role).
+6. Dates: use format found in resume (e.g. "Jan 2022", "2020", "June 2024 – July 2025").
+7. Do NOT truncate — output the complete JSON.
 
 JSON schema:
 {"personalInfo":{"name":"","title":"","contact":{"email":"","phone":"","location":"","linkedin":"","github":"","website":""}},"summary":"","experience":[{"title":"","company":"","location":"","startDate":"","endDate":"","description":[""]}],"education":[{"degree":"","institution":"","location":"","graduationDate":"","gpa":"","description":[""]}],"skills":[{"category":"","skills":[""]}],"projects":[{"name":"","role":"","link":"","startDate":"","endDate":"","description":[""],"technologies":[""]}],"certificates":[{"name":"","issuer":"","date":""}],"awards":[{"title":"","date":"","description":""}],"languages":[{"language":"","proficiency":""}],"volunteer":[{"role":"","organization":"","startDate":"","endDate":"","description":""}]}
-
-Rules:
-- Omit any top-level section not present in the resume
-- Split bullet points into separate array items (max 5 bullets per role)
-- Dates: use format found in resume (e.g. "Jan 2022", "2020")
-- Do NOT truncate — output the complete JSON
 
 RESUME:
 `

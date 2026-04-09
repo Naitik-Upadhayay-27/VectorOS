@@ -94,10 +94,6 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
   }, [data, activeTemplateId, layout, sectionOrder])
 
   const pageCount = pageOffsets.length
-  const pageHeights = pageOffsets.map((offset, i) => {
-    const next = pageOffsets[i + 1] ?? totalHeight
-    return Math.min(next - offset, PAGE_H)
-  })
 
   return (
     <EditableContext.Provider value={{ editMode }}>
@@ -134,6 +130,11 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
               visibility: 'hidden',
               pointerEvents: 'none',
               zIndex: -1,
+              fontFamily: layout.fontFamily,
+              fontSize: `${layout.fontSize}pt`,
+              lineHeight: layout.lineHeight ?? 1.5,
+              // @ts-ignore
+              '--resume-accent': layout.accentColor ?? '#111111',
             }}
           >
             <TemplateComponent data={data} />
@@ -146,21 +147,21 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
           style={{ minWidth: PAGE_W * scale + 64 }}
         >
           {pageOffsets.map((offset, i) => {
-            const sliceH = pageHeights[i]
             return (
               <div
                 key={i}
                 style={{
                   position: 'relative',
                   width: PAGE_W * scale,
-                  height: sliceH * scale,
+                  height: PAGE_H * scale,
                   flexShrink: 0,
                   background: '#fff',
                   boxShadow: editMode
                     ? '0 0 0 2px #3b82f6, 0 4px 20px rgba(0,0,0,0.15)'
                     : '0 2px 16px rgba(0,0,0,0.15)',
                   borderRadius: 2,
-                  overflow: 'hidden',
+                  // clip using scaled coordinates so content never bleeds outside the page box
+                  clipPath: `inset(0 0 0 0)`,
                   cursor: editMode ? 'text' : 'default',
                 }}
               >
@@ -172,11 +173,16 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
                     width: PAGE_W,
                     transformOrigin: 'top left',
                     transform: `scale(${scale})`,
-                    overflow: 'visible',
                     pointerEvents: editMode ? 'auto' : 'none',
+                    fontFamily: layout.fontFamily,
+                    fontSize: `${layout.fontSize}pt`,
+                    lineHeight: layout.lineHeight ?? 1.5,
+                    // @ts-ignore
+                    '--resume-accent': layout.accentColor ?? '#111111',
                   }}
                 >
-                  <div style={{ marginTop: -offset }}>
+                  {/* shift content so this page's slice starts at top */}
+                  <div style={{ marginTop: -offset, width: PAGE_W }}>
                     <TemplateComponent data={data} />
                   </div>
                 </div>

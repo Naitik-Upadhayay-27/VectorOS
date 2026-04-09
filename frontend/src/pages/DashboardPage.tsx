@@ -21,9 +21,20 @@ const THUMB_SCALE = 0.28
 function ResumeThumbnail({ draft }: { draft: ResumeDraft }) {
   const template = TEMPLATES.find((t) => t.id === draft.templateId) ?? TEMPLATES[0]
   const Comp = template.component
+  const thumbW = PAGE_W * THUMB_SCALE
+  const thumbH = PAGE_H * THUMB_SCALE
   return (
-    <div className="relative w-full overflow-hidden bg-white" style={{ height: PAGE_H * THUMB_SCALE }}>
-      <div style={{ width: PAGE_W, transformOrigin: 'top left', transform: `scale(${THUMB_SCALE})`, pointerEvents: 'none' }}>
+    <div style={{ width: thumbW, height: thumbH, overflow: 'hidden', position: 'relative', background: '#fff' }}>
+      <div style={{
+        width: PAGE_W,
+        height: PAGE_H,
+        transformOrigin: 'top left',
+        transform: `scale(${THUMB_SCALE})`,
+        pointerEvents: 'none',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+      }}>
         <Comp data={draft.resumeData} />
       </div>
     </div>
@@ -211,7 +222,7 @@ export default function DashboardPage() {
                   onClick={() => loadDraft(draft.id)}
                 >
                   {/* Live resume thumbnail */}
-                  <div className="overflow-hidden rounded-t-2xl border-b border-gray-100">
+                  <div className="flex justify-center overflow-hidden rounded-t-2xl border-b border-gray-100 bg-gray-50">
                     <ResumeThumbnail draft={draft} />
                   </div>
                   {/* Footer */}

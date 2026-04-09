@@ -1,4 +1,5 @@
-import { TEMPLATES } from '@/components/resume-templates'
+import { useState } from 'react'
+import { TEMPLATES, TEMPLATE_CATEGORIES } from '@/components/resume-templates'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import Modal from '@/components/ui/Modal'
 import { Check } from 'lucide-react'
@@ -9,20 +10,45 @@ interface TemplatePickerProps {
   onClose: () => void
 }
 
-// Scale factor: A4 page is 794px wide, we want ~180px card → 180/794 ≈ 0.227
-const PREVIEW_SCALE = 0.227
+const PREVIEW_SCALE = 0.22
 const PAGE_W = 794
 const PAGE_H = 1123
-const CARD_W = Math.round(PAGE_W * PREVIEW_SCALE)   // ~180px
-const CARD_H = Math.round(PAGE_H * PREVIEW_SCALE)   // ~255px
+const CARD_W = Math.round(PAGE_W * PREVIEW_SCALE)
+const CARD_H = Math.round(PAGE_H * PREVIEW_SCALE)
 
 export default function TemplatePicker({ open, onClose }: TemplatePickerProps) {
   const { activeTemplateId, setTemplate } = useTemplateResumeStore()
+  const [activeCategory, setActiveCategory] = useState('all')
+
+  const filtered = activeCategory === 'all'
+    ? TEMPLATES
+    : TEMPLATES.filter(t => t.category === activeCategory)
 
   return (
     <Modal open={open} onClose={onClose} title="Choose a Template" size="lg">
-      <div className="grid grid-cols-3 gap-5 max-h-[70vh] overflow-y-auto pr-1">
-        {TEMPLATES.map((t) => {
+      {/* Category tabs */}
+      <div className="flex gap-1.5 mb-5 flex-wrap">
+        {TEMPLATE_CATEGORIES.map(cat => (
+          <button
+            key={cat.key}
+            onClick={() => setActiveCategory(cat.key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              activeCategory === cat.key
+                ? 'bg-brand-500 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            {cat.label}
+            <span className={`ml-1.5 text-[10px] ${activeCategory === cat.key ? 'text-white/70' : 'text-gray-400'}`}>
+              {cat.key === 'all' ? TEMPLATES.length : TEMPLATES.filter(t => t.category === cat.key).length}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Template grid */}
+      <div className="grid grid-cols-3 gap-5 max-h-[60vh] overflow-y-auto pr-1">
+        {filtered.map((t) => {
           const TemplateComponent = t.component
           const isActive = activeTemplateId === t.id
 
@@ -32,17 +58,15 @@ export default function TemplatePicker({ open, onClose }: TemplatePickerProps) {
               onClick={() => { setTemplate(t.id); onClose() }}
               className="group flex flex-col items-center gap-2 focus:outline-none"
             >
-              {/* Preview box */}
               <div
-                className="relative rounded-xl overflow-hidden border-2 transition-all duration-150 shadow-sm group-hover:shadow-lg"
+                className="relative rounded-xl overflow-hidden transition-all duration-150 shadow-sm group-hover:shadow-lg"
                 style={{
                   width: CARD_W,
                   height: CARD_H,
-                  borderColor: isActive ? t.thumbnail : 'transparent',
                   outline: isActive ? `2px solid ${t.thumbnail}` : '2px solid transparent',
+                  outlineOffset: 2,
                 }}
               >
-                {/* Scaled-down template render */}
                 <div
                   style={{
                     width: PAGE_W,
@@ -56,10 +80,8 @@ export default function TemplatePicker({ open, onClose }: TemplatePickerProps) {
                   <TemplateComponent data={sampleData} />
                 </div>
 
-                {/* Hover overlay */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl" />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/8 transition-colors rounded-xl" />
 
-                {/* Active checkmark */}
                 {isActive && (
                   <div
                     className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md"
@@ -68,9 +90,15 @@ export default function TemplatePicker({ open, onClose }: TemplatePickerProps) {
                     <Check size={13} className="text-white" />
                   </div>
                 )}
+
+                {/* Category badge */}
+                <div className="absolute bottom-2 left-2">
+                  <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-black/40 text-white/90">
+                    {t.category}
+                  </span>
+                </div>
               </div>
 
-              {/* Label */}
               <span
                 className="text-xs font-medium transition-colors"
                 style={{ color: isActive ? t.thumbnail : '#6b7280' }}
@@ -81,7 +109,12 @@ export default function TemplatePicker({ open, onClose }: TemplatePickerProps) {
           )
         })}
       </div>
+
+      {filtered.length === 0 && (
+        <div className="text-center py-12 text-gray-400 text-sm">
+          No templates in this category yet.
+        </div>
+      )}
     </Modal>
   )
 }
-
