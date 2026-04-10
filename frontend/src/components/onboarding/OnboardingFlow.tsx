@@ -6,7 +6,7 @@ import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useAuthStore } from '@/store/authStore'
 import { useChatStore } from '@/store/chatStore'
 import { useResumeUploadStore } from '@/store/resumeUploadStore'
-import { TEMPLATES } from '@/components/resume-templates'
+import { TEMPLATES, TEMPLATE_CATEGORIES } from '@/components/resume-templates'
 import { sampleData } from '@/lib/sampleResumeData'
 import { AILoader } from '@/components/ui/AILoader'
 import { apiFetch } from '@/lib/apiFetch'
@@ -355,6 +355,11 @@ function StepStart() {
 function StepTemplate() {
   const { data, update, setStep } = useOnboardingStore()
   const [selected, setSelected] = useState<number | null>(data.templateId)
+  const [activeCategory, setActiveCategory] = useState('all')
+
+  const filtered = activeCategory === 'all'
+    ? TEMPLATES
+    : TEMPLATES.filter(t => t.category === activeCategory)
 
   const confirm = () => {
     if (!selected) return
@@ -364,15 +369,35 @@ function StepTemplate() {
 
   return (
     <motion.div {...slide} className="flex flex-col flex-1">
-      <div className="mb-5">
+      <div className="mb-4">
         <p className="text-xs font-semibold text-brand-500 uppercase tracking-widest mb-2">Step 2 of 5</p>
         <h2 className="text-2xl font-bold text-gray-900 mb-1">Pick your template ✨</h2>
         <p className="text-sm text-gray-500">All templates are ATS-friendly. You can change this anytime.</p>
       </div>
 
-      {/* Template grid — 3 cols for legibility */}
-      <div className="grid grid-cols-3 gap-3 overflow-y-auto max-h-64 pr-1 mb-5">
-        {TEMPLATES.map((t) => {
+      {/* Category tabs */}
+      <div className="flex gap-1.5 flex-wrap mb-3">
+        {TEMPLATE_CATEGORIES.map(cat => (
+          <button
+            key={cat.key}
+            onClick={() => setActiveCategory(cat.key)}
+            className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
+              activeCategory === cat.key
+                ? 'bg-brand-500 text-white'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            {cat.label}
+            <span className={`ml-1 text-[10px] ${activeCategory === cat.key ? 'text-white/70' : 'text-gray-400'}`}>
+              {cat.key === 'all' ? TEMPLATES.length : TEMPLATES.filter(t => t.category === cat.key).length}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Template grid */}
+      <div className="grid grid-cols-3 gap-3 overflow-y-auto max-h-56 pr-1 mb-5">
+        {filtered.map((t) => {
           const Comp = t.component
           const isActive = selected === t.id
           return (
@@ -410,6 +435,12 @@ function StepTemplate() {
                     <Check size={11} className="text-white" />
                   </div>
                 )}
+                {/* Category badge */}
+                <div className="absolute bottom-1.5 left-1.5">
+                  <span className="text-[8px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-black/40 text-white/90">
+                    {t.category}
+                  </span>
+                </div>
               </div>
               <span className="text-xs text-gray-500 group-hover:text-gray-700 truncate w-full text-center">
                 {t.name}

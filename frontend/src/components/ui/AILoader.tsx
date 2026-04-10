@@ -86,7 +86,7 @@ function CyclingText({ messages }: { messages: string[] }) {
   }, [messages.length])
 
   return (
-    <div className="h-6 overflow-hidden relative w-full max-w-xs text-center mx-auto">
+    <div className="min-h-6 overflow-hidden relative w-full max-w-xs text-center mx-auto">
       <AnimatePresence mode="wait">
         <motion.p
           key={idx}
@@ -94,7 +94,7 @@ function CyclingText({ messages }: { messages: string[] }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.25 }}
-          className="text-xs text-gray-500 font-medium absolute inset-0 flex items-center justify-center"
+          className="text-xs text-gray-500 font-medium w-full text-center"
         >
           {messages[idx]}
         </motion.p>
