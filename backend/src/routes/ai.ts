@@ -1,6 +1,7 @@
 import { Router, Response } from 'express'
 import { authenticate, AuthRequest } from '../middleware/auth'
 import { generateText, generateChat } from '../lib/ai'
+import { repairJson } from '../lib/repairJson'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -243,7 +244,19 @@ Current Role: ${currentRole ?? 'Not specified'} | Company: ${currentCompany ?? '
 RESUME DATA:\n${JSON.stringify(resumeData, null, 2)}`
 
     const text = await generateText(prompt)
-    res.json(JSON.parse(text.replace(/```json|```/g, '').trim()))
+    try {
+      const cleaned = text.replace(/```json|```/g, '').trim()
+      const jsonStart = cleaned.indexOf('{')
+      const jsonEnd = cleaned.lastIndexOf('}')
+      const jsonStr = jsonStart !== -1 && jsonEnd > jsonStart ? cleaned.slice(jsonStart, jsonEnd + 1) : cleaned
+      try {
+        res.json(JSON.parse(jsonStr))
+      } catch {
+        res.json(JSON.parse(repairJson(jsonStr)))
+      }
+    } catch (parseErr: any) {
+      res.status(422).json({ error: `ATS scoring failed to parse response: ${parseErr.message}` })
+    }
   } catch (err: any) { res.status(500).json({ error: err.message }) }
 })
 
