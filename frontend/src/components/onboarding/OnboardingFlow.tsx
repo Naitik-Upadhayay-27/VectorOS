@@ -709,15 +709,11 @@ function StepDomain({ onFinish }: { onFinish: () => void }) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const search = (q: string) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
     if (!q.trim()) { setSuggestions([]); return }
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const res = await apiFetch(`${API_BASE}/api/ai/job-titles?q=${encodeURIComponent(q)}`)
-        const d = await res.json()
-        setSuggestions(d.titles ?? [])
-      } catch { setSuggestions([]) }
-    }, 200)
+    const lower = q.toLowerCase()
+    setSuggestions(
+      DOMAINS.filter(d => d.toLowerCase().includes(lower)).slice(0, 12)
+    )
   }
 
   const toggle = (domain: string) => {
@@ -745,7 +741,9 @@ function StepDomain({ onFinish }: { onFinish: () => void }) {
         <input
           value={query}
           onChange={(e) => { setQuery(e.target.value); search(e.target.value) }}
-          placeholder="Search 73k+ job titles & domains..."
+          onFocus={() => { if (!query.trim()) setSuggestions(DOMAINS.slice(0, 12)) }}
+          onBlur={() => setTimeout(() => setSuggestions([]), 150)}
+          placeholder="Search domains & industries..."
           className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 placeholder:text-gray-400"
         />
 
@@ -773,7 +771,7 @@ function StepDomain({ onFinish }: { onFinish: () => void }) {
         )}
 
         {!query.trim() && data.targetDomains.length === 0 && (
-          <p className="mt-2 text-xs text-gray-400">Start typing to search from 73k+ job titles</p>
+          <p className="mt-2 text-xs text-gray-400">Click the field to browse or type to search</p>
         )}
       </div>
 
