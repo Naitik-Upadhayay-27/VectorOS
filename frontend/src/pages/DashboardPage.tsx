@@ -181,23 +181,6 @@ export default function DashboardPage() {
                   <TrendingUp size={10} /> {drafts.length > 0 ? `${drafts.length} saved` : 'No drafts yet'}
                 </p>
               </div>
-              <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm min-w-[130px]">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Applications</p>
-                <p className="text-4xl font-bold text-gray-900">{String(appStats.total).padStart(2, '0')}</p>
-                <p className="text-[11px] text-purple-500 mt-1 flex items-center gap-1">
-                  <Send size={10} /> {appStats.interview} interviews
-                </p>
-              </div>
-              <div className="bg-purple-600 rounded-2xl p-5 min-w-[160px] relative overflow-hidden cursor-pointer" onClick={() => navigate('/profile')}>
-                <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-white/10 rounded-full" />
-                <p className="text-[11px] font-bold uppercase tracking-widest text-purple-200 mb-2">Target Role</p>
-                <p className="text-lg font-bold text-white leading-tight truncate max-w-[130px]">
-                  {profile.targetRoles[0] || onboarding.jobTitle || '—'}
-                </p>
-                <p className="text-[11px] text-purple-300 mt-1 truncate">
-                  {profile.profileCompleteness}% profile complete
-                </p>
-              </div>
             </div>
           </div>
 
@@ -208,9 +191,6 @@ export default function DashboardPage() {
                 <h2 className="text-xl font-bold text-gray-900">My Resumes</h2>
                 <p className="text-sm text-gray-400 mt-0.5">Tailored versions for different roles</p>
               </div>
-              <button className="text-sm text-purple-600 font-semibold flex items-center gap-1 hover:text-purple-700">
-                View All <ArrowRight size={14} />
-              </button>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
@@ -277,7 +257,7 @@ export default function DashboardPage() {
           {/* ── Bottom 2-col ─────────────────────────────────────────── */}
           <div className="grid grid-cols-2 gap-6">
 
-            {/* Quick Actions (styled like Curated Matches) */}
+            {/* Quick Actions */}
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900">Quick Actions</h2>
@@ -320,140 +300,32 @@ export default function DashboardPage() {
                       >
                         Open Now
                       </button>
-                      <button className="px-4 py-1.5 border border-gray-200 text-gray-600 text-xs font-semibold rounded-full hover:bg-gray-50 transition-colors">
-                        Learn More
-                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Right col */}
-            <div className="space-y-4">
-              {/* Recent Activity */}
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Activity</h2>
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
-                  {/* Resume Created — real draft name + date */}
-                  <div className="flex items-start gap-3 px-4 py-3.5">
-                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shrink-0 mt-0.5">
-                      <Send size={13} className="text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-800">Resume</p>
-                        <span className="text-[10px] font-bold text-gray-400 tracking-wide">
-                          {activeDraft ? new Date(activeDraft.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-0.5 truncate">
-                        {activeDraft ? `"${activeDraft.name}" — last saved` : 'No resume saved yet'}
-                      </p>
-                      <span className={`inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${activeDraft ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
-                        {activeDraft ? 'Saved' : 'Not started'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* AI Coach Session — real message count */}
-                  <div className="flex items-start gap-3 px-4 py-3.5">
-                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shrink-0 mt-0.5">
-                      <Calendar size={13} className="text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-800">AI Coach Session</p>
-                        <span className="text-[10px] font-bold text-gray-400 tracking-wide">TODAY</span>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {aiMessages > 0 ? `${aiMessages} AI response${aiMessages !== 1 ? 's' : ''} this session` : 'No AI edits yet this session'}
-                      </p>
-                      <span className={`inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${aiMessages > 0 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                        {aiMessages > 0 ? 'Active' : 'Idle'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* ATS Analysis — real score if available */}
-                  <div className="flex items-start gap-3 px-4 py-3.5">
-                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shrink-0 mt-0.5">
-                      <Eye size={13} className="text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-800">ATS Analysis</p>
-                        <span className="text-[10px] font-bold text-gray-400 tracking-wide">
-                          {atsResult ? 'DONE' : 'PENDING'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {atsResult
-                          ? `Score: ${atsResult.overallScore}/100 — ${atsResult.overallScore >= 75 ? 'Good' : atsResult.overallScore >= 50 ? 'Needs Work' : 'Poor'}`
-                          : 'Run analysis to see your score'}
-                      </p>
-                      <span className={`inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                        atsResult
-                          ? atsResult.overallScore >= 75 ? 'bg-green-100 text-green-600'
-                          : atsResult.overallScore >= 50 ? 'bg-amber-100 text-amber-600'
-                          : 'bg-red-100 text-red-600'
-                          : 'bg-amber-100 text-amber-600'
-                      }`}>
-                        {atsResult ? `${atsResult.overallScore}/100` : 'Pending'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Applications */}
-                  <div className="flex items-start gap-3 px-4 py-3.5">
-                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shrink-0 mt-0.5">
-                      <Briefcase size={13} className="text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-800">Applications</p>
-                        <span className="text-[10px] font-bold text-gray-400 tracking-wide">TOTAL</span>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {appStats.total > 0
-                          ? `${appStats.total} applied · ${appStats.interview} interviews · ${appStats.offer} offers`
-                          : 'No applications tracked yet'}
-                      </p>
-                      <span className={`inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${appStats.total > 0 ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
-                        {appStats.total > 0 ? `${appStats.total} tracked` : 'Start applying'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="px-4 py-3">
-                    <button
-                      onClick={() => navigate('/applications')}
-                      className="w-full py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-                    >
-                      View Full Tracker
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* AI Coach card */}
+            {/* AI Coach card */}
+            <div className="flex flex-col justify-start">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">AI Coach</h2>
               <div className="bg-gradient-to-br from-purple-700 to-indigo-700 rounded-2xl p-5 text-white">
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles size={14} className="text-purple-300" />
-                  <p className="text-xs font-bold uppercase tracking-widest text-purple-300">AI Coach</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-purple-300">Suggestion</p>
                 </div>
                 <p className="text-sm leading-relaxed text-white/90">
                   {atsResult
                     ? `Your ATS score is ${atsResult.overallScore}/100. ${atsResult.overallScore < 75 ? `Focus on: ${atsResult.quickWins?.[0] ?? 'improving keyword match'}.` : 'Great score! Keep optimizing for your target role.'}`
                     : hasResume
-                    ? `"Your resume looks strong. Run an ATS analysis to find missing keywords for ${onboarding.jobTitle || 'your target role'} and boost your match rate."`
-                    : '"Upload your resume to get personalized AI coaching. I\'ll analyze your experience and suggest improvements for your target role."'}
+                    ? `Your resume looks strong. Run an ATS analysis to find missing keywords for ${onboarding.jobTitle || 'your target role'} and boost your match rate.`
+                    : "Upload your resume to get personalized AI coaching. I'll analyze your experience and suggest improvements for your target role."}
                 </p>
                 <button
                   onClick={() => navigate('/resume/resume-1')}
                   className="mt-4 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-full text-xs font-semibold transition-colors"
                 >
-                  Apply Suggestion
+                  Open Resume Editor
                 </button>
               </div>
             </div>

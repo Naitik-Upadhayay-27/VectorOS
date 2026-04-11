@@ -9,7 +9,7 @@ import FormatToolbar from './FormatToolbar'
 
 const PAGE_W = 794
 const PAGE_H = 1123
-const PAGE_BOTTOM_MARGIN = 60 // ~0.5in reserved at bottom of each page
+const PAGE_BOTTOM_MARGIN = 80 // ~0.7in reserved at bottom — prevents orphaned headings
 
 function computePageOffsets(container: HTMLDivElement, totalHeight: number): number[] {
   const offsets: number[] = [0]
@@ -22,25 +22,40 @@ function computePageOffsets(container: HTMLDivElement, totalHeight: number): num
       container.querySelectorAll<HTMLElement>('p, li, h1, h2, h3, h4, h5, h6, div[style], section')
     )
 
-    let bestY = nextCut
-    let bestDelta = Infinity
-
-    for (const el of all) {
-      // Use offsetTop relative to container — works even when off-screen
+    // Build a map of element top positions
+    const elPositions = all.map(el => {
       let offsetTop = 0
       let node: HTMLElement | null = el
       while (node && node !== container) {
         offsetTop += node.offsetTop
         node = node.offsetParent as HTMLElement | null
       }
-      const elBottom = offsetTop + el.offsetHeight
+      return { el, top: offsetTop, bottom: offsetTop + el.offsetHeight }
+    })
 
-      if (elBottom <= nextCut && elBottom > nextCut - 150) {
-        const delta = nextCut - elBottom
+    let bestY = nextCut
+    let bestDelta = Infinity
+
+    for (const { el, bottom } of elPositions) {
+      if (bottom <= nextCut && bottom > nextCut - 200) {
+        const delta = nextCut - bottom
         if (delta < bestDelta) {
           bestDelta = delta
-          bestY = elBottom
+          bestY = bottom
         }
+      }
+    }
+
+    // Check if the element immediately after the cut is a heading — if so, move cut up before it
+    const HEADING_TAGS = new Set(['H1', 'H2', 'H3', 'H4', 'H5', 'H6'])
+    const elementAfterCut = elPositions.find(({ top }) => top >= bestY && top < bestY + 40)
+    if (elementAfterCut && HEADING_TAGS.has(elementAfterCut.el.tagName)) {
+      // Find the element just before this heading and cut there instead
+      const beforeHeading = elPositions
+        .filter(({ bottom }) => bottom <= elementAfterCut.top)
+        .sort((a, b) => b.bottom - a.bottom)[0]
+      if (beforeHeading && beforeHeading.bottom > bestY - 120) {
+        bestY = beforeHeading.bottom
       }
     }
 
@@ -160,30 +175,38 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
                     ? '0 0 0 2px #3b82f6, 0 4px 20px rgba(0,0,0,0.15)'
                     : '0 2px 16px rgba(0,0,0,0.15)',
                   borderRadius: 2,
-                  // clip using scaled coordinates so content never bleeds outside the page box
-                  clipPath: `inset(0 0 0 0)`,
+                  overflow: 'hidden',
                   cursor: editMode ? 'text' : 'default',
                 }}
               >
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: PAGE_W,
-                    transformOrigin: 'top left',
-                    transform: `scale(${scale})`,
-                    pointerEvents: editMode ? 'auto' : 'none',
-                    fontFamily: layout.fontFamily,
-                    fontSize: `${layout.fontSize}pt`,
-                    lineHeight: layout.lineHeight ?? 1.5,
-                    // @ts-ignore
-                    '--resume-accent': layout.accentColor ?? '#111111',
-                  }}
-                >
-                  {/* shift content so this page's slice starts at top */}
-                  <div style={{ marginTop: -offset, width: PAGE_W }}>
-                    <TemplateComponent data={data} />
+                {/* Clip wrapper — sized to scaled page, clips overflow from transform */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0, left: 0,
+                  width: PAGE_W * scale,
+                  height: PAGE_H * scale,
+                  overflow: 'hidden',
+                }}>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: PAGE_W,
+                      transformOrigin: 'top left',
+                      transform: `scale(${scale})`,
+                      pointerEvents: editMode ? 'auto' : 'none',
+                      fontFamily: layout.fontFamily,
+                      fontSize: `${layout.fontSize}pt`,
+                      lineHeight: layout.lineHeight ?? 1.5,
+                      // @ts-ignore
+                      '--resume-accent': layout.accentColor ?? '#111111',
+                    }}
+                  >
+                    {/* shift content so this page's slice starts at top */}
+                    <div style={{ marginTop: -offset, width: PAGE_W }}>
+                      <TemplateComponent data={data} />
+                    </div>
                   </div>
                 </div>
 

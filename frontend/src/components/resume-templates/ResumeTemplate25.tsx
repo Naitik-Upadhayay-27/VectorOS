@@ -2,6 +2,7 @@
 import { TemplateResumeData, ExperienceItem, EducationItem, SkillCategory } from '@/types/resume'
 import EditableText from '@/components/resume-editor/EditableText'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
+import PhotoUploadOverlay from '@/components/resume-editor/PhotoUploadOverlay'
 
 const DARK = '#2b2d42'
 
@@ -31,15 +32,8 @@ const ResumeTemplate25 = ({ data }: { data: TemplateResumeData }) => {
       <div style={{ width: 240, background: DARK, flexShrink: 0, padding: '36px 22px' }}>
 
         {/* Photo */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
-          {data.personalInfo?.image ? (
-            <img src={data.personalInfo.image} alt="Profile"
-              style={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', border: '3px solid rgba(255,255,255,0.2)' }} />
-          ) : (
-            <div style={{ width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 40, color: 'rgba(255,255,255,0.4)' }}>👤</span>
-            </div>
-          )}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28, pointerEvents: 'auto' }}>
+          <PhotoUploadOverlay size={120} style={{ border: '3px solid rgba(255,255,255,0.2)' }} />
         </div>
 
         {/* Contact */}

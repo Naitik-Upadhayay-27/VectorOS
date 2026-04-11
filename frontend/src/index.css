@@ -2,13 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-
 @layer base {
   * {
     box-sizing: border-box;
   }
   body {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: "Inter", system-ui, sans-serif;
     background-color: #f8f9fc;
     color: #1e2235;
     margin: 0;
@@ -34,7 +33,9 @@
     border: 1px solid rgba(255, 255, 255, 0.6);
   }
   .shadow-card {
-    box-shadow: 0 2px 12px rgba(79, 110, 247, 0.08), 0 1px 3px rgba(0,0,0,0.06);
+    box-shadow:
+      0 2px 12px rgba(79, 110, 247, 0.08),
+      0 1px 3px rgba(0, 0, 0, 0.06);
   }
 }
 
@@ -72,4 +73,10 @@
 }
 .resume-preview-scroll::-webkit-scrollbar-thumb:hover {
   background: #8892b8;
+}
+
+/* Photo upload overlay — always interactive regardless of parent pointer-events */
+.resume-photo-upload {
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }

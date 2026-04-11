@@ -2,7 +2,6 @@ import ResumeTemplate2 from './ResumeTemplate2'
 import ResumeTemplate3 from './ResumeTemplate3'
 import ResumeTemplate10 from './ResumeTemplate10'
 import ResumeTemplate11 from './ResumeTemplate11'
-import ResumeTemplate14 from './ResumeTemplate14'
 import ResumeTemplate15 from './ResumeTemplate15'
 import ResumeTemplate16 from './ResumeTemplate16'
 import ResumeTemplate17 from './ResumeTemplate17'
@@ -51,7 +50,6 @@ export const TEMPLATES: TemplateConfig[] = [
   // Creative
   { id: 2,  name: 'Rose Modern',      component: ResumeTemplate2,  thumbnail: '#f43f5e', category: 'creative' },
   { id: 10, name: 'Template 10',      component: ResumeTemplate10, thumbnail: '#ec4899', category: 'creative' },
-  { id: 14, name: 'Template 14',      component: ResumeTemplate14, thumbnail: '#a855f7', category: 'creative' },
   { id: 22, name: 'Creative Pro',     component: ResumeTemplate22, thumbnail: '#374151', category: 'creative' },
   { id: 25, name: 'Dark Sidebar CV',  component: ResumeTemplate25, thumbnail: '#2b2d42', category: 'creative' },
   // General

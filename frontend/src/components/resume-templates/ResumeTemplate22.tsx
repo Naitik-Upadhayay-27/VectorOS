@@ -2,6 +2,7 @@
 import { TemplateResumeData, ExperienceItem, EducationItem, SkillCategory, ProjectItem } from '@/types/resume'
 import EditableText from '@/components/resume-editor/EditableText'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
+import PhotoUploadOverlay from '@/components/resume-editor/PhotoUploadOverlay'
 
 const ResumeTemplate22 = ({ data }: { data: TemplateResumeData }) => {
   const store = useTemplateResumeStore()
@@ -43,15 +44,8 @@ const ResumeTemplate22 = ({ data }: { data: TemplateResumeData }) => {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 24, padding: '36px 48px 20px' }}>
-        <div style={{ flexShrink: 0 }}>
-          {data.personalInfo?.image ? (
-            <img src={data.personalInfo.image} alt="Profile"
-              style={{ width: 90, height: 90, borderRadius: '50%', objectFit: 'cover', border: '2px solid #ddd' }} />
-          ) : (
-            <div style={{ width: 90, height: 90, borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 28, color: '#9ca3af' }}>👤</span>
-            </div>
-          )}
+        <div style={{ pointerEvents: 'auto', flexShrink: 0 }}>
+          <PhotoUploadOverlay size={90} style={{ border: '2px solid #ddd' }} />
         </div>
         <div>
           <h1 style={{ fontSize: 30, fontWeight: 800, color: '#111', margin: 0, lineHeight: 1.1, letterSpacing: '-0.5px' }}>
