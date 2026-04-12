@@ -504,7 +504,7 @@ export default function CoverLetterPage() {
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Signature</p>
                 <SignatureUploadPanel
                   signature={data.signature}
-                  onSignature={v => setData({ signature: v, signatureX: 0, signatureY: 0, signatureWidth: 160, signatureHeight: 80 })}
+                  onSignature={v => setData({ signature: v, signatureX: 0, signatureY: 0, signatureWidth: 160, signatureHeight: 60 })}
                 />
               </section>
 

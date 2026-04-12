@@ -1,6 +1,6 @@
 /**
  * CLSignOff — sign-off block with draggable + fully resizable signature image.
- * 8 resize handles: 4 corners + 4 edges — width AND height independently.
+ * Signature is absolutely positioned so dragging it never affects the name below.
  */
 import { useRef, useCallback } from 'react'
 import { useEditableContext } from '@/components/resume-editor/EditableContext'
@@ -20,25 +20,25 @@ const MAX_W = 400
 const MIN_H = 20
 const MAX_H = 300
 
-type HandleDir = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
+// Fixed height reserved for the signature zone (name sits below this)
+const SIG_ZONE_H = 60
 
-const HANDLE_CURSORS: Record<HandleDir, string> = {
-  n: 'n-resize', s: 's-resize',
-  e: 'e-resize', w: 'w-resize',
-  ne: 'ne-resize', nw: 'nw-resize',
-  se: 'se-resize', sw: 'sw-resize',
+type Dir = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
+
+const HANDLE_POS: Record<Dir, React.CSSProperties> = {
+  n:  { top: -5,    left: '50%', transform: 'translateX(-50%)' },
+  s:  { bottom: -5, left: '50%', transform: 'translateX(-50%)' },
+  e:  { right: -5,  top: '50%',  transform: 'translateY(-50%)' },
+  w:  { left: -5,   top: '50%',  transform: 'translateY(-50%)' },
+  ne: { top: -5,    right: -5 },
+  nw: { top: -5,    left: -5 },
+  se: { bottom: -5, right: -5 },
+  sw: { bottom: -5, left: -5 },
 }
 
-// Position each handle on the border
-const HANDLE_STYLES: Record<HandleDir, React.CSSProperties> = {
-  n:  { top: -5,  left: '50%', transform: 'translateX(-50%)', cursor: 'n-resize' },
-  s:  { bottom: -5, left: '50%', transform: 'translateX(-50%)', cursor: 's-resize' },
-  e:  { right: -5, top: '50%', transform: 'translateY(-50%)', cursor: 'e-resize' },
-  w:  { left: -5,  top: '50%', transform: 'translateY(-50%)', cursor: 'w-resize' },
-  ne: { top: -5,  right: -5,  cursor: 'ne-resize' },
-  nw: { top: -5,  left: -5,   cursor: 'nw-resize' },
-  se: { bottom: -5, right: -5, cursor: 'se-resize' },
-  sw: { bottom: -5, left: -5,  cursor: 'sw-resize' },
+const CURSORS: Record<Dir, string> = {
+  n: 'n-resize', s: 's-resize', e: 'e-resize', w: 'w-resize',
+  ne: 'ne-resize', nw: 'nw-resize', se: 'se-resize', sw: 'sw-resize',
 }
 
 export default function CLSignOff({ data, salutation = 'Sincerely,', nameStyle, accentColor }: Props) {
@@ -74,9 +74,9 @@ export default function CLSignOff({ data, salutation = 'Sincerely,', nameStyle, 
   }, [x, y, setData])
 
   // ── Resize ────────────────────────────────────────────────────────────────
-  const resizeRef = useRef<{ mx: number; my: number; ow: number; oh: number; dir: HandleDir } | null>(null)
+  const resizeRef = useRef<{ mx: number; my: number; ow: number; oh: number; dir: Dir } | null>(null)
 
-  const onResizeDown = useCallback((dir: HandleDir) => (e: React.MouseEvent) => {
+  const onResizeDown = useCallback((dir: Dir) => (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     resizeRef.current = { mx: e.clientX, my: e.clientY, ow: w, oh: h, dir }
@@ -101,7 +101,7 @@ export default function CLSignOff({ data, salutation = 'Sincerely,', nameStyle, 
     window.addEventListener('mouseup', onUp)
   }, [w, h, setData])
 
-  const defaultNameStyle: React.CSSProperties = {
+  const resolvedNameStyle: React.CSSProperties = {
     fontWeight: 700,
     fontSize: '10pt',
     color: accentColor ?? '#1a1a1a',
@@ -110,63 +110,68 @@ export default function CLSignOff({ data, salutation = 'Sincerely,', nameStyle, 
 
   return (
     <div style={{ marginTop: 32, fontSize: '9.5pt' }}>
-      <div style={{ marginBottom: sig ? 16 : 8, color: '#555' }}>{salutation}</div>
+      {/* Salutation */}
+      <div style={{ marginBottom: 12, color: '#555' }}>{salutation}</div>
 
-      {sig && (
-        <div
-          style={{
-            position: 'relative',
-            display: 'inline-block',
-            marginLeft: x,
-            marginTop: y,
-            width: w,
-            height: h,
-            cursor: editMode ? 'move' : 'default',
-            userSelect: 'none',
-            marginBottom: 8,
-            flexShrink: 0,
-          }}
-          onMouseDown={editMode ? onDragDown : undefined}
-        >
-          <img
-            src={sig}
-            alt="Signature"
-            draggable={false}
-            style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', pointerEvents: 'none' }}
-          />
+      {sig ? (
+        /*
+         * Signature zone: fixed-height relative container.
+         * The image is absolutely positioned inside it — dragging it
+         * never shifts the name below.
+         */
+        <div style={{ position: 'relative', height: SIG_ZONE_H, marginBottom: 8 }}>
+          <div
+            style={{
+              position: 'absolute',
+              left: x,
+              top: y,
+              width: w,
+              height: h,
+              cursor: editMode ? 'move' : 'default',
+              userSelect: 'none',
+            }}
+            onMouseDown={editMode ? onDragDown : undefined}
+          >
+            <img
+              src={sig}
+              alt="Signature"
+              draggable={false}
+              style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', pointerEvents: 'none' }}
+            />
 
-          {editMode && (
-            <>
-              {/* Dashed border */}
-              <div style={{
-                position: 'absolute', inset: 0,
-                border: '1.5px dashed #3b82f6',
-                borderRadius: 2,
-                pointerEvents: 'none',
-              }} />
-
-              {/* 8 resize handles */}
-              {(Object.keys(HANDLE_STYLES) as HandleDir[]).map(dir => (
-                <div
-                  key={dir}
-                  onMouseDown={onResizeDown(dir)}
-                  style={{
-                    position: 'absolute',
-                    width: 10,
-                    height: 10,
-                    background: '#3b82f6',
-                    borderRadius: 2,
-                    zIndex: 10,
-                    ...HANDLE_STYLES[dir],
-                  }}
-                />
-              ))}
-            </>
-          )}
+            {editMode && (
+              <>
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  border: '1.5px dashed #3b82f6', borderRadius: 2,
+                  pointerEvents: 'none',
+                }} />
+                {(Object.keys(HANDLE_POS) as Dir[]).map(dir => (
+                  <div
+                    key={dir}
+                    onMouseDown={onResizeDown(dir)}
+                    style={{
+                      position: 'absolute',
+                      width: 10, height: 10,
+                      background: '#3b82f6',
+                      borderRadius: 2,
+                      zIndex: 10,
+                      cursor: CURSORS[dir],
+                      ...HANDLE_POS[dir],
+                    }}
+                  />
+                ))}
+              </>
+            )}
+          </div>
         </div>
+      ) : (
+        /* No signature — just a small gap */
+        <div style={{ height: 4 }} />
       )}
 
-      <div style={defaultNameStyle}>
+      {/* Name — always at a fixed position, never moves */}
+      <div style={resolvedNameStyle}>
         <EditableText value={data.name} onSave={v => setData({ name: v })} />
       </div>
     </div>

@@ -39,7 +39,7 @@ export const DEFAULT_COVER_LETTER_DATA: CoverLetterData = {
   photo: '',
   signature: '',
   signatureWidth: 160,
-  signatureHeight: 80,
+  signatureHeight: 60,
   signatureX: 0,
   signatureY: 0,
   hiringManager: 'Hiring Manager',
