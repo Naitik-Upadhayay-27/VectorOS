@@ -4,6 +4,7 @@ import { FileText, Briefcase, TrendingUp, ArrowRight, Plus, Clock, Trash2, Spark
 import AppLayout from '@/components/layout/AppLayout'
 import { useAuthStore } from '@/store/authStore'
 import { useDraftStore, type ResumeDraft } from '@/store/draftStore'
+import { useCoverLetterDraftStore, type CoverLetterDraft } from '@/store/coverLetterDraftStore'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useChatStore } from '@/store/chatStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
@@ -12,6 +13,8 @@ import { useAtsStore } from '@/store/atsStore'
 import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
 import { TEMPLATES } from '@/components/resume-templates'
+import { CL_TEMPLATES } from '@/components/cover-letter/templates'
+import { useCoverLetterStore } from '@/store/coverLetterStore'
 
 const PAGE_W = 794
 const PAGE_H = 1123
@@ -36,6 +39,28 @@ function ResumeThumbnail({ draft }: { draft: ResumeDraft }) {
         left: 0,
       }}>
         <Comp data={draft.resumeData} />
+      </div>
+    </div>
+  )
+}
+
+// Renders a live scaled-down cover letter preview
+function CLDraftThumbnail({ draft }: { draft: CoverLetterDraft }) {
+  const thumbW = PAGE_W * THUMB_SCALE
+  const thumbH = PAGE_H * THUMB_SCALE
+  const template = CL_TEMPLATES.find(t => t.id === draft.templateId) ?? CL_TEMPLATES.find(t => t.id === 1) ?? CL_TEMPLATES[0]
+  const Comp = template.component
+
+  return (
+    <div style={{ width: thumbW, height: thumbH, overflow: 'hidden', position: 'relative', background: '#fff' }}>
+      <div style={{
+        width: PAGE_W, height: PAGE_H,
+        transformOrigin: 'top left',
+        transform: `scale(${THUMB_SCALE})`,
+        pointerEvents: 'none',
+        position: 'absolute', top: 0, left: 0,
+      }}>
+        <Comp data={draft.data as any} accentColor={template.defaultAccent} />
       </div>
     </div>
   )
@@ -81,6 +106,7 @@ export default function DashboardPage() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const { drafts, deleteDraft, setActiveDraft } = useDraftStore()
+  const { drafts: clDrafts, deleteDraft: deleteCLDraft, loadDrafts: loadCLDrafts } = useCoverLetterDraftStore()
   const resumeData = useTemplateResumeStore((s) => s.data)
   const { data: onboarding, openOnboarding, reset: resetOnboarding } = useOnboardingStore()
   const { profile } = useProfileStore()
@@ -90,11 +116,12 @@ export default function DashboardPage() {
   const hasResume = !!resumeData.personalInfo?.name
   const activeDraft = drafts[0] // most recently saved
   const [deleteTarget, setDeleteTarget] = useState<ResumeDraft | null>(null)
+  const [deleteCLTarget, setDeleteCLTarget] = useState<CoverLetterDraft | null>(null)
   const [appStats, setAppStats] = useState({ total: 0, interview: 0, offer: 0 })
 
   useEffect(() => {
-    apiFetch(`${API_BASE}/api/applications`).then(r => r.json()).then(d => {
-      const apps = d.applications ?? []
+    loadCLDrafts()
+    apiFetch(`${API_BASE}/api/applications`).then(r => r.json()).then(d => {      const apps = d.applications ?? []
       setAppStats({
         total: apps.length,
         interview: apps.filter((a: any) => a.status === 'interview').length,
@@ -119,6 +146,14 @@ export default function DashboardPage() {
     navigate('/resume/resume-1')
   }
 
+  const loadCLDraft = (draft: CoverLetterDraft) => {
+    const clStore = useCoverLetterStore.getState()
+    clStore.setData(draft.data)
+    clStore.setTemplate(draft.templateId)
+    clStore.setActiveDraftId(draft.id)
+    navigate('/cover-letter')
+  }
+
   const downloadDraft = (e: React.MouseEvent, draft: ResumeDraft) => {
     e.stopPropagation()
     // Load the draft, navigate to editor, then trigger print
@@ -132,14 +167,17 @@ export default function DashboardPage() {
     if (deleteTarget) { deleteDraft(deleteTarget.id); setDeleteTarget(null) }
   }
 
+  const confirmDeleteCL = () => {
+    if (deleteCLTarget) { deleteCLDraft(deleteCLTarget.id); setDeleteCLTarget(null) }
+  }
+
   return (
     <AppLayout>
       {deleteTarget && (
-        <DeleteModal
-          name={deleteTarget.name}
-          onConfirm={confirmDelete}
-          onCancel={() => setDeleteTarget(null)}
-        />
+        <DeleteModal name={deleteTarget.name} onConfirm={confirmDelete} onCancel={() => setDeleteTarget(null)} />
+      )}
+      {deleteCLTarget && (
+        <DeleteModal name={deleteCLTarget.name} onConfirm={confirmDeleteCL} onCancel={() => setDeleteCLTarget(null)} />
       )}
       <div className="h-full overflow-y-auto bg-[#f4f5f7]">
         <div className="max-w-6xl mx-auto px-8 py-8 space-y-8">
@@ -253,6 +291,56 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
+
+          {/* ── My Cover Letters ─────────────────────────────────────── */}
+          {clDrafts.length > 0 && (
+            <div>
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">My Cover Letters</h2>
+                  <p className="text-sm text-gray-400 mt-0.5">Saved drafts for your applications</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    useCoverLetterStore.getState().reset()
+                    navigate('/cover-letter')
+                  }} 
+                  className="text-xs font-semibold text-purple-600 hover:text-purple-700"
+                >
+                  + New
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                {clDrafts.slice(0, 3).map((draft) => (
+                  <div
+                    key={draft.id}
+                    className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-all group"
+                    onClick={() => loadCLDraft(draft)}
+                  >
+                    <div className="flex justify-center overflow-hidden rounded-t-2xl border-b border-gray-100 bg-gray-50">
+                      <CLDraftThumbnail draft={draft} />
+                    </div>
+                    <div className="px-4 py-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800 truncate max-w-[140px]">{draft.name}</p>
+                        <p className="text-[11px] text-gray-400 flex items-center gap-1 mt-0.5">
+                          <Clock size={10} />
+                          {new Date(draft.savedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </p>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeleteCLTarget(draft) }}
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-400 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ── Bottom 2-col ─────────────────────────────────────────── */}
           <div className="grid grid-cols-2 gap-6">

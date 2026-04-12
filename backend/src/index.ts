@@ -20,6 +20,7 @@ import resumeRoutes from './routes/resume'
 import jobRoutes from './routes/jobs'
 import aiRoutes from './routes/ai'
 import applicationRoutes from './routes/applications'
+import coverLetterRoutes from './routes/coverLetter'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 5000
@@ -38,6 +39,7 @@ app.use('/api/resumes', resumeRoutes)
 app.use('/api/jobs', jobRoutes)
 app.use('/api/ai', aiRoutes)
 app.use('/api/applications', applicationRoutes)
+app.use('/api/cover-letters', coverLetterRoutes)
 
 app.get('/', (_req, res) => res.send('VectorOS API is running 🚀'))
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))

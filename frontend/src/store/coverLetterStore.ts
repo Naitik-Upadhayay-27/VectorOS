@@ -52,14 +52,15 @@ export const DEFAULT_COVER_LETTER_DATA: CoverLetterData = {
 
 interface CoverLetterState {
   data: CoverLetterData
-  templateId: number // 1-4
+  templateId: number
   generating: boolean
   jobDescription: string
-
+  activeDraftId: string | null
   setData: (data: Partial<CoverLetterData>) => void
   setTemplate: (id: number) => void
   setGenerating: (v: boolean) => void
   setJobDescription: (jd: string) => void
+  setActiveDraftId: (id: string | null) => void
   reset: () => void
 }
 
@@ -70,12 +71,14 @@ export const useCoverLetterStore = create<CoverLetterState>()(
       templateId: 1,
       generating: false,
       jobDescription: '',
+      activeDraftId: null,
 
       setData: (partial) => set((s) => ({ data: { ...s.data, ...partial } })),
       setTemplate: (id) => set({ templateId: id }),
       setGenerating: (v) => set({ generating: v }),
       setJobDescription: (jd) => set({ jobDescription: jd }),
-      reset: () => set({ data: { ...DEFAULT_COVER_LETTER_DATA }, jobDescription: '' }),
+      setActiveDraftId: (id) => set({ activeDraftId: id }),
+      reset: () => set({ data: { ...DEFAULT_COVER_LETTER_DATA }, jobDescription: '', activeDraftId: null }),
     }),
     { name: 'cover-letter-store' }
   )

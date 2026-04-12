@@ -37,6 +37,7 @@ export const useAuthStore = create<AuthState>()(
           import('@/store/atsStore').then(({ useAtsStore }) => useAtsStore.getState().clearResult())
           import('@/store/draftStore').then(({ useDraftStore }) => useDraftStore.getState().clearDrafts())
           import('@/store/coverLetterStore').then(({ useCoverLetterStore }) => useCoverLetterStore.getState().reset())
+          import('@/store/coverLetterDraftStore').then(({ useCoverLetterDraftStore }) => useCoverLetterDraftStore.getState().clearDrafts())
         }
         set({ user, token, refreshToken: refreshToken ?? null })
         // loadDrafts is called by App.tsx useEffect on user?.id change
@@ -50,6 +51,7 @@ export const useAuthStore = create<AuthState>()(
           })
         )
         import('@/store/coverLetterStore').then(({ useCoverLetterStore }) => useCoverLetterStore.getState().reset())
+        import('@/store/coverLetterDraftStore').then(({ useCoverLetterDraftStore }) => useCoverLetterDraftStore.getState().clearDrafts())
         import('@/store/onboardingStore').then(({ useOnboardingStore }) => useOnboardingStore.getState().reset())
         import('@/store/draftStore').then(({ useDraftStore }) => useDraftStore.getState().clearDrafts())
         set((s) => ({ user: null, token: null, refreshToken: null, hasOnboarded: s.hasOnboarded }))

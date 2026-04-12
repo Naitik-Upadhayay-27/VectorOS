@@ -1,49 +1,18 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, Sparkles, RefreshCw, Pencil, Eye, Check, Wand2, Camera, X, Minus, Plus, PenLine } from 'lucide-react'
+import { ArrowLeft, Download, Sparkles, RefreshCw, Pencil, Eye, Check, Wand2, Camera, X, Minus, Plus, PenLine, Save } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
 import Button from '@/components/ui/Button'
 import { useCoverLetterStore } from '@/store/coverLetterStore'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
+import { useCoverLetterDraftStore } from '@/store/coverLetterDraftStore'
 import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
 import CoverLetterTemplate1 from '@/components/cover-letter/CoverLetterTemplate1'
-import CoverLetterTemplate2 from '@/components/cover-letter/CoverLetterTemplate2'
-import CoverLetterTemplate3 from '@/components/cover-letter/CoverLetterTemplate3'
-import CoverLetterTemplate4 from '@/components/cover-letter/CoverLetterTemplate4'
-import CoverLetterTemplate5 from '@/components/cover-letter/CoverLetterTemplate5'
-import CoverLetterTemplate6 from '@/components/cover-letter/CoverLetterTemplate6'
-import CoverLetterTemplate7 from '@/components/cover-letter/CoverLetterTemplate7'
-import CoverLetterTemplate8 from '@/components/cover-letter/CoverLetterTemplate8'
-import CoverLetterTemplate9 from '@/components/cover-letter/CoverLetterTemplate9'
-import CoverLetterTemplate10 from '@/components/cover-letter/CoverLetterTemplate10'
-import CoverLetterTemplate11 from '@/components/cover-letter/CoverLetterTemplate11'
-import CoverLetterTemplate12 from '@/components/cover-letter/CoverLetterTemplate12'
-import CoverLetterTemplate13 from '@/components/cover-letter/CoverLetterTemplate13'
-import CoverLetterTemplate14 from '@/components/cover-letter/CoverLetterTemplate14'
-import CoverLetterTemplate15 from '@/components/cover-letter/CoverLetterTemplate15'
-import CoverLetterTemplate16 from '@/components/cover-letter/CoverLetterTemplate16'
+import { CL_TEMPLATES } from '@/components/cover-letter/templates'
 import { printResume, printCoverLetter } from '@/lib/printResume'
 import { EditableContext } from '@/components/resume-editor/EditableContext'
 
-const CL_TEMPLATES = [
-  { id: 15, label: 'Grey Sidebar',   defaultAccent: '#444444', component: CoverLetterTemplate15 },
-  { id: 13, label: 'B&W Modern',     defaultAccent: '#e07b2a', component: CoverLetterTemplate13 },
-  { id: 14, label: 'Simple Modern',  defaultAccent: '#111111', component: CoverLetterTemplate14 },
-  { id: 16, label: 'Dark Bold',      defaultAccent: '#222222', component: CoverLetterTemplate16 },
-  { id: 12, label: 'Geometric',      defaultAccent: '#1a2744', component: CoverLetterTemplate12 },
-  { id: 9,  label: 'Dark Header',    defaultAccent: '#1a2e44', component: CoverLetterTemplate9 },
-  { id: 11, label: 'Elegant',        defaultAccent: '#111111', component: CoverLetterTemplate11 },
-  { id: 6,  label: 'Sidebar',        defaultAccent: '#4b5563', component: CoverLetterTemplate6 },
-  { id: 1,  label: 'Professional',   defaultAccent: '#1e3a5f', component: CoverLetterTemplate1 },
-  { id: 2,  label: 'Creative',       defaultAccent: '#7c3aed', component: CoverLetterTemplate2 },
-  { id: 7,  label: 'Bold Header',    defaultAccent: '#111111', component: CoverLetterTemplate7 },
-  { id: 8,  label: 'Letterhead',     defaultAccent: '#111111', component: CoverLetterTemplate8 },
-  { id: 10, label: 'ATS Clean',      defaultAccent: '#b8960c', component: CoverLetterTemplate10 },
-  { id: 3,  label: 'Graduate',       defaultAccent: '#16a34a', component: CoverLetterTemplate3 },
-  { id: 4,  label: 'Career Switch',  defaultAccent: '#ea580c', component: CoverLetterTemplate4 },
-  { id: 5,  label: 'Minimal',        defaultAccent: '#111111', component: CoverLetterTemplate5 },
-]
 
 const TONES = [
   { value: 'professional',    label: 'Professional',     emoji: '💼' },
@@ -269,8 +238,9 @@ function CoverLetterPreview({
 
 export default function CoverLetterPage() {
   const navigate = useNavigate()
-  const { data, templateId, generating, jobDescription, setData, setTemplate, setGenerating, setJobDescription } = useCoverLetterStore()
+  const { data, templateId, generating, jobDescription, activeDraftId, setData, setTemplate, setGenerating, setJobDescription, setActiveDraftId } = useCoverLetterStore()
   const resumeData = useTemplateResumeStore((s) => s.data)
+  const { saveDraft, loadDrafts, saving } = useCoverLetterDraftStore()
 
   const [accentColor, setAccentColor] = useState(
     CL_TEMPLATES.find(t => t.id === templateId)?.defaultAccent ?? '#1e3a5f'
@@ -279,7 +249,21 @@ export default function CoverLetterPage() {
   const [downloading, setDownloading] = useState(false)
   const [editMode, setEditMode]     = useState(false)
   const [zoom, setZoom]             = useState(100)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'dirty' | 'saved'>('idle')
+  const isFirstMount = useRef(true)
   const previewRef = useRef<HTMLDivElement>(null)
+
+  // Load drafts on mount
+  useEffect(() => { loadDrafts() }, [])
+
+  // Track changes to data, template, JD, and tone to mark as "dirty"
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false
+      return
+    }
+    setSaveStatus('dirty')
+  }, [data, templateId, jobDescription, tone])
 
   useEffect(() => {
     const pi = resumeData.personalInfo
@@ -349,6 +333,18 @@ export default function CoverLetterPage() {
     }
   }
 
+  const handleSaveDraft = async () => {
+    const name = data.name
+      ? `${data.name}${data.companyName ? ` – ${data.companyName}` : ''}`
+      : 'Untitled Cover Letter'
+    await saveDraft({ id: activeDraftId ?? '', name, templateId, data })
+    setSaveStatus('saved')
+    
+    // After first save, activeDraftId is set so subsequent saves update the same doc
+    const { drafts } = useCoverLetterDraftStore.getState()
+    if (drafts[0]) setActiveDraftId(drafts[0].id)
+  }
+
   return (
     <AppLayout>
       <div className="flex flex-col h-screen">
@@ -389,6 +385,18 @@ export default function CoverLetterPage() {
               {downloading
                 ? <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating...</>
                 : <><Download size={13} /> Download PDF</>}
+            </Button>
+            <Button
+              size="sm"
+              variant={saveStatus === 'dirty' ? 'primary' : 'secondary'}
+              onClick={handleSaveDraft}
+              loading={saving}
+              className={saveStatus === 'saved' 
+                ? 'bg-white text-green-600 border-green-600 hover:bg-green-600 hover:text-white transition-all duration-200' 
+                : ''}
+            >
+              {saveStatus === 'saved' ? <Check size={13} /> : <Save size={13} />}
+              {saveStatus === 'saved' ? 'Saved' : 'Save Draft'}
             </Button>
           </div>
         </div>
