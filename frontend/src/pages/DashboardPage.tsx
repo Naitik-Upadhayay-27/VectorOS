@@ -272,6 +272,7 @@ export default function DashboardPage() {
                   { icon: FileText,  label: 'Resume Editor',  sub: 'Edit & optimize with AI',    to: '/resume/resume-1', match: 'Open Editor' },
                   { icon: Briefcase, label: 'Job Search',     sub: 'Find matching opportunities', to: '/jobs',            match: 'Browse Jobs' },
                   { icon: User,      label: 'My Profile',     sub: `${profile.profileCompleteness}% complete — add target roles`, to: '/profile', match: 'Edit Profile' },
+                  { icon: FileText,  label: 'Cover Letter',   sub: 'AI-generated, 4 templates',   to: '/cover-letter',    match: 'Create Letter' },
                 ].map(({ icon: Icon, label, sub, to, match }) => (
                   <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                     <div className="flex items-start gap-4">

@@ -10,6 +10,7 @@ import ApplicationsPage from '@/pages/ApplicationsPage'
 import AnalyticsPage from '@/pages/AnalyticsPage'
 import AuthCallbackPage from '@/pages/AuthCallbackPage'
 import ProfilePage from '@/pages/ProfilePage'
+import CoverLetterPage from '@/pages/CoverLetterPage'
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow'
 import { useAuthStore } from '@/store/authStore'
 import { useDraftStore } from '@/store/draftStore'
@@ -61,6 +62,7 @@ export default function App() {
         <Route path="/jobs" element={<ProtectedRoute><JobsPage /></ProtectedRoute>} />
         <Route path="/applications" element={<ProtectedRoute><ApplicationsPage /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+        <Route path="/cover-letter" element={<ProtectedRoute><CoverLetterPage /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

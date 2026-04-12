@@ -1,70 +1,23 @@
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
+import {
+  PAGE_W, PAGE_H,
+  PAGE_MARGIN_TOP, PAGE_MARGIN_BOTTOM,
+  USABLE_H_FIRST,
+  computePageOffsets,
+} from './paginate'
 
-const PAGE_W_PX = 794
-const PAGE_H_PX = 1123
-const PAGE_BOTTOM_MARGIN = 80
-
-// Same smart pagination logic as TemplateLivePreview
-function computePageOffsets(container: HTMLDivElement, totalHeight: number): number[] {
-  const offsets: number[] = [0]
-  const usableH = PAGE_H_PX - PAGE_BOTTOM_MARGIN
-  let nextCut = usableH
-
-  while (nextCut < totalHeight) {
-    const all = Array.from(
-      container.querySelectorAll<HTMLElement>('p, li, h1, h2, h3, h4, h5, h6, div[style], section')
-    )
-
-    const elPositions = all.map(el => {
-      let offsetTop = 0
-      let node: HTMLElement | null = el
-      while (node && node !== container) {
-        offsetTop += node.offsetTop
-        node = node.offsetParent as HTMLElement | null
-      }
-      return { el, top: offsetTop, bottom: offsetTop + el.offsetHeight }
-    })
-
-    let bestY = nextCut
-    let bestDelta = Infinity
-
-    for (const { bottom } of elPositions) {
-      if (bottom <= nextCut && bottom > nextCut - 200) {
-        const delta = nextCut - bottom
-        if (delta < bestDelta) {
-          bestDelta = delta
-          bestY = bottom
-        }
-      }
-    }
-
-    // Avoid orphaned headings
-    const HEADING_TAGS = new Set(['H1', 'H2', 'H3', 'H4', 'H5', 'H6'])
-    const elementAfterCut = elPositions.find(({ top }) => top >= bestY && top < bestY + 40)
-    if (elementAfterCut && HEADING_TAGS.has(elementAfterCut.el.tagName)) {
-      const beforeHeading = elPositions
-        .filter(({ bottom }) => bottom <= elementAfterCut.top)
-        .sort((a, b) => b.bottom - a.bottom)[0]
-      if (beforeHeading && beforeHeading.bottom > bestY - 150) {
-        bestY = beforeHeading.bottom
-      }
-    }
-
-    offsets.push(bestY)
-    nextCut = bestY + usableH
-  }
-
-  return offsets
-}
-
-export async function printResume(el: HTMLDivElement, filename = 'resume'): Promise<void> {
+// ── Capture the full rendered resume as a canvas ──────────────────────────────
+async function captureElement(
+  el: HTMLDivElement
+): Promise<{ canvas: HTMLCanvasElement; totalHeightPx: number }> {
   const prev = {
     visibility: el.style.visibility,
     zIndex: el.style.zIndex,
     position: el.style.position,
     top: el.style.top,
     left: el.style.left,
+    height: el.style.height,
   }
 
   el.style.visibility = 'visible'
@@ -72,63 +25,122 @@ export async function printResume(el: HTMLDivElement, filename = 'resume'): Prom
   el.style.position = 'fixed'
   el.style.top = '0'
   el.style.left = '-9999px'
+  el.style.height = 'auto'
 
-  try {
-    const canvas = await html2canvas(el, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      width: PAGE_W_PX,
-      height: el.scrollHeight,
-      windowWidth: PAGE_W_PX,
-    })
+  await new Promise(r => requestAnimationFrame(r))
 
-    const totalHeightPx = canvas.height / 2 // canvas is 2x scaled
+  const naturalH = el.scrollHeight
 
-    // Use smart offsets so cuts never happen mid-element
-    const offsets = totalHeightPx <= PAGE_H_PX
-      ? [0]
-      : computePageOffsets(el, totalHeightPx)
+  const canvas = await html2canvas(el, {
+    scale: 2,
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: '#ffffff',
+    width: PAGE_W,
+    height: naturalH,
+    windowWidth: PAGE_W,
+  })
 
-    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
-    const pageWmm = pdf.internal.pageSize.getWidth()
-    const pageHmm = pdf.internal.pageSize.getHeight()
-    const mmPerPx = pageWmm / PAGE_W_PX
+  el.style.visibility = prev.visibility
+  el.style.zIndex = prev.zIndex
+  el.style.position = prev.position
+  el.style.top = prev.top
+  el.style.left = prev.left
+  el.style.height = prev.height
 
-    for (let i = 0; i < offsets.length; i++) {
-      if (i > 0) pdf.addPage()
+  return { canvas, totalHeightPx: canvas.height / 2 }
+}
 
-      const srcYpx = offsets[i]
-      const nextOffsetPx = offsets[i + 1] ?? totalHeightPx
-      // Each page slice is exactly PAGE_H_PX tall (last page may be shorter)
-      const srcHpx = Math.min(PAGE_H_PX, nextOffsetPx - srcYpx + PAGE_BOTTOM_MARGIN)
+// ── Resume PDF — multi-page, MS Word-style margins ────────────────────────────
+export async function printResume(el: HTMLDivElement, filename = 'resume'): Promise<void> {
+  const { canvas, totalHeightPx } = await captureElement(el)
 
-      const pageCanvas = document.createElement('canvas')
-      pageCanvas.width = canvas.width
-      pageCanvas.height = srcHpx * 2 // 2x scale
-      const ctx = pageCanvas.getContext('2d')!
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
-      ctx.drawImage(
-        canvas,
-        0, srcYpx * 2,           // source x, y (2x)
-        canvas.width, srcHpx * 2, // source w, h (2x)
-        0, 0,                      // dest x, y
-        canvas.width, srcHpx * 2  // dest w, h
-      )
+  const offsets = totalHeightPx <= USABLE_H_FIRST
+    ? [0]
+    : computePageOffsets(el, totalHeightPx)
 
-      const pageImg = pageCanvas.toDataURL('image/png')
-      // Always render as full A4 page height so pages are uniform
-      pdf.addImage(pageImg, 'PNG', 0, 0, pageWmm, pageHmm)
-    }
+  const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+  const pageWmm = pdf.internal.pageSize.getWidth()   // 210 mm
+  const pageHmm = pdf.internal.pageSize.getHeight()  // 297 mm
 
-    pdf.save(`${filename}.pdf`)
-  } finally {
-    el.style.visibility = prev.visibility
-    el.style.zIndex = prev.zIndex
-    el.style.position = prev.position
-    el.style.top = prev.top
-    el.style.left = prev.left
+  // mm per logical px
+  const mmPerPx = pageWmm / PAGE_W
+
+  for (let i = 0; i < offsets.length; i++) {
+    if (i > 0) pdf.addPage()
+
+    const srcY  = offsets[i]
+    const nextY = offsets[i + 1] ?? totalHeightPx
+
+    // How much content this page shows
+    const contentH = nextY - srcY
+
+    // Page 1: content starts at y=0 in the PDF page (template handles its own top padding)
+    // Pages 2+: content starts at PAGE_MARGIN_TOP, leaving white space at top
+    const destTopPx = i === 0 ? 0 : PAGE_MARGIN_TOP
+    const destTopMm = destTopPx * mmPerPx
+
+    // Full A4 page canvas — white background
+    const pageCanvas = document.createElement('canvas')
+    pageCanvas.width  = canvas.width          // 2× width
+    pageCanvas.height = PAGE_H * 2            // 2× full A4 height
+    const ctx = pageCanvas.getContext('2d')!
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
+
+    // Draw the content slice at the correct vertical position
+    ctx.drawImage(
+      canvas,
+      0, srcY * 2,      canvas.width, contentH * 2,   // source slice
+      0, destTopPx * 2, canvas.width, contentH * 2    // destination (offset by top margin)
+    )
+
+    pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageWmm, pageHmm)
   }
+
+  pdf.save(`${filename}.pdf`)
+}
+
+// ── Cover letter PDF ──────────────────────────────────────────────────────────
+export async function printCoverLetter(el: HTMLDivElement, filename = 'cover-letter'): Promise<void> {
+  const { canvas, totalHeightPx } = await captureElement(el)
+
+  const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+  const pageWmm = pdf.internal.pageSize.getWidth()
+  const pageHmm = pdf.internal.pageSize.getHeight()
+  const mmPerPx  = pageWmm / PAGE_W
+
+  if (totalHeightPx <= PAGE_H) {
+    const contentHmm = totalHeightPx * mmPerPx
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWmm, contentHmm)
+    pdf.save(`${filename}.pdf`)
+    return
+  }
+
+  const offsets = computePageOffsets(el, totalHeightPx)
+
+  for (let i = 0; i < offsets.length; i++) {
+    if (i > 0) pdf.addPage()
+
+    const srcY     = offsets[i]
+    const nextY    = offsets[i + 1] ?? totalHeightPx
+    const contentH = nextY - srcY
+    const destTopPx = i === 0 ? 0 : PAGE_MARGIN_TOP
+
+    const pageCanvas = document.createElement('canvas')
+    pageCanvas.width  = canvas.width
+    pageCanvas.height = PAGE_H * 2
+    const ctx = pageCanvas.getContext('2d')!
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
+    ctx.drawImage(
+      canvas,
+      0, srcY * 2,      canvas.width, contentH * 2,
+      0, destTopPx * 2, canvas.width, contentH * 2
+    )
+
+    pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageWmm, pageHmm)
+  }
+
+  pdf.save(`${filename}.pdf`)
 }

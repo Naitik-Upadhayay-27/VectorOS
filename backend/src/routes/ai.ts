@@ -70,8 +70,40 @@ router.post('/cover-letter', async (req: AuthRequest, res: Response) => {
   const { resumeText, jobDescription, tone = 'professional' } = req.body
   if (!resumeText || !jobDescription) return res.status(400).json({ error: 'resumeText and jobDescription are required' })
   try {
-    const text = await generateText(`Write a ${tone} cover letter under 300 words using the resume for the job. Return only the letter.\nRESUME:\n${resumeText}\nJOB:\n${jobDescription}`)
-    res.json({ coverLetter: text })
+    const prompt = `You are an expert cover letter writer. Write a ${tone} cover letter body for the candidate below.
+
+STRICT RULES:
+- Return ONLY valid JSON, no markdown fences, no extra text
+- The "body" field must contain ONLY the letter paragraphs — NO salutation (no "Dear ..."), NO subject line, NO sign-off (no "Sincerely", no "Best regards"), NO candidate name at the end
+- The template already renders the salutation, subject, and sign-off separately
+- Extract the hiring manager name from the job description if present (look for "Reporting To:", "Manager:", or similar). If not found, return empty string
+- Keep the body under 280 words, 3-4 paragraphs
+- Tone: ${tone}
+
+Return this exact JSON:
+{"body":"<3-4 paragraphs of letter body only>","hiringManager":"<name or empty string>","jobTitle":"<job title from JD>","companyName":"<company name from JD>"}
+
+RESUME:
+${resumeText}
+
+JOB DESCRIPTION:
+${jobDescription}`
+
+    const raw = await generateText(prompt)
+    const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+    const jsonStart = cleaned.indexOf('{')
+    const jsonEnd = cleaned.lastIndexOf('}')
+    if (jsonStart !== -1 && jsonEnd > jsonStart) {
+      const parsed = JSON.parse(cleaned.slice(jsonStart, jsonEnd + 1))
+      return res.json({
+        coverLetter: parsed.body ?? '',
+        hiringManager: parsed.hiringManager ?? '',
+        jobTitle: parsed.jobTitle ?? '',
+        companyName: parsed.companyName ?? '',
+      })
+    }
+    // fallback — return raw as body
+    res.json({ coverLetter: raw.trim(), hiringManager: '', jobTitle: '', companyName: '' })
   } catch (err: any) { res.status(500).json({ error: err.message }) }
 })
 

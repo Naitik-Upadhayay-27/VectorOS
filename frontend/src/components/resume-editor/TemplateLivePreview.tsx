@@ -4,67 +4,13 @@ import { useResumeStore } from '@/store/resumeStore'
 import { TEMPLATES } from '@/components/resume-templates'
 import { EditableContext } from './EditableContext'
 import { Pencil, Eye } from 'lucide-react'
-import { printResume } from '@/lib/printResume'
 import FormatToolbar from './FormatToolbar'
-
-const PAGE_W = 794
-const PAGE_H = 1123
-const PAGE_BOTTOM_MARGIN = 80 // ~0.7in reserved at bottom — prevents orphaned headings
-
-function computePageOffsets(container: HTMLDivElement, totalHeight: number): number[] {
-  const offsets: number[] = [0]
-  const usableH = PAGE_H - PAGE_BOTTOM_MARGIN
-
-  let nextCut = usableH
-
-  while (nextCut < totalHeight) {
-    const all = Array.from(
-      container.querySelectorAll<HTMLElement>('p, li, h1, h2, h3, h4, h5, h6, div[style], section')
-    )
-
-    // Build a map of element top positions
-    const elPositions = all.map(el => {
-      let offsetTop = 0
-      let node: HTMLElement | null = el
-      while (node && node !== container) {
-        offsetTop += node.offsetTop
-        node = node.offsetParent as HTMLElement | null
-      }
-      return { el, top: offsetTop, bottom: offsetTop + el.offsetHeight }
-    })
-
-    let bestY = nextCut
-    let bestDelta = Infinity
-
-    for (const { el, bottom } of elPositions) {
-      if (bottom <= nextCut && bottom > nextCut - 200) {
-        const delta = nextCut - bottom
-        if (delta < bestDelta) {
-          bestDelta = delta
-          bestY = bottom
-        }
-      }
-    }
-
-    // Check if the element immediately after the cut is a heading — if so, move cut up before it
-    const HEADING_TAGS = new Set(['H1', 'H2', 'H3', 'H4', 'H5', 'H6'])
-    const elementAfterCut = elPositions.find(({ top }) => top >= bestY && top < bestY + 40)
-    if (elementAfterCut && HEADING_TAGS.has(elementAfterCut.el.tagName)) {
-      // Find the element just before this heading and cut there instead
-      const beforeHeading = elPositions
-        .filter(({ bottom }) => bottom <= elementAfterCut.top)
-        .sort((a, b) => b.bottom - a.bottom)[0]
-      if (beforeHeading && beforeHeading.bottom > bestY - 120) {
-        bestY = beforeHeading.bottom
-      }
-    }
-
-    offsets.push(bestY)
-    nextCut = bestY + usableH
-  }
-
-  return offsets
-}
+import {
+  PAGE_W, PAGE_H,
+  PAGE_MARGIN_TOP, PAGE_MARGIN_BOTTOM,
+  USABLE_H_FIRST, USABLE_H_REST,
+  computePageOffsets,
+} from '@/lib/paginate'
 
 export default function TemplateLivePreview({ previewRef }: { previewRef?: React.RefObject<HTMLDivElement | null> }) {
   const { data, activeTemplateId, layout, sectionOrder } = useTemplateResumeStore()
@@ -75,10 +21,8 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
   const TemplateComponent = template.component
 
   const scale = zoom / 100
-
   const measureRef = useRef<HTMLDivElement>(null)
 
-  // Expose the measure div to parent for printing
   useEffect(() => {
     if (previewRef && measureRef.current) {
       (previewRef as React.MutableRefObject<HTMLDivElement | null>).current = measureRef.current
@@ -86,22 +30,16 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
   })
 
   const [pageOffsets, setPageOffsets] = useState<number[]>([0])
-  const [totalHeight, setTotalHeight] = useState(PAGE_H)
+  const [totalH, setTotalH] = useState(0)
 
   useEffect(() => {
     const el = measureRef.current
     if (!el) return
-
     const recalc = () => {
       const h = el.scrollHeight
-      setTotalHeight(h)
-      if (h <= PAGE_H - PAGE_BOTTOM_MARGIN) {
-        setPageOffsets([0])
-      } else {
-        setPageOffsets(computePageOffsets(el, h))
-      }
+      setTotalH(h)
+      setPageOffsets(h <= USABLE_H_FIRST ? [0] : computePageOffsets(el, h))
     }
-
     const ro = new ResizeObserver(recalc)
     ro.observe(el)
     recalc()
@@ -110,16 +48,22 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
 
   const pageCount = pageOffsets.length
 
+  const sharedStyle: React.CSSProperties = {
+    fontFamily: layout.fontFamily,
+    fontSize: `${layout.fontSize}pt`,
+    lineHeight: layout.lineHeight ?? 1.5,
+    // @ts-ignore
+    '--resume-accent': layout.accentColor ?? '#111111',
+  }
+
   return (
     <EditableContext.Provider value={{ editMode }}>
       <div className="absolute inset-0 overflow-auto bg-[#dde1ed] resume-preview-scroll">
-        {/* Floating format toolbar — renders at fixed position over selection */}
         <FormatToolbar />
 
-        {/* Edit mode toggle button */}
         <div className="absolute top-3 right-3 z-20">
           <button
-            onClick={() => setEditMode((v) => !v)}
+            onClick={() => setEditMode(v => !v)}
             title={editMode ? 'Switch to preview mode' : 'Click to edit text directly'}
             className={[
               'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-md transition-all',
@@ -132,24 +76,19 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
           </button>
         </div>
 
-        {/* Hidden measurement render — always non-editable, used only for height/pagination */}
+        {/* Hidden measurement render */}
         <EditableContext.Provider value={{ editMode: false }}>
           <div
             ref={measureRef}
             data-resume-measure
             style={{
               position: 'absolute',
-              top: 0,
-              left: 0,
+              top: 0, left: 0,
               width: PAGE_W,
               visibility: 'hidden',
               pointerEvents: 'none',
               zIndex: -1,
-              fontFamily: layout.fontFamily,
-              fontSize: `${layout.fontSize}pt`,
-              lineHeight: layout.lineHeight ?? 1.5,
-              // @ts-ignore
-              '--resume-accent': layout.accentColor ?? '#111111',
+              ...sharedStyle,
             }}
           >
             <TemplateComponent data={data} />
@@ -162,6 +101,19 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
           style={{ minWidth: PAGE_W * scale + 64 }}
         >
           {pageOffsets.map((offset, i) => {
+            const isFirst = i === 0
+            const nextOffset = pageOffsets[i + 1] ?? totalH
+
+            // How many px of content this page shows
+            const sliceH = nextOffset - offset
+
+            // Where inside the PAGE_H box the content window sits
+            const contentTop = isFirst ? 0 : PAGE_MARGIN_TOP
+
+            // Shift the full render so content at `offset` lands at y=0 of the window.
+            // The window itself is positioned at contentTop, creating the top margin.
+            const shift = -offset
+
             return (
               <div
                 key={i}
@@ -179,50 +131,52 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
                   cursor: editMode ? 'text' : 'default',
                 }}
               >
-                {/* Clip wrapper — sized to scaled page, clips overflow from transform */}
+                {/*
+                 * Content window:
+                 *  - starts at contentTop (0 for page 1, PAGE_MARGIN_TOP for pages 2+)
+                 *  - height = exactly the slice of content for this page
+                 *  - overflow hidden ensures nothing bleeds outside the slice
+                 *
+                 * The space above (top margin, pages 2+) and below (bottom margin,
+                 * all pages) is the white page background — real empty space,
+                 * not hidden content.
+                 */}
                 <div style={{
                   position: 'absolute',
-                  top: 0, left: 0,
+                  top: contentTop * scale,
+                  left: 0,
                   width: PAGE_W * scale,
-                  height: PAGE_H * scale,
+                  height: sliceH * scale,
                   overflow: 'hidden',
                 }}>
                   <div
                     style={{
                       position: 'absolute',
-                      top: 0,
-                      left: 0,
+                      top: 0, left: 0,
                       width: PAGE_W,
                       transformOrigin: 'top left',
                       transform: `scale(${scale})`,
                       pointerEvents: editMode ? 'auto' : 'none',
-                      fontFamily: layout.fontFamily,
-                      fontSize: `${layout.fontSize}pt`,
-                      lineHeight: layout.lineHeight ?? 1.5,
-                      // @ts-ignore
-                      '--resume-accent': layout.accentColor ?? '#111111',
+                      ...sharedStyle,
                     }}
                   >
-                    {/* shift content so this page's slice starts at top */}
-                    <div style={{ marginTop: -offset, width: PAGE_W }}>
+                    <div style={{ marginTop: shift, width: PAGE_W }}>
                       <TemplateComponent data={data} />
                     </div>
                   </div>
                 </div>
 
-                {/* Page number badge */}
+                {/* Page number — sits in the bottom margin */}
                 {pageCount > 1 && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: 6,
-                      right: 10,
-                      fontSize: 10,
-                      color: '#9ca3af',
-                      pointerEvents: 'none',
-                      zIndex: 5,
-                    }}
-                  >
+                  <div style={{
+                    position: 'absolute',
+                    bottom: Math.max(8, (PAGE_MARGIN_BOTTOM * scale) / 2 - 6),
+                    right: 10,
+                    fontSize: 10,
+                    color: '#9ca3af',
+                    pointerEvents: 'none',
+                    zIndex: 5,
+                  }}>
                     {i + 1} / {pageCount}
                   </div>
                 )}
@@ -231,7 +185,6 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
           })}
         </div>
 
-        {/* Edit mode hint bar */}
         {editMode && (
           <div className="sticky bottom-0 left-0 right-0 flex justify-center pb-3 pointer-events-none">
             <div className="bg-blue-500 text-white text-xs px-4 py-1.5 rounded-full shadow-lg pointer-events-none">
@@ -243,4 +196,3 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
     </EditableContext.Provider>
   )
 }
-

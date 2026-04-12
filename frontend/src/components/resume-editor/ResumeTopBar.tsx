@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Download, Layout, Palette, Minus, Plus, MessageSquare, Save, FilePlus, Check, Pencil, Menu, PanelLeftClose, ArrowLeft } from 'lucide-react'
+import { Download, Layout, Palette, Minus, Plus, MessageSquare, Save, FilePlus, Check, Pencil, Menu, PanelLeftClose, ArrowLeft, FileText } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { useResumeStore } from '@/store/resumeStore'
 import { useChatStore } from '@/store/chatStore'
@@ -144,6 +144,16 @@ export default function ResumeTopBar({ onOpenTemplates, onDownload, onOpenLayout
         >
           <MessageSquare size={14} />
           {isOpen ? 'Hide' : 'Show'} Assistant
+        </button>
+
+        {/* Cover Letter */}
+        <button
+          onClick={() => navigate('/cover-letter')}
+          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-brand-500 font-medium transition-colors"
+          title="Open Cover Letter Editor"
+        >
+          <FileText size={14} />
+          Cover Letter
         </button>
       </div>
 

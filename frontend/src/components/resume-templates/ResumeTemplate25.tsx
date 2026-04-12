@@ -1,10 +1,11 @@
 // @ts-nocheck
-import { TemplateResumeData, ExperienceItem, EducationItem, SkillCategory } from '@/types/resume'
+// Template 25: Navy Sidebar CV — circular photo, dark navy left sidebar, clean white right
+import { TemplateResumeData, ExperienceItem, EducationItem, SkillCategory, LanguageItem, VolunteerItem } from '@/types/resume'
 import EditableText from '@/components/resume-editor/EditableText'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import PhotoUploadOverlay from '@/components/resume-editor/PhotoUploadOverlay'
 
-const DARK = '#2b2d42'
+const NAVY = '#2b3a52'
 
 const ResumeTemplate25 = ({ data }: { data: TemplateResumeData }) => {
   const store = useTemplateResumeStore()
@@ -28,76 +29,77 @@ const ResumeTemplate25 = ({ data }: { data: TemplateResumeData }) => {
   return (
     <div style={{ fontFamily, fontSize: `${fontSize}pt`, width: 794, minHeight: 1123, background: '#fff', display: 'flex' }}>
 
-      {/* ── LEFT DARK SIDEBAR ── */}
-      <div style={{ width: 240, background: DARK, flexShrink: 0, padding: '36px 22px' }}>
+      {/* ── LEFT NAVY SIDEBAR ── */}
+      <div style={{ width: 230, background: NAVY, flexShrink: 0, padding: '36px 20px 36px' }}>
 
-        {/* Photo */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28, pointerEvents: 'auto' }}>
-          <PhotoUploadOverlay size={120} style={{ border: '3px solid rgba(255,255,255,0.2)' }} />
+        {/* Circular photo */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
+          <div style={{ borderRadius: '50%', overflow: 'hidden', width: 120, height: 120, border: '3px solid rgba(255,255,255,0.25)', flexShrink: 0 }}>
+            <PhotoUploadOverlay size={120} style={{ borderRadius: '50%' }} />
+          </div>
         </div>
 
         {/* Contact */}
-        <SideBlock label="Contact">
-          {contact.phone && (
-            <div style={{ marginBottom: 10 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: '#fff', margin: 0 }}>Phone</p>
-              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', margin: '1px 0 0' }}><EditableText value={contact.phone} onSave={v => setContact('phone', v)} /></p>
-            </div>
-          )}
+        <SideSection label="Contact">
           {contact.email && (
-            <div style={{ marginBottom: 10 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: '#fff', margin: 0 }}>Email</p>
-              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', margin: '1px 0 0' }}><EditableText value={contact.email} onSave={v => setContact('email', v)} /></p>
-            </div>
+            <SideContactRow icon="✉">
+              <EditableText value={contact.email} onSave={v => setContact('email', v)} />
+            </SideContactRow>
+          )}
+          {contact.phone && (
+            <SideContactRow icon="📞">
+              <EditableText value={contact.phone} onSave={v => setContact('phone', v)} />
+            </SideContactRow>
           )}
           {contact.location && (
-            <div style={{ marginBottom: 10 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: '#fff', margin: 0 }}>Address</p>
-              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', margin: '1px 0 0' }}><EditableText value={contact.location} onSave={v => setContact('location', v)} /></p>
-            </div>
+            <SideContactRow icon="📍">
+              <EditableText value={contact.location} onSave={v => setContact('location', v)} />
+            </SideContactRow>
           )}
-        </SideBlock>
+          {contact.linkedin && (
+            <SideContactRow icon="🌐">
+              <EditableText value={contact.linkedin} onSave={v => setContact('linkedin', v)} />
+            </SideContactRow>
+          )}
+        </SideSection>
 
         {/* Education */}
         {data.education?.length > 0 && (
-          <SideBlock label="Education">
+          <SideSection label="Education">
             {data.education.map((edu: EducationItem) => (
-              <div key={edu.id} style={{ marginBottom: 12 }}>
-                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
-                  <EditableText value={edu.graduationDate} onSave={v => setEdu(edu.id, 'graduationDate', v)} />
-                </p>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#fff', margin: '2px 0 0', lineHeight: 1.3 }}>
+              <div key={edu.id} style={{ marginBottom: 14 }}>
+                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', margin: 0 }}>
                   <EditableText value={edu.degree} onSave={v => setEdu(edu.id, 'degree', v)} />
                 </p>
-                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', margin: '2px 0 0' }}>
+                <p style={{ fontSize: 10.5, fontWeight: 700, color: '#fff', margin: '2px 0 1px', lineHeight: 1.3 }}>
                   <EditableText value={edu.institution} onSave={v => setEdu(edu.id, 'institution', v)} />
+                </p>
+                <p style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+                  <EditableText value={edu.graduationDate} onSave={v => setEdu(edu.id, 'graduationDate', v)} />
                 </p>
               </div>
             ))}
-          </SideBlock>
+          </SideSection>
         )}
 
-        {/* Expertise / Skills */}
+        {/* Skills */}
         {data.skills?.length > 0 && (
-          <SideBlock label="Expertise">
+          <SideSection label="Skills">
             <ul style={{ margin: 0, padding: '0 0 0 14px' }}>
               {data.skills.flatMap((cat: SkillCategory) => cat.skills).map((s: string, i: number) => (
-                <li key={i} style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', marginBottom: 4 }}>{s}</li>
+                <li key={i} style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', marginBottom: 5, lineHeight: 1.4 }}>{s}</li>
               ))}
             </ul>
-          </SideBlock>
+          </SideSection>
         )}
 
         {/* Languages */}
         {data.languages?.length > 0 && (
-          <SideBlock label="Language">
-            {data.languages.map((l: any) => (
-              <div key={l.id} style={{ marginBottom: 4 }}>
-                <p style={{ fontSize: 10.5, fontWeight: 700, color: '#fff', margin: 0 }}>{l.language}</p>
-                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', margin: 0 }}>{l.proficiency}</p>
-              </div>
+          <SideSection label="Language">
+            {data.languages.map((l: LanguageItem) => (
+              <p key={l.id} style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.85)', margin: '0 0 6px' }}>{l.language}</p>
             ))}
-          </SideBlock>
+          </SideSection>
         )}
       </div>
 
@@ -105,67 +107,71 @@ const ResumeTemplate25 = ({ data }: { data: TemplateResumeData }) => {
       <div style={{ flex: 1, minWidth: 0, padding: '36px 32px 32px' }}>
 
         {/* Name + title */}
-        <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontSize: 30, fontWeight: 800, color: '#111', margin: 0, lineHeight: 1.1 }}>
+        <div style={{ marginBottom: 24 }}>
+          <h1 style={{ fontSize: 34, fontWeight: 900, color: '#111', margin: 0, lineHeight: 1.05, letterSpacing: '-0.5px' }}>
             <EditableText value={data.personalInfo?.name ?? 'Your Name'} onSave={v => setPI('name', v)} />
           </h1>
-          <p style={{ fontSize: 13, color: '#666', margin: '5px 0 0', letterSpacing: '0.18em' }}>
+          <p style={{ fontSize: 13, fontWeight: 400, color: '#555', margin: '6px 0 0', letterSpacing: '0.02em', lineHeight: 1.3 }}>
             <EditableText value={data.personalInfo?.title ?? 'Your Title'} onSave={v => setPI('title', v)} />
           </p>
         </div>
 
-        {/* Summary */}
+        {/* About Me */}
         {data.summary && (
           <div style={{ marginBottom: 24 }}>
-            <p style={{ fontSize: 11, color: '#555', lineHeight: 1.65, margin: 0, textAlign: 'justify' }}>
+            <RightHeading>About Me</RightHeading>
+            <p style={{ fontSize: 10.5, color: '#444', lineHeight: 1.7, margin: '10px 0 0', textAlign: 'justify' }}>
               <EditableText value={data.summary} onSave={v => store.setSummary(v)} multiline as="span" />
             </p>
           </div>
         )}
 
-        {/* Experience */}
+        {/* Work Experience */}
         {data.experience?.length > 0 && (
           <div style={{ marginBottom: 24 }}>
-            <RightHeading>Experience</RightHeading>
+            <RightHeading>Work Experience</RightHeading>
             {data.experience.map((exp: ExperienceItem) => (
-              <div key={exp.id} style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-                {/* Timeline dot */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 4 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', border: `2px solid ${DARK}`, background: '#fff', flexShrink: 0 }} />
-                  <div style={{ width: 1, flex: 1, background: '#ddd', marginTop: 4 }} />
-                </div>
-                <div style={{ flex: 1, paddingBottom: 10 }}>
-                  <p style={{ fontSize: 10, color: '#999', margin: 0 }}>
-                    <EditableText value={exp.startDate} onSave={v => setExp(exp.id, 'startDate', v)} /> - <EditableText value={exp.endDate} onSave={v => setExp(exp.id, 'endDate', v)} />
-                  </p>
-                  <p style={{ fontSize: 10.5, color: '#666', margin: '1px 0 2px' }}>
-                    <EditableText value={exp.company} onSave={v => setExp(exp.id, 'company', v)} />
-                    {exp.location && <>, <EditableText value={exp.location} onSave={v => setExp(exp.id, 'location', v)} /></>}
-                  </p>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>
-                    <EditableText value={exp.title} onSave={v => setExp(exp.id, 'title', v)} />
-                  </p>
-                  {exp.description?.map((d: string, i: number) => (
-                    <p key={i} style={{ fontSize: 10.5, color: '#555', margin: 0, lineHeight: 1.65, textAlign: 'justify' }}>
+              <div key={exp.id} style={{ marginTop: 14 }}>
+                <p style={{ fontSize: 9.5, color: '#999', margin: 0 }}>
+                  <EditableText value={exp.startDate} onSave={v => setExp(exp.id, 'startDate', v)} />
+                  {' - '}
+                  <EditableText value={exp.endDate} onSave={v => setExp(exp.id, 'endDate', v)} />
+                </p>
+                <p style={{ fontSize: 10, color: '#777', margin: '1px 0 2px' }}>
+                  <EditableText value={exp.company} onSave={v => setExp(exp.id, 'company', v)} />
+                </p>
+                <p style={{ fontSize: 12, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>
+                  <EditableText value={exp.title} onSave={v => setExp(exp.id, 'title', v)} />
+                </p>
+                {exp.description?.map((d: string, i: number) => (
+                  <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 3 }}>
+                    <span style={{ color: '#555', marginTop: 2, flexShrink: 0 }}>•</span>
+                    <p style={{ fontSize: 10.5, color: '#555', margin: 0, lineHeight: 1.6 }}>
                       <EditableText value={d} onSave={v => setExpBullet(exp.id, i, v)} multiline as="span" />
                     </p>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
         )}
 
-        {/* Reference */}
+        {/* References */}
         {data.volunteer?.length > 0 && (
           <div style={{ marginBottom: 24 }}>
-            <RightHeading>Reference</RightHeading>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
-              {data.volunteer.map((v: any) => (
+            <RightHeading>References</RightHeading>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px', marginTop: 12 }}>
+              {data.volunteer.map((v: VolunteerItem) => (
                 <div key={v.id}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: '#111', margin: 0 }}>{v.role}</p>
-                  <p style={{ fontSize: 10.5, color: '#666', margin: '2px 0 0' }}>{v.organization}</p>
-                  {v.description && <p style={{ fontSize: 10, color: '#888', margin: '2px 0 0' }}>{v.description}</p>}
+                  <p style={{ fontSize: 11.5, fontWeight: 700, color: '#111', margin: 0 }}>{v.role}</p>
+                  <p style={{ fontSize: 10, color: '#666', margin: '2px 0 4px' }}>{v.organization}</p>
+                  {v.description && (
+                    <div style={{ fontSize: 9.5, color: '#555', lineHeight: 1.6 }}>
+                      {v.description.split('\n').map((line, i) => (
+                        <p key={i} style={{ margin: '1px 0' }}>{line}</p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -176,12 +182,21 @@ const ResumeTemplate25 = ({ data }: { data: TemplateResumeData }) => {
   )
 }
 
-function SideBlock({ label, children }: { label: string; children: React.ReactNode }) {
+function SideSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 22 }}>
-      <p style={{ fontSize: 13, fontWeight: 800, color: '#fff', margin: '0 0 6px' }}>{label}</p>
+    <div style={{ marginBottom: 24 }}>
+      <p style={{ fontSize: 12.5, fontWeight: 800, color: '#fff', margin: '0 0 6px', letterSpacing: '0.02em' }}>{label}</p>
       <div style={{ borderBottom: '1px solid rgba(255,255,255,0.2)', marginBottom: 10 }} />
       {children}
+    </div>
+  )
+}
+
+function SideContactRow({ icon, children }: { icon: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8, fontSize: 10, color: 'rgba(255,255,255,0.8)' }}>
+      <span style={{ fontSize: 11, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+      <span style={{ wordBreak: 'break-all' }}>{children}</span>
     </div>
   )
 }
@@ -189,8 +204,8 @@ function SideBlock({ label, children }: { label: string; children: React.ReactNo
 function RightHeading({ children }: { children: React.ReactNode }) {
   return (
     <div>
-      <p style={{ fontSize: 15, fontWeight: 800, color: '#111', margin: 0 }}>{children}</p>
-      <div style={{ borderBottom: '1.5px solid #ccc', marginTop: 4 }} />
+      <p style={{ fontSize: 14, fontWeight: 800, color: '#111', margin: 0, letterSpacing: '0.01em' }}>{children}</p>
+      <div style={{ borderBottom: '1.5px solid #ccc', marginTop: 5 }} />
     </div>
   )
 }
