@@ -7,6 +7,8 @@ import CLPhotoUpload from './CLPhotoUpload'
 import type { CoverLetterData } from '@/store/coverLetterStore'
 import { useCoverLetterStore } from '@/store/coverLetterStore'
 
+import CLSignOff from './CLSignOff'
+
 interface Props { data: CoverLetterData; accentColor?: string; fontFamily?: string }
 
 export default function CoverLetterTemplate14({ data, accentColor = '#111111', fontFamily = "'Inter', sans-serif" }: Props) {
@@ -97,15 +99,7 @@ export default function CoverLetterTemplate14({ data, accentColor = '#111111', f
         </div>
 
         {/* Sign-off */}
-        <div style={{ marginTop: 32, fontSize: '9.5pt' }}>
-          <div style={{ marginBottom: 40 }}>Kind regards,</div>
-          <div style={{ fontFamily: "'Georgia', serif", fontSize: '13pt', fontStyle: 'italic', color: '#333', marginBottom: 6 }}>
-            <EditableText value={data.name.split(' ').map((w, i) => i === 0 ? w[0] + '.' : w).join('')} onSave={() => {}} />
-          </div>
-          <div style={{ fontWeight: 700, fontSize: '9.5pt' }}>
-            <EditableText value={data.name} onSave={v => setData({ name: v })} />
-          </div>
-        </div>
+        <CLSignOff data={data} salutation="Kind regards," nameStyle={{ fontFamily: "'Georgia', serif", fontSize: '13pt', fontStyle: 'italic', color: '#333' }} />
 
         <div style={{ flex: 1 }} />
       </div>

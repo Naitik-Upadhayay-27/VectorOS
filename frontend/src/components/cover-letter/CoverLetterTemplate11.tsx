@@ -5,6 +5,8 @@ import EditableText from '@/components/resume-editor/EditableText'
 import type { CoverLetterData } from '@/store/coverLetterStore'
 import { useCoverLetterStore } from '@/store/coverLetterStore'
 
+import CLSignOff from './CLSignOff'
+
 interface Props { data: CoverLetterData; accentColor?: string; fontFamily?: string }
 
 export default function CoverLetterTemplate11({ data, accentColor = '#111111', fontFamily = "'Georgia', serif" }: Props) {
@@ -62,12 +64,7 @@ export default function CoverLetterTemplate11({ data, accentColor = '#111111', f
         </div>
 
         {/* ── Sign-off ── */}
-        <div style={{ marginTop: 36, fontSize: '9.5pt' }}>
-          <div style={{ marginBottom: 10 }}>Kind regards,</div>
-          <div style={{ fontWeight: 700 }}>
-            <EditableText value={data.name} onSave={v => setData({ name: v })} />
-          </div>
-        </div>
+        <CLSignOff data={data} salutation="Kind regards," nameStyle={{ fontWeight: 700 }} />
 
         <div style={{ flex: 1 }} />
       </div>

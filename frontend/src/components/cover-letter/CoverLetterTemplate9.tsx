@@ -3,6 +3,7 @@ import { useContext } from 'react'
 import { Phone, Mail, MapPin } from 'lucide-react'
 import { EditableContext } from '@/components/resume-editor/EditableContext'
 import EditableText from '@/components/resume-editor/EditableText'
+import CLSignOff from './CLSignOff'
 import CLPhotoUpload from './CLPhotoUpload'
 import type { CoverLetterData } from '@/store/coverLetterStore'
 import { useCoverLetterStore } from '@/store/coverLetterStore'
@@ -67,12 +68,7 @@ export default function CoverLetterTemplate9({ data, accentColor = '#1a2e44', fo
         </div>
 
         {/* ── Sign-off ── */}
-        <div style={{ marginTop: 36, fontSize: '9.5pt' }}>
-          <div style={{ marginBottom: 8 }}>Sincerely,</div>
-          <div style={{ fontWeight: 700, fontSize: '9.5pt' }}>
-            <EditableText value={data.name} onSave={v => setData({ name: v })} />
-          </div>
-        </div>
+        <CLSignOff data={data} salutation="Sincerely," nameStyle={{ fontWeight: 700, fontSize: '9.5pt' }} />
 
         <div style={{ flex: 1 }} />
       </div>

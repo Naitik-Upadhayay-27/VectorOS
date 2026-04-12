@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, Sparkles, RefreshCw, Pencil, Eye, Check, Wand2, Camera, X, Minus, Plus } from 'lucide-react'
+import { ArrowLeft, Download, Sparkles, RefreshCw, Pencil, Eye, Check, Wand2, Camera, X, Minus, Plus, PenLine } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
 import Button from '@/components/ui/Button'
 import { useCoverLetterStore } from '@/store/coverLetterStore'
@@ -102,8 +102,69 @@ function PhotoUploadPanel({ photo, onPhoto }: { photo?: string; onPhoto: (v: str
   )
 }
 
-function TemplateRenderer({ templateId, data, accentColor }: { templateId: number; data: any; accentColor: string }) {
-  const T = CL_TEMPLATES.find(t => t.id === templateId)?.component ?? CoverLetterTemplate1
+function SignatureUploadPanel({ signature, onSignature }: { signature?: string; onSignature: (v: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => onSignature(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  return (
+    <div className="space-y-2">
+      {/* Guidance */}
+      <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+        <p className="text-[10px] text-amber-700 leading-relaxed">
+          <span className="font-semibold">Tip:</span> Remove the background from your signature image before uploading for a clean look. Use{' '}
+          <a href="https://www.remove.bg" target="_blank" rel="noopener noreferrer" className="underline font-medium">remove.bg</a> (free).
+        </p>
+      </div>
+
+      {/* Upload area */}
+      <div
+        onClick={() => inputRef.current?.click()}
+        className="w-full border-2 border-dashed border-gray-200 hover:border-brand-400 rounded-xl p-3 flex flex-col items-center gap-2 cursor-pointer transition-colors bg-gray-50 hover:bg-brand-50"
+      >
+        {signature ? (
+          <img src={signature} alt="Signature preview" className="max-h-16 max-w-full object-contain" />
+        ) : (
+          <>
+            <PenLine size={20} className="text-gray-300" />
+            <p className="text-xs text-gray-400 text-center">Click to upload signature image<br /><span className="text-[10px]">PNG with transparent bg recommended</span></p>
+          </>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => inputRef.current?.click()}
+          className="flex-1 text-xs font-medium text-brand-600 border border-brand-200 bg-brand-50 hover:bg-brand-100 rounded-lg px-3 py-1.5 transition-colors flex items-center justify-center gap-1.5"
+        >
+          <PenLine size={11} /> {signature ? 'Change' : 'Upload'}
+        </button>
+        {signature && (
+          <button
+            onClick={() => onSignature('')}
+            className="text-xs text-gray-400 hover:text-red-400 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1"
+          >
+            <X size={11} /> Remove
+          </button>
+        )}
+      </div>
+
+      {signature && (
+        <p className="text-[10px] text-gray-400 text-center">Drag the signature on the preview to reposition · drag corner to resize</p>
+      )}
+
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+    </div>
+  )
+}
+
+function TemplateRenderer({ templateId, data, accentColor }: { templateId: number; data: any; accentColor: string }) {  const T = CL_TEMPLATES.find(t => t.id === templateId)?.component ?? CoverLetterTemplate1
   return <T data={data} accentColor={accentColor} />
 }
 
@@ -438,7 +499,16 @@ export default function CoverLetterPage() {
 
               {(templateId === 6 || templateId === 7 || templateId === 9) && <div className="h-px bg-gray-100" />}
 
-              {/* ── Your Info ── */}
+              {/* ── Signature Upload — all templates ── */}
+              <section>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Signature</p>
+                <SignatureUploadPanel
+                  signature={data.signature}
+                  onSignature={v => setData({ signature: v, signatureX: 0, signatureY: 0, signatureWidth: 160, signatureHeight: 80 })}
+                />
+              </section>
+
+              <div className="h-px bg-gray-100" />
               <section>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Your Info</p>
                 <p className="text-[10px] text-gray-400 mb-2">Auto-filled from your resume</p>

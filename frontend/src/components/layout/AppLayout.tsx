@@ -5,8 +5,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(() => {
     try {
       const stored = localStorage.getItem('sidebar-collapsed')
-      return stored !== null ? stored === 'true' : true
-    } catch { return true }
+      // Default is expanded (false) — only collapse if user explicitly did so
+      return stored !== null ? stored === 'true' : false
+    } catch { return false }
   })
 
   const toggle = () => {

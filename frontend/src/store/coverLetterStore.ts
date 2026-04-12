@@ -13,6 +13,11 @@ export interface CoverLetterData {
   linkedin?: string
   date: string
   photo?: string  // base64 data URL
+  signature?: string // base64 data URL — transparent-bg signature image
+  signatureWidth?: number  // px width on the cover letter (default 160)
+  signatureHeight?: number // px height on the cover letter (default auto/proportional)
+  signatureX?: number      // px offset from left in sign-off area (default 0)
+  signatureY?: number      // px offset from top of sign-off area (default 0)
   // Recipient info
   hiringManager: string
   companyName: string
@@ -32,6 +37,11 @@ export const DEFAULT_COVER_LETTER_DATA: CoverLetterData = {
   linkedin: '',
   date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
   photo: '',
+  signature: '',
+  signatureWidth: 160,
+  signatureHeight: 80,
+  signatureX: 0,
+  signatureY: 0,
   hiringManager: 'Hiring Manager',
   companyName: '',
   companyAddress: '',
