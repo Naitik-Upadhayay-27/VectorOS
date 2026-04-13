@@ -65,7 +65,7 @@ function CurrentResumeThumbnail({ active }: { active: boolean }) {
 
 interface Job {
   id: string
-  source: 'adzuna' | 'jsearch' | 'himalayas'
+  source: 'linkedin' | 'indeed'
   title: string
   company: string
   location: string
@@ -89,16 +89,12 @@ interface CompatibilityResult {
 }
 
 const SOURCE_LABELS: Record<string, string> = {
-  adzuna: 'Adzuna',
-  jsearch: 'Google Jobs',
-  himalayas: 'Himalayas',
+  indeed:   'Indeed',
   linkedin: 'LinkedIn',
 }
 
 const SOURCE_COLORS: Record<string, string> = {
-  adzuna: 'bg-blue-50 text-blue-600 border-blue-100',
-  jsearch: 'bg-green-50 text-green-600 border-green-100',
-  himalayas: 'bg-purple-50 text-purple-600 border-purple-100',
+  indeed:   'bg-blue-50 text-blue-600 border-blue-100',
   linkedin: 'bg-sky-50 text-sky-700 border-sky-100',
 }
 
@@ -479,7 +475,7 @@ export default function JobsPage() {
           {/* Header — no magic button, motivational quote */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Job Search</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Search across Adzuna, Google Jobs & Himalayas in one place</p>
+            <p className="text-sm text-gray-400 mt-0.5">Search across LinkedIn & Indeed in one place</p>
             <div className="mt-4 px-4 py-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl flex items-center gap-3">
               <span className="text-2xl shrink-0">💡</span>
               <p className="text-sm text-purple-700 italic">
@@ -742,7 +738,7 @@ export default function JobsPage() {
               <div className="text-center py-16 text-gray-400">
                 <Search size={32} className="mx-auto mb-3 opacity-30" />
                 <p className="text-sm font-medium text-gray-500">Search for jobs above</p>
-                <p className="text-xs mt-1">Results from Adzuna, Google Jobs & Himalayas</p>
+                <p className="text-xs mt-1">Results from LinkedIn & Indeed</p>
               </div>
             )}
           </div>

@@ -39,7 +39,7 @@ app.use('/api/payment/webhook', (req, _res, next) => {
 })
 app.use(express.json({ limit: '10mb' }))
 app.use(passport.initialize())
-app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: 'Too many requests' }))
+app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, max: 500, message: 'Too many requests' }))
 
 app.use('/api/auth', authRoutes)
 app.use('/api/resumes', resumeRoutes)
