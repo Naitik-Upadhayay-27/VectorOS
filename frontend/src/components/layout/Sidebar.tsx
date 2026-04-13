@@ -32,8 +32,8 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="px-3 py-4 border-b border-white/[0.06] flex items-center justify-between gap-2">
         {!collapsed && (
           <div className="flex items-center gap-2.5 min-w-0">
-            <img src="/logo.png" alt="VectorOS" className="w-8 h-8 object-contain shrink-0" />
-            <span className="text-white font-bold text-base tracking-tight truncate">VectorOS</span>
+            <img src="/logo.png" alt="Skill Vector" className="w-8 h-8 object-contain shrink-0" />
+            <span className="text-white font-bold text-base tracking-tight truncate">Skill Vector</span>
           </div>
         )}
         <button

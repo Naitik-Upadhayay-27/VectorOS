@@ -27,7 +27,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
     const letter = await CoverLetter.findOneAndUpdate(
       { _id: req.params.id, userId: req.userId },
       { ...req.body, updatedAt: new Date() },
-      { new: true, upsert: false }
+      { returnDocument: 'after', upsert: false }
     )
     if (!letter) return res.status(404).json({ error: 'Not found' })
     res.json({ coverLetter: letter })

@@ -1,146 +1,203 @@
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
-import {
-  PAGE_W, PAGE_H,
-  PAGE_MARGIN_TOP, PAGE_MARGIN_BOTTOM,
-  USABLE_H_FIRST,
-  computePageOffsets,
-} from './paginate'
+import { PAGE_W, PAGE_H, PAGE_MARGIN_TOP, PAGE_MARGIN_BOTTOM, USABLE_H_FIRST, computePageOffsets } from './paginate'
+import { useTemplateResumeStore } from '@/store/templateResumeStore'
+import { applyWatermark } from './watermark'
 
-// ── Capture the full rendered resume as a canvas ──────────────────────────────
-async function captureElement(
-  el: HTMLDivElement
-): Promise<{ canvas: HTMLCanvasElement; totalHeightPx: number }> {
-  const prev = {
-    visibility: el.style.visibility,
-    zIndex: el.style.zIndex,
-    position: el.style.position,
-    top: el.style.top,
-    left: el.style.left,
-    height: el.style.height,
-  }
+/**
+ * Capture a single PDF page by cloning the preview's exact rendering approach:
+ *  - A PAGE_W × PAGE_H container (white background)
+ *  - Content shifted by -offset (+ PAGE_MARGIN_TOP for pages 2+)
+ *  - Clipped to the content window (sliceH tall, starting at contentTop)
+ *
+ * This is pixel-identical to what TemplateLivePreview shows.
+ */
+async function capturePageCanvas(
+  sourceEl: HTMLDivElement,
+  offset: number,
+  sliceH: number,
+  isFirst: boolean,
+  sharedStyles: Record<string, string>,
+): Promise<HTMLCanvasElement> {
+  const contentTop = isFirst ? 0 : PAGE_MARGIN_TOP
+  const shift = -offset
 
-  el.style.visibility = 'visible'
-  el.style.zIndex = '-1'
-  el.style.position = 'fixed'
-  el.style.top = '0'
-  el.style.left = '-9999px'
-  el.style.height = 'auto'
+  // Build a temporary off-screen container that mirrors the preview page exactly
+  const container = document.createElement('div')
+  container.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: -${PAGE_W + 100}px;
+    width: ${PAGE_W}px;
+    height: ${PAGE_H}px;
+    overflow: hidden;
+    background: #ffffff;
+    z-index: -9999;
+  `
 
+  // Content window — same as preview's inner clip div
+  const window_ = document.createElement('div')
+  window_.style.cssText = `
+    position: absolute;
+    top: ${contentTop}px;
+    left: 0;
+    width: ${PAGE_W}px;
+    height: ${sliceH}px;
+    overflow: hidden;
+  `
+
+  // Content shifter — clone of the source element, shifted
+  const shifter = document.createElement('div')
+  shifter.style.cssText = `
+    margin-top: ${shift}px;
+    width: ${PAGE_W}px;
+  `
+  // Apply shared styles (font, size, etc.)
+  Object.assign(shifter.style, sharedStyles)
+
+  // Deep clone the source element's content
+  shifter.innerHTML = sourceEl.innerHTML
+
+  window_.appendChild(shifter)
+  container.appendChild(window_)
+  document.body.appendChild(container)
+
+  await document.fonts.ready
+  await new Promise(r => requestAnimationFrame(r))
   await new Promise(r => requestAnimationFrame(r))
 
-  const naturalH = el.scrollHeight
-
-  const canvas = await html2canvas(el, {
+  const canvas = await html2canvas(container, {
     scale: 2,
     useCORS: true,
     allowTaint: true,
     backgroundColor: '#ffffff',
     width: PAGE_W,
-    height: naturalH,
+    height: PAGE_H,
     windowWidth: PAGE_W,
+    logging: false,
   })
 
-  el.style.visibility = prev.visibility
-  el.style.zIndex = prev.zIndex
-  el.style.position = prev.position
-  el.style.top = prev.top
-  el.style.left = prev.left
-  el.style.height = prev.height
-
-  return { canvas, totalHeightPx: canvas.height / 2 }
+  document.body.removeChild(container)
+  return canvas
 }
 
-// ── Resume PDF — multi-page, MS Word-style margins ────────────────────────────
-export async function printResume(el: HTMLDivElement, filename = 'resume'): Promise<void> {
-  const { canvas, totalHeightPx } = await captureElement(el)
+// ── Resume PDF ────────────────────────────────────────────────────────────────
+export async function printResume(el: HTMLDivElement, filename = 'resume', watermark = false): Promise<void> {
+  await document.fonts.ready
 
-  const offsets = totalHeightPx <= USABLE_H_FIRST
-    ? [0]
-    : computePageOffsets(el, totalHeightPx)
+  const store = useTemplateResumeStore.getState()
+  const layout = store.layout
 
-  const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
-  const pageWmm = pdf.internal.pageSize.getWidth()   // 210 mm
-  const pageHmm = pdf.internal.pageSize.getHeight()  // 297 mm
-
-  // mm per logical px
-  const mmPerPx = pageWmm / PAGE_W
-
-  for (let i = 0; i < offsets.length; i++) {
-    if (i > 0) pdf.addPage()
-
-    const srcY  = offsets[i]
-    const nextY = offsets[i + 1] ?? totalHeightPx
-
-    // How much content this page shows
-    const contentH = nextY - srcY
-
-    // Page 1: content starts at y=0 in the PDF page (template handles its own top padding)
-    // Pages 2+: content starts at PAGE_MARGIN_TOP, leaving white space at top
-    const destTopPx = i === 0 ? 0 : PAGE_MARGIN_TOP
-    const destTopMm = destTopPx * mmPerPx
-
-    // Full A4 page canvas — white background
-    const pageCanvas = document.createElement('canvas')
-    pageCanvas.width  = canvas.width          // 2× width
-    pageCanvas.height = PAGE_H * 2            // 2× full A4 height
-    const ctx = pageCanvas.getContext('2d')!
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
-
-    // Draw the content slice at the correct vertical position
-    ctx.drawImage(
-      canvas,
-      0, srcY * 2,      canvas.width, contentH * 2,   // source slice
-      0, destTopPx * 2, canvas.width, contentH * 2    // destination (offset by top margin)
-    )
-
-    pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageWmm, pageHmm)
+  const sharedStyles: Record<string, string> = {
+    fontFamily: layout.fontFamily ?? "'Inter', sans-serif",
+    fontSize: `${layout.fontSize ?? 11}pt`,
+    lineHeight: String(layout.lineHeight ?? 1.5),
   }
 
-  pdf.save(`${filename}.pdf`)
-}
-
-// ── Cover letter PDF ──────────────────────────────────────────────────────────
-export async function printCoverLetter(el: HTMLDivElement, filename = 'cover-letter'): Promise<void> {
-  const { canvas, totalHeightPx } = await captureElement(el)
+  // Use offsets from the live preview (already computed from the hidden measureRef)
+  // Fall back to recomputing only if not available
+  const totalH = store.pageTotalH > 0 ? store.pageTotalH : el.scrollHeight
+  const offsets = (store.pageOffsets?.length ?? 0) > 0
+    ? store.pageOffsets
+    : (totalH <= USABLE_H_FIRST ? [0] : computePageOffsets(el, totalH))
 
   const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
   const pageWmm = pdf.internal.pageSize.getWidth()
   const pageHmm = pdf.internal.pageSize.getHeight()
-  const mmPerPx  = pageWmm / PAGE_W
-
-  if (totalHeightPx <= PAGE_H) {
-    const contentHmm = totalHeightPx * mmPerPx
-    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWmm, contentHmm)
-    pdf.save(`${filename}.pdf`)
-    return
-  }
-
-  const offsets = computePageOffsets(el, totalHeightPx)
 
   for (let i = 0; i < offsets.length; i++) {
     if (i > 0) pdf.addPage()
 
-    const srcY     = offsets[i]
-    const nextY    = offsets[i + 1] ?? totalHeightPx
-    const contentH = nextY - srcY
-    const destTopPx = i === 0 ? 0 : PAGE_MARGIN_TOP
+    const offset  = offsets[i]
+    const nextY   = offsets[i + 1] ?? totalH
+    const sliceH  = nextY - offset
+    const isFirst = i === 0
 
-    const pageCanvas = document.createElement('canvas')
-    pageCanvas.width  = canvas.width
-    pageCanvas.height = PAGE_H * 2
-    const ctx = pageCanvas.getContext('2d')!
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
-    ctx.drawImage(
-      canvas,
-      0, srcY * 2,      canvas.width, contentH * 2,
-      0, destTopPx * 2, canvas.width, contentH * 2
-    )
-
-    pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageWmm, pageHmm)
+    const pageCanvas = await capturePageCanvas(el, offset, sliceH, isFirst, sharedStyles)
+    if (watermark) await applyWatermark(pageCanvas)
+    pdf.addImage(pageCanvas.toDataURL('image/png', 1.0), 'PNG', 0, 0, pageWmm, pageHmm, undefined, 'FAST')
   }
 
   pdf.save(`${filename}.pdf`)
+}
+
+// ── Cover Letter PDF ──────────────────────────────────────────────────────────
+export async function printCoverLetter(el: HTMLDivElement, filename = 'cover-letter', watermark = false): Promise<void> {
+  await document.fonts.ready
+
+  // Make element temporarily visible for measurement
+  const prevVis = el.style.visibility
+  const prevPos = el.style.position
+  el.style.visibility = 'visible'
+  el.style.position = 'absolute'
+  await new Promise(r => requestAnimationFrame(r))
+  const totalH = el.scrollHeight
+  el.style.visibility = prevVis
+  el.style.position = prevPos
+
+  const offsets = totalH <= PAGE_H ? [0] : computePageOffsets(el, totalH)
+
+  const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+  const pageWmm = pdf.internal.pageSize.getWidth()
+  const pageHmm = pdf.internal.pageSize.getHeight()
+
+  for (let i = 0; i < offsets.length; i++) {
+    if (i > 0) pdf.addPage()
+
+    const offset  = offsets[i]
+    const nextY   = offsets[i + 1] ?? totalH
+    const sliceH  = nextY - offset
+    const isFirst = i === 0
+
+    const pageCanvas = await capturePageCanvas(el, offset, sliceH, isFirst, {})
+    if (watermark) await applyWatermark(pageCanvas)
+    pdf.addImage(pageCanvas.toDataURL('image/png', 1.0), 'PNG', 0, 0, pageWmm, pageHmm, undefined, 'FAST')
+  }
+
+  pdf.save(`${filename}.pdf`)
+}
+
+// ── Word Export (.doc) ────────────────────────────────────────────────────────
+async function exportToWord(el: HTMLDivElement, filename: string) {
+  let styles = ''
+  for (let i = 0; i < document.styleSheets.length; i++) {
+    try {
+      const sheet = document.styleSheets[i]
+      for (let j = 0; j < sheet.cssRules.length; j++) {
+        styles += sheet.cssRules[j].cssText + '\n'
+      }
+    } catch { /* ignore cross-origin */ }
+  }
+
+  const html = `
+    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head>
+      <meta charset="utf-8">
+      <title>${filename}</title>
+      <style>
+        @page { size: A4; margin: 0in; }
+        body { margin: 0; padding: 0; }
+        ${styles}
+        .resume-page { width: 100% !important; margin: 0 !important; }
+      </style>
+    </head>
+    <body>${el.innerHTML}</body>
+    </html>
+  `
+
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `${filename}.doc`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+export async function printResumeWord(el: HTMLDivElement, filename = 'resume') {
+  await exportToWord(el, filename)
+}
+
+export async function printCoverLetterWord(el: HTMLDivElement, filename = 'cover-letter') {
+  await exportToWord(el, filename)
 }

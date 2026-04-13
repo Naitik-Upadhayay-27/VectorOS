@@ -393,7 +393,7 @@ router.post('/save', async (req: AuthRequest, res: Response) => {
         jobDescription: description,
         status:         'saved',
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     )
     res.status(201).json({ application: app })
   } catch (err: any) {

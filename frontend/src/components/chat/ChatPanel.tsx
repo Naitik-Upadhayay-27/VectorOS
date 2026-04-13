@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Bot, CheckCheck, Sparkles, RotateCcw } from 'lucide-react'
+import { Send, Bot, CheckCheck, Sparkles, RotateCcw, Lock } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useChatStore } from '@/store/chatStore'
 import { useResumeUploadStore } from '@/store/resumeUploadStore'
@@ -10,6 +10,8 @@ import { useSnapshotStore } from '@/store/snapshotStore'
 import { AILoader } from '@/components/ui/AILoader'
 import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
+import { usePlanStore, CHAT_LIMITS } from '@/store/planStore'
+import PaywallModal from '@/components/ui/PaywallModal'
 
 const quickActions = [
   { icon: '✏️', title: 'Rewrite my summary to be more impactful',    subtitle: 'AI rewrites it directly in your resume', color: 'text-blue-500',   isEdit: true  },
@@ -154,12 +156,14 @@ function StreamingMessage({ text, onDone }: { text: string; onDone: () => void }
 }
 
 export default function ChatPanel() {
-  const { messages, editLog, isOpen, isTyping, tokensLeft, addMessage, addEditLogEntry, setTyping, toggleChat, clearMessages, pendingTrigger, clearTrigger } = useChatStore()
+  const { messages, editLog, isOpen, isTyping, addMessage, addEditLogEntry, setTyping, toggleChat, clearMessages, pendingTrigger, clearTrigger } = useChatStore()
   const { resumeText } = useResumeUploadStore()
   const resumeData = useTemplateResumeStore((s) => s.data)
   const onboardingData = useOnboardingStore((s) => s.data)
   const user = useAuthStore((s) => s.user)
   const { push: pushSnapshot, remove: removeSnapshot, snapshots } = useSnapshotStore()
+  const { plan, canChat, chatsLeft, trackChat } = usePlanStore()
+  const [paywallOpen, setPaywallOpen] = useState(false)
   const [input, setInput] = useState('')
   const [editedMsgIds, setEditedMsgIds] = useState<Set<string>>(new Set())
   const [revertedMsgIds, setRevertedMsgIds] = useState<Set<string>>(new Set())
@@ -181,10 +185,12 @@ export default function ChatPanel() {
   }, [pendingTrigger])
 
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || tokensLeft <= 0) return
+    if (!text.trim()) return
+    if (!canChat()) { setPaywallOpen(true); return }
     addMessage({ role: 'user', content: text })
     setInput('')
     setTyping(true)
+    trackChat()
 
     try {
       const res = await apiFetch(`${API_BASE}/api/ai/chat`, {
@@ -238,7 +244,7 @@ export default function ChatPanel() {
       setTyping(false)
       addMessage({ role: 'assistant', content: `Sorry, something went wrong: ${err.message}` })
     }
-  }, [messages, resumeText, resumeData, editLog, onboardingData, user, tokensLeft])
+  }, [messages, resumeText, resumeData, editLog, onboardingData, user, canChat, trackChat])
 
   const revertEdit = useCallback((msgId: string) => {
     const snapshot = snapshots[msgId]
@@ -262,7 +268,7 @@ export default function ChatPanel() {
             <Bot size={14} className="text-white" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-gray-800">VectorOS AI</p>
+            <p className="text-xs font-semibold text-gray-800">Skill Vector AI</p>
             <p className="text-xs text-green-500">● Online</p>
           </div>
         </div>
@@ -369,15 +375,28 @@ export default function ChatPanel() {
       </div>
 
       <div className="px-4 pb-4 pt-2 border-t border-gray-100 space-y-2">
-        {/* Token count */}
+        {/* Chat count */}
         <div className="flex items-center justify-between text-[10px] text-gray-400">
           <span>Say "rewrite", "add", or "improve" to edit</span>
-          <span className={tokensLeft <= 5 ? 'text-orange-500 font-semibold' : ''}>{tokensLeft} tokens left</span>
+          {chatsLeft() !== Infinity && (
+            <span className={chatsLeft() <= 5 ? 'text-orange-500 font-semibold' : ''}>
+              {chatsLeft()} / {CHAT_LIMITS[plan]} chats left
+            </span>
+          )}
         </div>
 
-        {tokensLeft <= 5 && (
-          <div className="p-2 bg-orange-50 border border-orange-100 rounded-lg text-xs text-orange-600 text-center">
-            Out of tokens — <button className="underline font-medium">upgrade for unlimited</button>
+        {!canChat() && (
+          <div className="p-2.5 bg-purple-50 border border-purple-100 rounded-xl text-xs text-purple-700 text-center flex flex-col gap-1.5">
+            <div className="flex items-center justify-center gap-1.5 font-semibold">
+              <Lock size={11} /> Chat limit reached
+            </div>
+            <p className="text-[10px] text-purple-500">
+              {plan === 'free' ? 'Free plan: 25 chats. Upgrade to Pro for 150.' : 'Upgrade to Exclusive for unlimited chats.'}
+            </p>
+            <button onClick={() => setPaywallOpen(true)}
+              className="w-full py-1.5 bg-gradient-to-r from-violet-600 to-brand-500 text-white text-[11px] font-bold rounded-lg hover:opacity-90 transition-all">
+              Upgrade Now
+            </button>
           </div>
         )}
 
@@ -386,16 +405,18 @@ export default function ChatPanel() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
-            placeholder="Ask anything or say 'rewrite my summary'..."
+            placeholder={canChat() ? "Ask anything or say 'rewrite my summary'..." : 'Upgrade to continue chatting...'}
             rows={2}
-            className="flex-1 resize-none text-xs px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 placeholder:text-gray-400"
+            disabled={!canChat()}
+            className="flex-1 resize-none text-xs px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 placeholder:text-gray-400 disabled:opacity-50 disabled:bg-gray-50"
           />
-          <button onClick={() => sendMessage(input)} disabled={!input.trim() || tokensLeft <= 0}
+          <button onClick={() => sendMessage(input)} disabled={!input.trim() || !canChat()}
             className="p-2 bg-brand-500 text-white rounded-xl hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
             <Send size={14} />
           </button>
         </div>
       </div>
+      <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} reason="download_limit" />
     </div>
   )
 }

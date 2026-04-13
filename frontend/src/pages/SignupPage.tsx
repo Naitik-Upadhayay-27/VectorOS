@@ -49,7 +49,7 @@ export default function SignupPage() {
       <div className="relative z-10 w-full max-w-sm">
         {/* Logo */}
         <div className="flex items-center justify-center mb-8">
-          <img src="/logo.png" alt="VectorOS" className="w-20 scale-[3] h-14 object-contain" />
+          <img src="/logo.png" alt="Skill Vector" className="w-20 scale-[3] h-14 object-contain" />
         </div>
 
         {/* Card */}

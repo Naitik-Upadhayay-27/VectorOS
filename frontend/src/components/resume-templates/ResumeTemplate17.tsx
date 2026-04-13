@@ -27,25 +27,27 @@ const ResumeTemplate17 = ({ data }: { data: TemplateResumeData }) => {
 
   // Colored section header with bottom border
   const SectionHead = ({ title }: { title: string }) => (
-    <div style={{
+    <h2 style={{
       color: ACCENT,
       fontWeight: 700,
       fontSize: '11pt',
       fontVariant: 'small-caps',
       letterSpacing: '0.5px',
       borderBottom: `1.5px solid ${ACCENT}`,
-      paddingBottom: '1px',
+      paddingBottom: '4px',
       marginTop: '8px',
       marginBottom: '4px',
       textTransform: 'capitalize',
+      display: 'block',
+      margin: '8px 0 4px 0',
     }}>
       {title}
-    </div>
+    </h2>
   )
 
   // Render a single experience entry
   const ExpEntry = ({ exp }: { exp: ExperienceItem }) => (
-    <div style={{ marginBottom: '5px' }}>
+    <div style={{ marginBottom: '5px' }} className="experience-item">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <div style={{ fontSize: '10.5pt' }}>
           <span style={{ fontWeight: 700 }}>
@@ -183,7 +185,7 @@ const ResumeTemplate17 = ({ data }: { data: TemplateResumeData }) => {
       <div key="projects">
         <SectionHead title="Projects" />
         {data.projects.map(proj => (
-          <div key={proj.id} style={{ marginBottom: '4px' }}>
+          <div key={proj.id} style={{ marginBottom: '4px' }} className="project-item">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <span style={{ fontWeight: 700, fontSize: '10.5pt' }}>
                 <EditableText value={proj.name} onSave={v => store.updateProject(proj.id, { name: v })} />

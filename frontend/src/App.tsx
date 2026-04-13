@@ -15,6 +15,7 @@ import OnboardingFlow from '@/components/onboarding/OnboardingFlow'
 import { useAuthStore } from '@/store/authStore'
 import { useDraftStore } from '@/store/draftStore'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
+import { usePlanStore } from '@/store/planStore'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore()
@@ -32,13 +33,16 @@ export default function App() {
   const { user } = useAuthStore()
   const { loadDrafts, clearDrafts } = useDraftStore()
   const resumeData = useTemplateResumeStore((s) => s.data)
+  const { syncPlan, reset: resetPlan } = usePlanStore()
 
   // Load drafts from DB whenever user changes (login, page refresh)
   useEffect(() => {
     if (user) {
       loadDrafts()
+      syncPlan()
     } else {
       clearDrafts()
+      resetPlan()
     }
   }, [user?.id])
 

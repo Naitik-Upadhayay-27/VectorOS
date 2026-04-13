@@ -13,7 +13,7 @@ export function MarqueeStrip() {
   return (
     <div className="w-full py-12 overflow-hidden border-y border-white/[0.06]">
       <p className="text-center text-xs font-semibold uppercase tracking-widest text-white/20 mb-8">
-        VectorOS users have landed roles at
+        Skill Vector users have landed roles at
       </p>
       <div className="relative">
         {/* Left fade */}

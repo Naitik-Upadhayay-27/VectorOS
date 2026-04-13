@@ -35,7 +35,7 @@ const ResumeTemplate10 = ({ data }: ResumeTemplate10Props) => {
     const sectionRenderers: Record<string, () => React.ReactNode> = {
         summary: () => data.summary ? (
             <section key="summary" className="mb-6">
-                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-2 border-b-2 border-[#1e3a5f]">
+                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-[5px] border-b-2 border-[#1e3a5f]">
                     Professional Summary
                 </h2>
                 <p className="text-[12px] leading-[1.7] text-gray-700">
@@ -46,7 +46,7 @@ const ResumeTemplate10 = ({ data }: ResumeTemplate10Props) => {
 
         experience: () => data.experience?.length > 0 ? (
             <section key="experience" className="mb-6">
-                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-2 border-b-2 border-[#1e3a5f]">
+                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-[5px] border-b-2 border-[#1e3a5f]">
                     Professional Experience
                 </h2>
                 {data.experience.map((exp) => (
@@ -81,7 +81,7 @@ const ResumeTemplate10 = ({ data }: ResumeTemplate10Props) => {
 
         education: () => data.education?.length > 0 ? (
             <section key="education" className="mb-6">
-                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-2 border-b-2 border-[#1e3a5f]">
+                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-[5px] border-b-2 border-[#1e3a5f]">
                     Education
                 </h2>
                 {data.education.map((edu) => (
@@ -103,7 +103,7 @@ const ResumeTemplate10 = ({ data }: ResumeTemplate10Props) => {
 
         skills: () => data.skills?.length > 0 ? (
             <section key="skills" className="mb-6">
-                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-2 border-b-2 border-[#1e3a5f]">
+                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-[5px] border-b-2 border-[#1e3a5f]">
                     Skills
                 </h2>
                 {data.skills.map((cat) => (
@@ -125,7 +125,7 @@ const ResumeTemplate10 = ({ data }: ResumeTemplate10Props) => {
 
         projects: () => data.projects?.length > 0 ? (
             <section key="projects" className="mb-6">
-                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-2 border-b-2 border-[#1e3a5f]">
+                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-[5px] border-b-2 border-[#1e3a5f]">
                     Key Projects
                 </h2>
                 <div className="grid grid-cols-2 gap-4">
@@ -150,7 +150,7 @@ const ResumeTemplate10 = ({ data }: ResumeTemplate10Props) => {
 
         certificates: () => data.certificates?.length > 0 ? (
             <section key="certificates" className="mb-6">
-                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-2 border-b-2 border-[#1e3a5f]">
+                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-[5px] border-b-2 border-[#1e3a5f]">
                     Certifications
                 </h2>
                 {data.certificates.map((cert) => (
@@ -164,7 +164,7 @@ const ResumeTemplate10 = ({ data }: ResumeTemplate10Props) => {
 
         awards: () => data.awards?.length > 0 ? (
             <section key="awards" className="mb-6">
-                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-2 border-b-2 border-[#1e3a5f]">
+                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-[5px] border-b-2 border-[#1e3a5f]">
                     Awards &amp; Honors
                 </h2>
                 {data.awards.map((award) => (
@@ -179,7 +179,7 @@ const ResumeTemplate10 = ({ data }: ResumeTemplate10Props) => {
 
         languages: () => data.languages?.length > 0 ? (
             <section key="languages" className="mb-6">
-                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-2 border-b-2 border-[#1e3a5f]">
+                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-[5px] border-b-2 border-[#1e3a5f]">
                     Languages
                 </h2>
                 {data.languages.map((lang) => (
@@ -193,7 +193,7 @@ const ResumeTemplate10 = ({ data }: ResumeTemplate10Props) => {
 
         volunteer: () => data.volunteer?.length > 0 ? (
             <section key="volunteer" className="mb-6">
-                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-2 border-b-2 border-[#1e3a5f]">
+                <h2 className="text-[14px] font-bold uppercase tracking-widest text-[#1e3a5f] mb-3 pb-[5px] border-b-2 border-[#1e3a5f]">
                     Volunteering &amp; Leadership
                 </h2>
                 {data.volunteer.map((vol) => (

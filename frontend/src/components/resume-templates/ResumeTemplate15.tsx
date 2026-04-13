@@ -34,7 +34,7 @@ const ResumeTemplate15 = ({ data }: ResumeTemplate15Props) => {
     const sectionRenderers: Record<string, () => React.ReactNode> = {
         summary: () => data.summary ? (
             <section key="summary" className="mb-6">
-                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-1">
+                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-[5px]">
                     Professional Summary
                 </h2>
                 <p className="text-[11px] leading-[1.8] text-gray-700 text-justify">
@@ -45,7 +45,7 @@ const ResumeTemplate15 = ({ data }: ResumeTemplate15Props) => {
 
         experience: () => data.experience?.length > 0 ? (
             <section key="experience" className="mb-6">
-                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-300 pb-1">
+                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-300 pb-[5px]">
                     Professional Experience
                 </h2>
                 {data.experience.map((exp) => (
@@ -80,7 +80,7 @@ const ResumeTemplate15 = ({ data }: ResumeTemplate15Props) => {
 
         education: () => data.education?.length > 0 ? (
             <section key="education" className="mb-6">
-                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-1">
+                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-[5px]">
                     Education
                 </h2>
                 {data.education.map((edu) => (
@@ -104,7 +104,7 @@ const ResumeTemplate15 = ({ data }: ResumeTemplate15Props) => {
 
         skills: () => data.skills?.length > 0 ? (
             <section key="skills" className="mb-6">
-                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-1">
+                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-[5px]">
                     Core Competencies
                 </h2>
                 {data.skills.map((cat) => (
@@ -122,7 +122,7 @@ const ResumeTemplate15 = ({ data }: ResumeTemplate15Props) => {
 
         projects: () => data.projects?.length > 0 ? (
             <section key="projects" className="mb-6">
-                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-1">
+                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-[5px]">
                     Key Projects
                 </h2>
                 <div className="grid grid-cols-2 gap-2">
@@ -138,7 +138,7 @@ const ResumeTemplate15 = ({ data }: ResumeTemplate15Props) => {
 
         certificates: () => data.certificates?.length > 0 ? (
             <section key="certificates" className="mb-6">
-                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-1">
+                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-[5px]">
                     Certifications
                 </h2>
                 {data.certificates.map((cert) => (
@@ -152,7 +152,7 @@ const ResumeTemplate15 = ({ data }: ResumeTemplate15Props) => {
 
         awards: () => data.awards?.length > 0 ? (
             <section key="awards" className="mb-6">
-                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-1">
+                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-[5px]">
                     Awards &amp; Honors
                 </h2>
                 <div className="grid grid-cols-2 gap-2">
@@ -168,7 +168,7 @@ const ResumeTemplate15 = ({ data }: ResumeTemplate15Props) => {
 
         languages: () => data.languages?.length > 0 ? (
             <section key="languages" className="mb-6">
-                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-1">
+                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-[5px]">
                     Languages
                 </h2>
                 {data.languages.map((lang) => (
@@ -182,7 +182,7 @@ const ResumeTemplate15 = ({ data }: ResumeTemplate15Props) => {
 
         volunteer: () => data.volunteer?.length > 0 ? (
             <section key="volunteer" className="mb-6">
-                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-1">
+                <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-900 mb-2 border-b border-gray-300 pb-[5px]">
                     Volunteering &amp; Leadership
                 </h2>
                 {data.volunteer.map((vol) => (

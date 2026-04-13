@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Download, Layout, Palette, Minus, Plus, MessageSquare, Save, FilePlus, Check, Pencil, Menu, PanelLeftClose, ArrowLeft, FileText } from 'lucide-react'
+import { Download, Layout, Palette, Minus, Plus, Save, FilePlus, Check, Pencil, Menu, PanelLeftClose, ArrowLeft, FileText } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { useResumeStore } from '@/store/resumeStore'
 import { useChatStore } from '@/store/chatStore'
@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom'
 
 interface ResumeTopBarProps {
   onOpenTemplates?: () => void
-  onDownload?: () => void
+  onDownload?: (format: 'pdf' | 'word') => void
   onOpenLayout?: () => void
   downloading?: boolean
   onToggleSidebar?: () => void
@@ -131,21 +131,6 @@ export default function ResumeTopBar({ onOpenTemplates, onDownload, onOpenLayout
           New
         </button>
 
-        {/* Analyze Resume */}
-        <Button size="sm" className="gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-green-400" />
-          Analyze Resume
-        </Button>
-
-        {/* Hide/Show Assistant */}
-        <button
-          onClick={toggleChat}
-          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 font-medium"
-        >
-          <MessageSquare size={14} />
-          {isOpen ? 'Hide' : 'Show'} Assistant
-        </button>
-
         {/* Cover Letter */}
         <button
           onClick={() => navigate('/cover-letter')}
@@ -205,28 +190,44 @@ export default function ResumeTopBar({ onOpenTemplates, onDownload, onOpenLayout
 
         <div className="w-px h-5 bg-gray-200" />
 
-        {/* Save Draft — only shown when there are unsaved changes */}
-        {(hasChanges || saved) && (
-          <button
-            onClick={handleSaveDraft}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              saved
-                ? 'bg-green-50 text-green-600 border border-green-200'
-                : 'bg-amber-50 text-amber-600 border border-amber-200 hover:border-brand-300 hover:text-brand-500 animate-pulse'
-            }`}
-          >
-            {saved ? <Check size={13} /> : <Save size={13} />}
-            {saved ? 'Saved!' : 'Save Draft'}
-          </button>
-        )}
+        {/* Save Draft — always visible, color indicates state */}
+        <button
+          onClick={handleSaveDraft}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            saved
+              ? 'bg-green-50 text-green-600 border border-green-200'
+              : hasChanges
+              ? 'bg-amber-50 text-amber-600 border border-amber-200 hover:border-brand-300 hover:text-brand-500'
+              : 'bg-gray-50 text-gray-400 border border-gray-200 hover:bg-gray-100'
+          }`}
+        >
+          {saved ? <Check size={13} /> : <Save size={13} />}
+          {saved ? 'Saved!' : hasChanges ? 'Save Draft' : 'Saved'}
+        </button>
 
-        <Button size="sm" onClick={onDownload} disabled={downloading}>
-          {downloading
-            ? <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating...</>
-            : <><Download size={13} /> Download PDF</>}
-        </Button>
+        {/* Download Dropdown */}
+        <div className="relative group">
+          <Button size="sm" onClick={() => onDownload?.('pdf')} disabled={downloading}>
+            {downloading
+              ? <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating...</>
+              : <><Download size={13} /> Download</>}
+          </Button>
+          <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-100 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-1">
+            <button
+              onClick={() => onDownload?.('pdf')}
+              className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-600 hover:bg-gray-50 transition-colors text-left"
+            >
+              <Download size={12} /> Download PDF
+            </button>
+            <button
+              onClick={() => onDownload?.('word')}
+              className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-600 hover:bg-gray-50 transition-colors text-left"
+            >
+              <FileText size={12} /> Download Word
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
-

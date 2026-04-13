@@ -72,6 +72,11 @@ interface TemplateResumeState {
   sectionOrder: SectionKey[]
   layout: LayoutSettings
 
+  // Published by TemplateLivePreview so PDF export can reuse exact same offsets
+  pageOffsets: number[]
+  pageTotalH: number
+  setPageLayout: (offsets: number[], totalH: number) => void
+
   setTemplate: (id: number) => void
   resetData: (data: TemplateResumeData) => void
   setPersonalInfo: (info: Partial<NonNullable<TemplateResumeData['personalInfo']>>) => void
@@ -196,7 +201,10 @@ export const useTemplateResumeStore = create<TemplateResumeState>()(
       data: skeletonData,
       sectionOrder: DEFAULT_SECTION_ORDER,
       layout: DEFAULT_LAYOUT,
+      pageOffsets: [0],
+      pageTotalH: 0,
 
+      setPageLayout: (offsets, totalH) => set({ pageOffsets: offsets, pageTotalH: totalH }),
       setTemplate: (id) => set({ activeTemplateId: id }),
       resetData: (data) => set({ data }),
       setSectionOrder: (order) => set({ sectionOrder: order }),

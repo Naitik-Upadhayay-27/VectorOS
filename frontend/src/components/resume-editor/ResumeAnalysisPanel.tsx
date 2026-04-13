@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { ChevronDown, ChevronUp, FileSearch, Target, Star, Zap, AlertCircle, CheckCircle2, TrendingUp, RotateCcw, Wand2, X, Plus, Search } from 'lucide-react'
+import { ChevronDown, ChevronUp, FileSearch, Target, Star, Zap, AlertCircle, CheckCircle2, TrendingUp, RotateCcw, Wand2, X, Plus, Search, Lock, Sparkles } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
@@ -9,6 +9,8 @@ import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
 import { AILoader } from '@/components/ui/AILoader'
 import { AnimatePresence } from 'framer-motion'
+import { usePlanStore } from '@/store/planStore'
+import PaywallModal from '@/components/ui/PaywallModal'
 
 function ScoreRing({ score }: { score: number }) {
   const color = score >= 75 ? '#22c55e' : score >= 50 ? '#f59e0b' : '#ef4444'
@@ -134,17 +136,35 @@ function TargetRolesPicker({ roles, onChange }: { roles: string[]; onChange: (r:
 }
 
 
+// Small "Unlock at Pro" tag that sits over a blurred section
+function ProTag({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="absolute inset-0 flex items-center justify-center rounded-xl"
+    >
+      <span className="flex items-center gap-1 px-2.5 py-1 bg-white border border-purple-200 rounded-full text-[10px] font-bold text-purple-600 shadow-sm hover:bg-purple-50 transition-colors">
+        <Lock size={9} /> Unlock at Pro
+      </span>
+    </button>
+  )
+}
+
 export default function ResumeAnalysisPanel() {
   const [open, setOpen]       = useState(true)
   const [mode, setMode]       = useState<'analyze' | 'tailor'>('analyze')
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
   const [jd, setJd]           = useState('')
+  const [paywallOpen, setPaywallOpen] = useState(false)
+  const [paywallReason, setPaywallReason] = useState<'ats' | 'jd_tailor'>('ats')
 
   const { result, setResult } = useAtsStore()
   const { data } = useTemplateResumeStore()
   const { data: onboardingData } = useOnboardingStore()
   const { triggerMessage } = useChatStore()
+  const { plan } = usePlanStore()
+  const isPro = plan === 'pro' || plan === 'lifetime'
 
   const defaultRole = onboardingData.jobTitle || data.personalInfo?.title || ''
   const [targetRoles, setTargetRoles] = useState<string[]>(defaultRole ? [defaultRole] : [])
@@ -215,7 +235,7 @@ export default function ResumeAnalysisPanel() {
           {/* Mode toggle */}
           <div className="grid grid-cols-2 gap-2">
             {(['analyze', 'tailor'] as const).map((m) => (
-              <button key={m} onClick={() => { setMode(m); setResult(null) }}
+              <button key={m} onClick={() => setMode(m)}
                 className={clsx('flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all',
                   mode === m ? 'border-brand-500 bg-brand-50' : 'border-gray-200 hover:border-gray-300')}>
                 {m === 'analyze'
@@ -235,7 +255,7 @@ export default function ResumeAnalysisPanel() {
           {mode === 'analyze' && (
             <TargetRolesPicker
               roles={targetRoles}
-              onChange={(r) => { setTargetRoles(r); setResult(null) }}
+              onChange={(r) => setTargetRoles(r)}
             />
           )}
 
@@ -274,6 +294,7 @@ export default function ResumeAnalysisPanel() {
                 </p>
               )}
 
+              {/* Score ring — always fully visible */}
               <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
                 <ScoreRing score={result.overallScore} />
                 <div>
@@ -289,6 +310,7 @@ export default function ResumeAnalysisPanel() {
                 </div>
               </div>
 
+              {/* All 5 bars — always visible */}
               <div className="space-y-2 px-1">
                 <MiniBar score={result.breakdown.keywordMatch.score}        label="Keyword Match" />
                 <MiniBar score={result.breakdown.formatting.score}          label="Formatting" />
@@ -297,55 +319,78 @@ export default function ResumeAnalysisPanel() {
                 <MiniBar score={result.breakdown.actionVerbs.score}         label="Action Verbs" />
               </div>
 
+              {/* Gap Analysis — blurred for free */}
               {result.gapAnalysis && (
-                <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 leading-relaxed">
-                  <p className="font-semibold mb-1 flex items-center gap-1.5"><TrendingUp size={12} /> Gap Analysis</p>
-                  {result.gapAnalysis}
-                </div>
-              )}
-
-              {result.quickWins?.length > 0 && (
-                <div className="p-3 bg-green-50 border border-green-100 rounded-xl">
-                  <p className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1.5">
-                    <CheckCircle2 size={12} /> Quick Wins
-                  </p>
-                  <ul className="space-y-1">
-                    {result.quickWins.map((w, i) => (
-                      <li key={i} className="text-xs text-green-700 flex items-start gap-1.5"><span className="mt-0.5 shrink-0">•</span>{w.replace(/\*\*/g, '')}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {result.topIssues?.length > 0 && (
-                <div className="p-3 bg-red-50 border border-red-100 rounded-xl">
-                  <p className="text-xs font-semibold text-red-700 mb-2 flex items-center gap-1.5">
-                    <AlertCircle size={12} /> Top Issues
-                  </p>
-                  <ul className="space-y-1">
-                    {result.topIssues.map((issue, i) => (
-                      <li key={i} className="text-xs text-red-700 flex items-start gap-1.5"><span className="mt-0.5 shrink-0">•</span>{issue.replace(/\*\*/g, '')}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {result.breakdown.keywordMatch.missing?.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-600 mb-1.5">Missing Keywords</p>
-                  <div className="flex flex-wrap gap-1">
-                    {result.breakdown.keywordMatch.missing.map((kw) => (
-                      <span key={kw} className="px-2 py-0.5 bg-red-50 text-red-600 text-xs rounded-full border border-red-100">{kw}</span>
-                    ))}
+                <div className="relative">
+                  <div className={clsx('p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 leading-relaxed', !isPro && 'blur-sm select-none pointer-events-none')}>
+                    <p className="font-semibold mb-1 flex items-center gap-1.5"><TrendingUp size={12} /> Gap Analysis</p>
+                    {result.gapAnalysis}
                   </div>
+                  {!isPro && <ProTag onClick={() => { setPaywallReason('ats'); setPaywallOpen(true) }} />}
                 </div>
               )}
 
-              <button onClick={fixResume}
+              {/* Quick Wins — blurred for free */}
+              {result.quickWins?.length > 0 && (
+                <div className="relative">
+                  <div className={clsx('p-3 bg-green-50 border border-green-100 rounded-xl', !isPro && 'blur-sm select-none pointer-events-none')}>
+                    <p className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1.5">
+                      <CheckCircle2 size={12} /> Quick Wins
+                    </p>
+                    <ul className="space-y-1">
+                      {result.quickWins.map((w, i) => (
+                        <li key={i} className="text-xs text-green-700 flex items-start gap-1.5"><span className="mt-0.5 shrink-0">•</span>{w.replace(/\*\*/g, '')}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  {!isPro && <ProTag onClick={() => { setPaywallReason('ats'); setPaywallOpen(true) }} />}
+                </div>
+              )}
+
+              {/* Top Issues — blurred for free */}
+              {result.topIssues?.length > 0 && (
+                <div className="relative">
+                  <div className={clsx('p-3 bg-red-50 border border-red-100 rounded-xl', !isPro && 'blur-sm select-none pointer-events-none')}>
+                    <p className="text-xs font-semibold text-red-700 mb-2 flex items-center gap-1.5">
+                      <AlertCircle size={12} /> Top Issues
+                    </p>
+                    <ul className="space-y-1">
+                      {result.topIssues.map((issue, i) => (
+                        <li key={i} className="text-xs text-red-700 flex items-start gap-1.5"><span className="mt-0.5 shrink-0">•</span>{issue.replace(/\*\*/g, '')}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  {!isPro && <ProTag onClick={() => { setPaywallReason('ats'); setPaywallOpen(true) }} />}
+                </div>
+              )}
+
+              {/* Missing Keywords — blurred for free */}
+              {result.breakdown.keywordMatch.missing?.length > 0 && (
+                <div className="relative">
+                  <div className={clsx(!isPro && 'blur-sm select-none pointer-events-none')}>
+                    <p className="text-xs font-semibold text-gray-600 mb-1.5">Missing Keywords</p>
+                    <div className="flex flex-wrap gap-1">
+                      {result.breakdown.keywordMatch.missing.map((kw) => (
+                        <span key={kw} className="px-2 py-0.5 bg-red-50 text-red-600 text-xs rounded-full border border-red-100">{kw}</span>
+                      ))}
+                    </div>
+                  </div>
+                  {!isPro && <ProTag onClick={() => { setPaywallReason('ats'); setPaywallOpen(true) }} />}
+                </div>
+              )}
+
+              {/* Fix Resume with AI — visible but triggers paywall for free */}
+              <button
+                onClick={() => {
+                  if (!isPro) { setPaywallReason('ats'); setPaywallOpen(true); return }
+                  fixResume()
+                }}
                 className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-brand-500 text-white text-xs font-semibold rounded-xl hover:opacity-90 flex items-center justify-center gap-2 transition-all shadow-sm">
                 <Wand2 size={13} /> Fix Resume with AI
+                {!isPro && <Lock size={11} className="ml-auto opacity-70" />}
               </button>
 
+              {/* Re-analyze — always works */}
               <button onClick={runATS} disabled={loading}
                 className="w-full py-2.5 bg-brand-500 text-white text-xs font-semibold rounded-xl hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
                 {loading
@@ -368,6 +413,7 @@ export default function ResumeAnalysisPanel() {
           )}
         </div>
       )}
+      <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} reason={paywallReason} />
     </div>
   )
 }

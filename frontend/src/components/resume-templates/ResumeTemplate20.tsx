@@ -31,10 +31,10 @@ const ResumeTemplate20 = ({ data }: { data: TemplateResumeData }) => {
 
   // Bold uppercase section header with full black bottom border
   const SectionHead = ({ title }: { title: string }) => (
-    <div style={{
+    <div className="resume-section-head" style={{
       fontWeight: 700, fontSize: '10.5pt', textTransform: 'uppercase',
       letterSpacing: '0.3px', borderBottom: '1px solid #000',
-      paddingBottom: '1px', marginTop: '8px', marginBottom: '4px',
+      paddingBottom: '4px', marginTop: '8px', marginBottom: '6px',
     }}>{title}</div>
   )
 

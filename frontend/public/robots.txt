@@ -10,4 +10,4 @@ Disallow: /applications
 Disallow: /analytics
 Disallow: /api/
 
-Sitemap: https://vectoros.vercel.app/sitemap.xml
+Sitemap: https://skillvector.vercel.app/sitemap.xml

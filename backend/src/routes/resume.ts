@@ -196,7 +196,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
     const resume = await Resume.findOneAndUpdate(
       { _id: req.params.id, userId: req.userId },
       { ...req.body, updatedAt: new Date() },
-      { new: true, upsert: false }
+      { returnDocument: 'after', upsert: false }
     )
     if (!resume) return res.status(404).json({ error: 'Resume not found' })
     res.json({ resume })

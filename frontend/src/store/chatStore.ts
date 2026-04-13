@@ -4,7 +4,7 @@ import type { ChatMessage } from '@/types'
 
 export interface EditLogEntry {
   timestamp: string
-  summary: string // human-readable description of what was changed
+  summary: string
 }
 
 interface ChatState {
@@ -12,14 +12,13 @@ interface ChatState {
   editLog: EditLogEntry[]
   isOpen: boolean
   isTyping: boolean
-  tokensLeft: number
-  pendingTrigger: string | null          // message to auto-send next render
+  pendingTrigger: string | null
   addMessage: (msg: Omit<ChatMessage, 'timestamp'> & { id?: string }) => void
   addEditLogEntry: (summary: string) => void
   setTyping: (v: boolean) => void
   toggleChat: () => void
   clearMessages: () => void
-  triggerMessage: (text: string) => void  // open chat + queue message for auto-send
+  triggerMessage: (text: string) => void
   clearTrigger: () => void
 }
 
@@ -37,7 +36,6 @@ export const useChatStore = create<ChatState>()(
       editLog: [],
       isOpen: true,
       isTyping: false,
-      tokensLeft: 20,
       pendingTrigger: null,
 
       addMessage: (msg) =>
@@ -46,7 +44,6 @@ export const useChatStore = create<ChatState>()(
             ...state.messages,
             { ...msg, id: msg.id ?? crypto.randomUUID(), timestamp: new Date().toISOString() },
           ],
-          tokensLeft: msg.role === 'user' ? state.tokensLeft - 1 : state.tokensLeft,
         })),
 
       addEditLogEntry: (summary) =>
@@ -56,19 +53,16 @@ export const useChatStore = create<ChatState>()(
 
       setTyping: (v) => set({ isTyping: v }),
       toggleChat: () => set((state) => ({ isOpen: !state.isOpen })),
-      clearMessages: () => set({ messages: [welcomeMessage], editLog: [], tokensLeft: 20 }),
+      clearMessages: () => set({ messages: [welcomeMessage], editLog: [] }),
       triggerMessage: (text) => set({ isOpen: true, pendingTrigger: text }),
       clearTrigger: () => set({ pendingTrigger: null }),
     }),
     {
       name: 'jobos-chat',
-      // Don't persist isTyping — always start as false
       partialize: (state) => ({
         messages: state.messages,
         editLog: state.editLog,
-        tokensLeft: state.tokensLeft,
         isOpen: state.isOpen,
-        // never persist pendingTrigger or isTyping
       }),
     }
   )

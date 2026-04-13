@@ -32,11 +32,11 @@ const ResumeTemplate19 = ({ data }: { data: TemplateResumeData }) => {
   }
 
   const SectionHead = ({ title }: { title: string }) => (
-    <div style={{
+    <div className="resume-section-head" style={{
       color: GREEN, fontWeight: 700, fontSize: '11pt',
       textTransform: 'uppercase', letterSpacing: '0.3px',
       borderBottom: `2px solid ${GREEN}`,
-      paddingBottom: '2px', marginTop: '10px', marginBottom: '5px',
+      paddingBottom: '4px', marginTop: '10px', marginBottom: '6px',
     }}>{title}</div>
   )
 
@@ -146,18 +146,20 @@ const ResumeTemplate19 = ({ data }: { data: TemplateResumeData }) => {
     skills: () => data.skills?.length > 0 ? (
       <div key="skills">
         <SectionHead title="Additional Information" />
-        <p style={{ fontWeight: 700, fontSize: '10pt', margin: '0 0 3px 0' }}>Skills:</p>
-        <ul style={{ margin: 0, paddingLeft: '18px', listStyleType: 'disc' }}>
-          {data.skills.map(cat => (
-            <li key={cat.id} style={{ fontSize: '10pt', lineHeight: '1.45', marginBottom: '2px' }}>
-              <span style={{ fontWeight: 700 }}>
-                <EditableText value={cat.category} onSave={v => store.updateSkillCategory(cat.id, { category: v })} />
-                {': '}
-              </span>
-              <EditableText value={cat.skills.join(', ')} onSave={v => store.updateSkillCategory(cat.id, { skills: v.split(',').map(s => s.trim()).filter(Boolean) })} />
-            </li>
-          ))}
-        </ul>
+        <div>
+          <p style={{ fontWeight: 700, fontSize: '10pt', margin: '0 0 3px 0' }}>Skills:</p>
+          <ul style={{ margin: 0, paddingLeft: '18px', listStyleType: 'disc' }}>
+            {data.skills.map(cat => (
+              <li key={cat.id} style={{ fontSize: '10pt', lineHeight: '1.45', marginBottom: '2px' }}>
+                <span style={{ fontWeight: 700 }}>
+                  <EditableText value={cat.category} onSave={v => store.updateSkillCategory(cat.id, { category: v })} />
+                  {': '}
+                </span>
+                <EditableText value={cat.skills.join(', ')} onSave={v => store.updateSkillCategory(cat.id, { skills: v.split(',').map(s => s.trim()).filter(Boolean) })} />
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     ) : null,
 

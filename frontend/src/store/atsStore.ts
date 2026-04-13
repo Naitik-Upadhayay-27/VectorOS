@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export interface ATSResult {
   overallScore: number
@@ -20,8 +21,13 @@ interface AtsState {
   clearResult: () => void
 }
 
-export const useAtsStore = create<AtsState>()((set) => ({
-  result: null,
-  setResult: (result) => set({ result }),
-  clearResult: () => set({ result: null }),
-}))
+export const useAtsStore = create<AtsState>()(
+  persist(
+    (set) => ({
+      result: null,
+      setResult: (result) => set({ result }),
+      clearResult: () => set({ result: null }),
+    }),
+    { name: 'sv-ats' }
+  )
+)

@@ -13,7 +13,7 @@ import {
 } from '@/lib/paginate'
 
 export default function TemplateLivePreview({ previewRef }: { previewRef?: React.RefObject<HTMLDivElement | null> }) {
-  const { data, activeTemplateId, layout, sectionOrder } = useTemplateResumeStore()
+  const { data, activeTemplateId, layout, sectionOrder, setPageLayout } = useTemplateResumeStore()
   const { zoom } = useResumeStore()
   const [editMode, setEditMode] = useState(false)
 
@@ -38,7 +38,9 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
     const recalc = () => {
       const h = el.scrollHeight
       setTotalH(h)
-      setPageOffsets(h <= USABLE_H_FIRST ? [0] : computePageOffsets(el, h))
+      const offs = h <= USABLE_H_FIRST ? [0] : computePageOffsets(el, h)
+      setPageOffsets(offs)
+      setPageLayout(offs, h)  // publish to store for PDF export
     }
     const ro = new ResizeObserver(recalc)
     ro.observe(el)
@@ -117,6 +119,7 @@ export default function TemplateLivePreview({ previewRef }: { previewRef?: React
             return (
               <div
                 key={i}
+                className="pdf-page-canvas"
                 style={{
                   position: 'relative',
                   width: PAGE_W * scale,

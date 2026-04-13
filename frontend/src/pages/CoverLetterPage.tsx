@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, Sparkles, RefreshCw, Pencil, Eye, Check, Wand2, Camera, X, Minus, Plus, PenLine, Save } from 'lucide-react'
+import { ArrowLeft, Download, Sparkles, RefreshCw, Pencil, Eye, Check, Wand2, Camera, X, Minus, Plus, PenLine, Save, Lock } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
 import Button from '@/components/ui/Button'
 import { useCoverLetterStore } from '@/store/coverLetterStore'
@@ -10,22 +10,24 @@ import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
 import CoverLetterTemplate1 from '@/components/cover-letter/CoverLetterTemplate1'
 import { CL_TEMPLATES } from '@/components/cover-letter/templates'
-import { printResume, printCoverLetter } from '@/lib/printResume'
+import { printResume, printCoverLetter, printCoverLetterWord } from '@/lib/printResume'
 import { EditableContext } from '@/components/resume-editor/EditableContext'
+import { usePlanStore } from '@/store/planStore'
+import PaywallModal from '@/components/ui/PaywallModal'
 
 
 const TONES = [
-  { value: 'professional',    label: 'Professional',     emoji: '💼' },
-  { value: 'creative',        label: 'Creative',         emoji: '🎨' },
-  { value: 'entry-level',     label: 'Entry-Level',      emoji: '🎓' },
-  { value: 'career-switcher', label: 'Career Switch',    emoji: '🔄' },
+  { value: 'professional', label: 'Professional', emoji: '💼' },
+  { value: 'creative', label: 'Creative', emoji: '🎨' },
+  { value: 'entry-level', label: 'Entry-Level', emoji: '🎓' },
+  { value: 'career-switcher', label: 'Career Switch', emoji: '🔄' },
 ]
 
-const PAGE_W     = 794
-const PAGE_H     = 1123
+const PAGE_W = 794
+const PAGE_H = 1123
 const THUMB_SCALE = 0.175
-const THUMB_W    = Math.round(PAGE_W * THUMB_SCALE)  // ≈ 139px
-const THUMB_H    = Math.round(PAGE_H * THUMB_SCALE)  // ≈ 197px
+const THUMB_W = Math.round(PAGE_W * THUMB_SCALE)  // ≈ 139px
+const THUMB_H = Math.round(PAGE_H * THUMB_SCALE)  // ≈ 197px
 
 // ── Inline photo upload panel for the left sidebar ───────────────────────────
 function PhotoUploadPanel({ photo, onPhoto }: { photo?: string; onPhoto: (v: string) => void }) {
@@ -133,7 +135,8 @@ function SignatureUploadPanel({ signature, onSignature }: { signature?: string; 
   )
 }
 
-function TemplateRenderer({ templateId, data, accentColor }: { templateId: number; data: any; accentColor: string }) {  const T = CL_TEMPLATES.find(t => t.id === templateId)?.component ?? CoverLetterTemplate1
+function TemplateRenderer({ templateId, data, accentColor }: { templateId: number; data: any; accentColor: string }) {
+  const T = CL_TEMPLATES.find(t => t.id === templateId)?.component ?? CoverLetterTemplate1
   return <T data={data} accentColor={accentColor} />
 }
 
@@ -170,9 +173,9 @@ function CoverLetterPreview({
 
   const measureRef = useRef<HTMLDivElement>(null)
 
-  const scale    = baseScale * (zoom / 100)
-  const scaledW  = PAGE_W * scale
-  const scaledH  = PAGE_H * scale
+  const scale = baseScale * (zoom / 100)
+  const scaledW = PAGE_W * scale
+  const scaledH = PAGE_H * scale
 
   return (
     <div ref={containerRef} className="flex-1 relative bg-[#dde1ed] overflow-auto">
@@ -204,9 +207,10 @@ function CoverLetterPreview({
 
       {/* Scaled visible page — always A4 aspect ratio */}
       <div className="flex flex-col items-center py-8">
-        <div style={{ width: scaledW, height: scaledH, position: 'relative', flexShrink: 0 }}>
+        <div className="pdf-page-canvas" style={{ width: scaledW, height: scaledH, position: 'relative', flexShrink: 0 }}>
           {/* Clip wrapper */}
-          <div style={{ position: 'absolute', inset: 0, overflow: 'hidden',
+          <div style={{
+            position: 'absolute', inset: 0, overflow: 'hidden',
             boxShadow: editMode ? '0 0 0 2px #3b82f6, 0 4px 20px rgba(0,0,0,0.15)' : '0 2px 16px rgba(0,0,0,0.15)',
             borderRadius: 2,
           }}>
@@ -241,14 +245,17 @@ export default function CoverLetterPage() {
   const { data, templateId, generating, jobDescription, activeDraftId, setData, setTemplate, setGenerating, setJobDescription, setActiveDraftId } = useCoverLetterStore()
   const resumeData = useTemplateResumeStore((s) => s.data)
   const { saveDraft, loadDrafts, saving } = useCoverLetterDraftStore()
+  const { canDownload, needsWatermark, trackDownload, hasAccess } = usePlanStore()
+  const [paywallOpen, setPaywallOpen] = useState(false)
+  const [paywallReason, setPaywallReason] = useState<'download_limit' | 'template_locked'>('download_limit')
 
   const [accentColor, setAccentColor] = useState(
     CL_TEMPLATES.find(t => t.id === templateId)?.defaultAccent ?? '#1e3a5f'
   )
-  const [tone, setTone]             = useState('professional')
+  const [tone, setTone] = useState('professional')
   const [downloading, setDownloading] = useState(false)
-  const [editMode, setEditMode]     = useState(false)
-  const [zoom, setZoom]             = useState(100)
+  const [editMode, setEditMode] = useState(false)
+  const [zoom, setZoom] = useState(100)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'dirty' | 'saved'>('idle')
   const isFirstMount = useRef(true)
   const previewRef = useRef<HTMLDivElement>(null)
@@ -269,17 +276,22 @@ export default function CoverLetterPage() {
     const pi = resumeData.personalInfo
     if (!pi) return
     setData({
-      name:     pi.name              || '',
-      email:    pi.contact?.email    || '',
-      phone:    pi.contact?.phone    || '',
+      name: pi.name || '',
+      email: pi.contact?.email || '',
+      phone: pi.contact?.phone || '',
       linkedin: pi.contact?.linkedin || '',
-      address:  pi.contact?.location || '',
-      city:     '',
+      address: pi.contact?.location || '',
+      city: '',
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleTemplateChange = (id: number) => {
+    if (!hasAccess(id, 'cl')) {
+      setPaywallReason('template_locked')
+      setPaywallOpen(true)
+      return
+    }
     setTemplate(id)
     setAccentColor(CL_TEMPLATES.find(t => t.id === id)?.defaultAccent ?? '#1e3a5f')
   }
@@ -323,11 +335,17 @@ export default function CoverLetterPage() {
     }
   }
 
-  const handleDownload = async () => {
+  const handleDownload = async (format: 'pdf' | 'word' = 'pdf') => {
     if (!previewRef.current) return
     setDownloading(true)
     try {
-      await printCoverLetter(previewRef.current, `cover-letter-${data.name || 'draft'}`)
+      const wm = needsWatermark()
+      if (format === 'pdf') {
+        await printCoverLetter(previewRef.current, `cover-letter-${data.name || 'draft'}`, wm)
+      } else {
+        await printCoverLetterWord(previewRef.current, `cover-letter-${data.name || 'draft'}`)
+      }
+      await trackDownload()
     } finally {
       setDownloading(false)
     }
@@ -339,7 +357,7 @@ export default function CoverLetterPage() {
       : 'Untitled Cover Letter'
     await saveDraft({ id: activeDraftId ?? '', name, templateId, data })
     setSaveStatus('saved')
-    
+
     // After first save, activeDraftId is set so subsequent saves update the same doc
     const { drafts } = useCoverLetterDraftStore.getState()
     if (drafts[0]) setActiveDraftId(drafts[0].id)
@@ -381,18 +399,36 @@ export default function CoverLetterPage() {
 
             <div className="w-px h-5 bg-gray-200" />
 
-            <Button size="sm" onClick={handleDownload} disabled={downloading}>
-              {downloading
-                ? <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating...</>
-                : <><Download size={13} /> Download PDF</>}
-            </Button>
+            {/* Download Dropdown */}
+            <div className="relative group">
+              <Button size="sm" onClick={() => handleDownload('pdf')} disabled={downloading}>
+                {downloading
+                  ? <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generating...</>
+                  : <><Download size={13} /> Download</>}
+              </Button>
+              <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-100 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-1">
+                <button
+                  onClick={() => handleDownload('pdf')}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-600 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <Download size={12} /> Download PDF
+                </button>
+                <button
+                  onClick={() => handleDownload('word')}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-600 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <PenLine size={12} /> Download Word
+                </button>
+              </div>
+            </div>
+
             <Button
               size="sm"
               variant={saveStatus === 'dirty' ? 'primary' : 'secondary'}
               onClick={handleSaveDraft}
               loading={saving}
-              className={saveStatus === 'saved' 
-                ? 'bg-white text-green-600 border-green-600 hover:bg-green-600 hover:text-white transition-all duration-200' 
+              className={saveStatus === 'saved'
+                ? 'bg-white !text-green-600 !border-green-600 hover:!bg-green-600 hover:!text-white transition-all duration-200 shadow-sm'
                 : ''}
             >
               {saveStatus === 'saved' ? <Check size={13} /> : <Save size={13} />}
@@ -427,11 +463,10 @@ export default function CoverLetterPage() {
                     <button
                       key={t.value}
                       onClick={() => setTone(t.value)}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                        tone === t.value
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${tone === t.value
                           ? 'bg-violet-50 border-violet-300 text-violet-700'
                           : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'
-                      }`}
+                        }`}
                     >
                       <span>{t.emoji}</span> {t.label}
                     </button>
@@ -457,11 +492,10 @@ export default function CoverLetterPage() {
                 <button
                   onClick={handleGenerate}
                   disabled={generating}
-                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                    generating
+                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${generating
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                       : 'bg-gradient-to-r from-violet-600 to-brand-500 text-white hover:opacity-90 shadow-sm hover:shadow-md'
-                  }`}
+                    }`}
                 >
                   {generating
                     ? <><RefreshCw size={14} className="animate-spin" /> Writing your letter...</>
@@ -476,11 +510,11 @@ export default function CoverLetterPage() {
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Job Details</p>
                 <div className="space-y-2">
                   {([
-                    ['jobTitle',       'Job Title'],
-                    ['hiringManager',  'Hiring Manager Name'],
-                    ['companyName',    'Company Name'],
+                    ['jobTitle', 'Job Title'],
+                    ['hiringManager', 'Hiring Manager Name'],
+                    ['companyName', 'Company Name'],
                     ['companyAddress', 'Company Address'],
-                    ['companyCity',    'City, State, ZIP'],
+                    ['companyCity', 'City, State, ZIP'],
                   ] as [keyof typeof data, string][]).map(([field, label]) => (
                     <div key={field}>
                       <label className="text-xs text-gray-400 block mb-0.5">{label}</label>
@@ -522,11 +556,11 @@ export default function CoverLetterPage() {
                 <p className="text-[10px] text-gray-400 mb-2">Auto-filled from your resume</p>
                 <div className="space-y-2">
                   {([
-                    ['name',     'Full Name'],
-                    ['email',    'Email'],
-                    ['phone',    'Phone'],
+                    ['name', 'Full Name'],
+                    ['email', 'Email'],
+                    ['phone', 'Phone'],
                     ['linkedin', 'LinkedIn (optional)'],
-                    ['address',  'Address (optional)'],
+                    ['address', 'Address (optional)'],
                   ] as [keyof typeof data, string][]).map(([field, label]) => (
                     <div key={field}>
                       <label className="text-xs text-gray-400 block mb-0.5">{label}</label>
@@ -561,9 +595,14 @@ export default function CoverLetterPage() {
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Templates</p>
 
               <div className="grid grid-cols-2 gap-x-3 gap-y-5">
-                {CL_TEMPLATES.map(t => {
+                {[...CL_TEMPLATES].sort((a, b) => {
+                  const aLocked = !hasAccess(a.id, 'cl') ? 1 : 0
+                  const bLocked = !hasAccess(b.id, 'cl') ? 1 : 0
+                  return aLocked - bLocked
+                }).map(t => {
                   const isActive = templateId === t.id
                   const TComp = t.component
+                  const locked = !hasAccess(t.id, 'cl')
 
                   return (
                     <button
@@ -593,12 +632,21 @@ export default function CoverLetterPage() {
                             transformOrigin: 'top left',
                             pointerEvents: 'none',
                             userSelect: 'none',
+                            filter: locked ? 'blur(1.5px)' : 'none',
                           }}
                         >
                           <EditableContext.Provider value={{ editMode: false }}>
                             <TComp data={data} accentColor={isActive ? accentColor : t.defaultAccent} />
                           </EditableContext.Provider>
                         </div>
+
+                        {/* Lock overlay */}
+                        {locked && (
+                          <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-1 rounded-xl">
+                            <Lock size={14} className="text-white" />
+                            <span className="text-white text-[9px] font-bold">Pro</span>
+                          </div>
+                        )}
 
                         {/* Hover overlay */}
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors rounded-xl" />
@@ -614,7 +662,7 @@ export default function CoverLetterPage() {
                         )}
 
                         {/* Hover "Use" pill */}
-                        {!isActive && (
+                        {!isActive && !locked && (
                           <div className="absolute inset-0 flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100 transition-opacity">
                             <span className="bg-white/90 backdrop-blur-sm text-gray-700 text-[10px] font-semibold px-3 py-1 rounded-full shadow">
                               Use this
@@ -639,6 +687,7 @@ export default function CoverLetterPage() {
 
         </div>
       </div>
+      <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} reason={paywallReason} />
     </AppLayout>
   )
 }

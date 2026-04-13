@@ -31,13 +31,13 @@ const ResumeTemplate16 = ({ data }: { data: TemplateResumeData }) => {
 
   // Section heading style — bold, uppercase, underlined with full border
   const SectionHead = ({ title }: { title: string }) => (
-    <div style={{
+    <div className="resume-section-head" style={{
       fontWeight: 700,
       fontSize: '11pt',
       textTransform: 'uppercase',
       letterSpacing: '0.5px',
       borderBottom: '1.5px solid #000',
-      paddingBottom: '1px',
+      paddingBottom: '4px',
       marginTop: '10px',
       marginBottom: '4px',
     }}>

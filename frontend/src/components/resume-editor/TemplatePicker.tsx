@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { TEMPLATES, TEMPLATE_CATEGORIES } from '@/components/resume-templates'
 import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import Modal from '@/components/ui/Modal'
-import { Check } from 'lucide-react'
+import { Check, Lock } from 'lucide-react'
 import { sampleData } from '@/lib/sampleResumeData'
+import { usePlanStore } from '@/store/planStore'
+import PaywallModal from '@/components/ui/PaywallModal'
 
 interface TemplatePickerProps {
   open: boolean
@@ -19,10 +21,17 @@ const CARD_H = Math.round(PAGE_H * PREVIEW_SCALE)
 export default function TemplatePicker({ open, onClose }: TemplatePickerProps) {
   const { activeTemplateId, setTemplate } = useTemplateResumeStore()
   const [activeCategory, setActiveCategory] = useState('all')
+  const [paywallOpen, setPaywallOpen] = useState(false)
+  const { hasAccess } = usePlanStore()
 
-  const filtered = activeCategory === 'all'
+  const filtered = (activeCategory === 'all'
     ? TEMPLATES
     : TEMPLATES.filter(t => t.category === activeCategory)
+  ).slice().sort((a, b) => {
+    const aLocked = !hasAccess(a.id, 'resume') ? 1 : 0
+    const bLocked = !hasAccess(b.id, 'resume') ? 1 : 0
+    return aLocked - bLocked
+  })
 
   return (
     <Modal open={open} onClose={onClose} title="Choose a Template" size="lg">
@@ -51,11 +60,15 @@ export default function TemplatePicker({ open, onClose }: TemplatePickerProps) {
         {filtered.map((t) => {
           const TemplateComponent = t.component
           const isActive = activeTemplateId === t.id
+          const locked = !hasAccess(t.id, 'resume')
 
           return (
             <button
               key={t.id}
-              onClick={() => { setTemplate(t.id); onClose() }}
+              onClick={() => {
+                if (locked) { setPaywallOpen(true); return }
+                setTemplate(t.id); onClose()
+              }}
               className="group flex flex-col items-center gap-2 focus:outline-none"
             >
               <div
@@ -75,10 +88,19 @@ export default function TemplatePicker({ open, onClose }: TemplatePickerProps) {
                     transformOrigin: 'top left',
                     pointerEvents: 'none',
                     userSelect: 'none',
+                    filter: locked ? 'blur(1.5px)' : 'none',
                   }}
                 >
                   <TemplateComponent data={sampleData} />
                 </div>
+
+                {/* Lock overlay */}
+                {locked && (
+                  <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-1 rounded-xl">
+                    <Lock size={16} className="text-white" />
+                    <span className="text-white text-[9px] font-bold">Pro</span>
+                  </div>
+                )}
 
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/8 transition-colors rounded-xl" />
 
@@ -91,7 +113,6 @@ export default function TemplatePicker({ open, onClose }: TemplatePickerProps) {
                   </div>
                 )}
 
-                {/* Category badge */}
                 <div className="absolute bottom-2 left-2">
                   <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-black/40 text-white/90">
                     {t.category}

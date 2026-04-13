@@ -31,13 +31,13 @@ const ResumeTemplate18 = ({ data }: { data: TemplateResumeData }) => {
 
   // Section header — small-caps style with bottom rule
   const SectionHead = ({ title }: { title: string }) => (
-    <div style={{
+    <div className="resume-section-head" style={{
       fontVariant: 'small-caps',
       fontWeight: 400,
       fontSize: '12pt',
       letterSpacing: '0.5px',
       borderBottom: '0.8px solid #000',
-      paddingBottom: '1px',
+      paddingBottom: '4px',
       marginTop: '10px',
       marginBottom: '5px',
     }}>

@@ -1,14 +1,14 @@
 // @ts-nocheck
-// Template 25: Navy Sidebar CV — circular photo, dark navy left sidebar, clean white right
-import { TemplateResumeData, ExperienceItem, EducationItem, SkillCategory, LanguageItem, VolunteerItem } from '@/types/resume'
+import { TemplateResumeData, ExperienceItem, EducationItem, SkillCategory, LanguageItem, VolunteerItem, ProjectItem } from '@/types/resume'
 import EditableText from '@/components/resume-editor/EditableText'
-import { useTemplateResumeStore } from '@/store/templateResumeStore'
+import { useTemplateResumeStore, DEFAULT_SECTION_ORDER } from '@/store/templateResumeStore'
 import PhotoUploadOverlay from '@/components/resume-editor/PhotoUploadOverlay'
 
 const NAVY = '#2b3a52'
 
 const ResumeTemplate25 = ({ data }: { data: TemplateResumeData }) => {
   const store = useTemplateResumeStore()
+  const sectionOrder = store.sectionOrder ?? DEFAULT_SECTION_ORDER
   const layout = store.layout
   const fontFamily = layout?.fontFamily ?? "'Inter', sans-serif"
   const fontSize = layout?.fontSize ?? 11
@@ -23,8 +23,137 @@ const ResumeTemplate25 = ({ data }: { data: TemplateResumeData }) => {
     store.updateExperience(id, { description: desc })
   }
   const setEdu = (id: string, f: string, v: string) => store.updateEducation(id, { [f]: v })
+  const setProj = (id: string, f: string, v: string) => store.updateProject(id, { [f]: v })
+  const setProjBullet = (id: string, idx: number, v: string) => {
+    const proj = data.projects?.find((p: ProjectItem) => p.id === id)
+    if (!proj) return
+    const desc = Array.isArray(proj.description) ? [...proj.description] : [proj.description ?? '']
+    desc[idx] = v; store.updateProject(id, { description: desc })
+  }
 
   const contact = data.personalInfo?.contact ?? {}
+
+  const sectionRenderers: Record<string, () => React.ReactNode> = {
+    summary: () => data.summary ? (
+      <div key="summary" style={{ marginBottom: 24 }}>
+        <RightHeading>About Me</RightHeading>
+        <p style={{ fontSize: 10.5, color: '#444', lineHeight: 1.7, margin: '10px 0 0', textAlign: 'justify' }}>
+          <EditableText value={data.summary} onSave={v => store.setSummary(v)} multiline as="span" />
+        </p>
+      </div>
+    ) : null,
+
+    experience: () => data.experience?.length > 0 ? (
+      <div key="experience" style={{ marginBottom: 24 }}>
+        <RightHeading>Work Experience</RightHeading>
+        {data.experience.map((exp: ExperienceItem) => (
+          <div key={exp.id} style={{ marginTop: 14 }}>
+            <p style={{ fontSize: 9.5, color: '#999', margin: 0 }}>
+              <EditableText value={exp.startDate} onSave={v => setExp(exp.id, 'startDate', v)} />
+              {' - '}
+              <EditableText value={exp.endDate} onSave={v => setExp(exp.id, 'endDate', v)} />
+            </p>
+            <p style={{ fontSize: 10, color: '#777', margin: '1px 0 2px' }}>
+              <EditableText value={exp.company} onSave={v => setExp(exp.id, 'company', v)} />
+            </p>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>
+              <EditableText value={exp.title} onSave={v => setExp(exp.id, 'title', v)} />
+            </p>
+            {exp.description?.map((d: string, i: number) => (
+              <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 3 }}>
+                <span style={{ color: '#555', marginTop: 2, flexShrink: 0 }}>•</span>
+                <p style={{ fontSize: 10.5, color: '#555', margin: 0, lineHeight: 1.6 }}>
+                  <EditableText value={d} onSave={v => setExpBullet(exp.id, i, v)} multiline as="span" />
+                </p>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    ) : null,
+
+    education: () => data.education?.length > 0 ? (
+      <SideSection key="education" label="Education">
+        {data.education.map((edu: EducationItem) => (
+          <div key={edu.id} style={{ marginBottom: 14 }}>
+            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', margin: 0 }}>
+              <EditableText value={edu.degree} onSave={v => setEdu(edu.id, 'degree', v)} />
+            </p>
+            <p style={{ fontSize: 10.5, fontWeight: 700, color: '#fff', margin: '2px 0 1px', lineHeight: 1.3 }}>
+              <EditableText value={edu.institution} onSave={v => setEdu(edu.id, 'institution', v)} />
+            </p>
+            <p style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+              <EditableText value={edu.graduationDate} onSave={v => setEdu(edu.id, 'graduationDate', v)} />
+            </p>
+          </div>
+        ))}
+      </SideSection>
+    ) : null,
+
+    skills: () => data.skills?.length > 0 ? (
+      <SideSection key="skills" label="Skills">
+        <ul style={{ margin: 0, padding: '0 0 0 14px' }}>
+          {data.skills.flatMap((cat: SkillCategory) => cat.skills).map((s: string, i: number) => (
+            <li key={i} style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', marginBottom: 5, lineHeight: 1.4 }}>{s}</li>
+          ))}
+        </ul>
+      </SideSection>
+    ) : null,
+
+    languages: () => data.languages?.length > 0 ? (
+      <SideSection key="languages" label="Language">
+        {data.languages.map((l: LanguageItem) => (
+          <p key={l.id} style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.85)', margin: '0 0 6px' }}>{l.language} — {l.proficiency}</p>
+        ))}
+      </SideSection>
+    ) : null,
+
+    volunteer: () => data.volunteer?.length > 0 ? (
+      <div key="volunteer" style={{ marginBottom: 24 }}>
+        <RightHeading>References</RightHeading>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px', marginTop: 12 }}>
+          {data.volunteer.map((v: VolunteerItem) => (
+            <div key={v.id}>
+              <p style={{ fontSize: 11.5, fontWeight: 700, color: '#111', margin: 0 }}>{v.role}</p>
+              <p style={{ fontSize: 10, color: '#666', margin: '2px 0 4px' }}>{v.organization}</p>
+              {v.description && (
+                <div style={{ fontSize: 9.5, color: '#555', lineHeight: 1.6 }}>
+                  {v.description.split('\n').map((line, i) => (
+                    <p key={i} style={{ margin: '1px 0' }}>{line}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : null,
+
+    projects: () => data.projects?.length > 0 ? (
+      <div key="projects" style={{ marginBottom: 24 }}>
+        <RightHeading>Projects</RightHeading>
+        {data.projects.map((proj: ProjectItem) => (
+          <div key={proj.id} style={{ marginTop: 14 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#111', margin: '0 0 4px' }}>
+              <EditableText value={proj.name} onSave={v => setProj(proj.id, 'name', v)} />
+            </p>
+            {Array.isArray(proj.description) && proj.description.length > 0 && (
+              <ul style={{ margin: '4px 0 0 16px', padding: 0, listStyleType: 'disc' }}>
+                {proj.description.map((d: string, i: number) => (
+                  <li key={i} style={{ fontSize: 10.5, color: '#555', lineHeight: 1.6 }}>
+                    <EditableText value={d} onSave={v => setProjBullet(proj.id, i, v)} multiline />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+    ) : null,
+  }
+
+  const leftSections = ['education', 'skills', 'languages']
+  const rightSections = ['summary', 'experience', 'projects', 'volunteer']
 
   return (
     <div style={{ fontFamily, fontSize: `${fontSize}pt`, width: 794, minHeight: 1123, background: '#fff', display: 'flex' }}>
@@ -39,7 +168,7 @@ const ResumeTemplate25 = ({ data }: { data: TemplateResumeData }) => {
           </div>
         </div>
 
-        {/* Contact */}
+        {/* Contact (fixed) */}
         <SideSection label="Contact">
           {contact.email && (
             <SideContactRow icon="✉">
@@ -63,44 +192,7 @@ const ResumeTemplate25 = ({ data }: { data: TemplateResumeData }) => {
           )}
         </SideSection>
 
-        {/* Education */}
-        {data.education?.length > 0 && (
-          <SideSection label="Education">
-            {data.education.map((edu: EducationItem) => (
-              <div key={edu.id} style={{ marginBottom: 14 }}>
-                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', margin: 0 }}>
-                  <EditableText value={edu.degree} onSave={v => setEdu(edu.id, 'degree', v)} />
-                </p>
-                <p style={{ fontSize: 10.5, fontWeight: 700, color: '#fff', margin: '2px 0 1px', lineHeight: 1.3 }}>
-                  <EditableText value={edu.institution} onSave={v => setEdu(edu.id, 'institution', v)} />
-                </p>
-                <p style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.5)', margin: 0 }}>
-                  <EditableText value={edu.graduationDate} onSave={v => setEdu(edu.id, 'graduationDate', v)} />
-                </p>
-              </div>
-            ))}
-          </SideSection>
-        )}
-
-        {/* Skills */}
-        {data.skills?.length > 0 && (
-          <SideSection label="Skills">
-            <ul style={{ margin: 0, padding: '0 0 0 14px' }}>
-              {data.skills.flatMap((cat: SkillCategory) => cat.skills).map((s: string, i: number) => (
-                <li key={i} style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', marginBottom: 5, lineHeight: 1.4 }}>{s}</li>
-              ))}
-            </ul>
-          </SideSection>
-        )}
-
-        {/* Languages */}
-        {data.languages?.length > 0 && (
-          <SideSection label="Language">
-            {data.languages.map((l: LanguageItem) => (
-              <p key={l.id} style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.85)', margin: '0 0 6px' }}>{l.language}</p>
-            ))}
-          </SideSection>
-        )}
+        {sectionOrder.filter(key => leftSections.includes(key)).map(key => sectionRenderers[key]?.())}
       </div>
 
       {/* ── RIGHT MAIN ── */}
@@ -116,67 +208,7 @@ const ResumeTemplate25 = ({ data }: { data: TemplateResumeData }) => {
           </p>
         </div>
 
-        {/* About Me */}
-        {data.summary && (
-          <div style={{ marginBottom: 24 }}>
-            <RightHeading>About Me</RightHeading>
-            <p style={{ fontSize: 10.5, color: '#444', lineHeight: 1.7, margin: '10px 0 0', textAlign: 'justify' }}>
-              <EditableText value={data.summary} onSave={v => store.setSummary(v)} multiline as="span" />
-            </p>
-          </div>
-        )}
-
-        {/* Work Experience */}
-        {data.experience?.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <RightHeading>Work Experience</RightHeading>
-            {data.experience.map((exp: ExperienceItem) => (
-              <div key={exp.id} style={{ marginTop: 14 }}>
-                <p style={{ fontSize: 9.5, color: '#999', margin: 0 }}>
-                  <EditableText value={exp.startDate} onSave={v => setExp(exp.id, 'startDate', v)} />
-                  {' - '}
-                  <EditableText value={exp.endDate} onSave={v => setExp(exp.id, 'endDate', v)} />
-                </p>
-                <p style={{ fontSize: 10, color: '#777', margin: '1px 0 2px' }}>
-                  <EditableText value={exp.company} onSave={v => setExp(exp.id, 'company', v)} />
-                </p>
-                <p style={{ fontSize: 12, fontWeight: 700, color: '#111', margin: '0 0 6px' }}>
-                  <EditableText value={exp.title} onSave={v => setExp(exp.id, 'title', v)} />
-                </p>
-                {exp.description?.map((d: string, i: number) => (
-                  <div key={i} style={{ display: 'flex', gap: 7, marginBottom: 3 }}>
-                    <span style={{ color: '#555', marginTop: 2, flexShrink: 0 }}>•</span>
-                    <p style={{ fontSize: 10.5, color: '#555', margin: 0, lineHeight: 1.6 }}>
-                      <EditableText value={d} onSave={v => setExpBullet(exp.id, i, v)} multiline as="span" />
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* References */}
-        {data.volunteer?.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <RightHeading>References</RightHeading>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px', marginTop: 12 }}>
-              {data.volunteer.map((v: VolunteerItem) => (
-                <div key={v.id}>
-                  <p style={{ fontSize: 11.5, fontWeight: 700, color: '#111', margin: 0 }}>{v.role}</p>
-                  <p style={{ fontSize: 10, color: '#666', margin: '2px 0 4px' }}>{v.organization}</p>
-                  {v.description && (
-                    <div style={{ fontSize: 9.5, color: '#555', lineHeight: 1.6 }}>
-                      {v.description.split('\n').map((line, i) => (
-                        <p key={i} style={{ margin: '1px 0' }}>{line}</p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {sectionOrder.filter(key => rightSections.includes(key)).map(key => sectionRenderers[key]?.())}
       </div>
     </div>
   )

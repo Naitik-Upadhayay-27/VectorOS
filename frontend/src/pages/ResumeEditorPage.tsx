@@ -14,21 +14,23 @@ import { useTemplateResumeStore } from '@/store/templateResumeStore'
 import { useDraftStore } from '@/store/draftStore'
 import { useAtsStore } from '@/store/atsStore'
 import { GripVertical } from 'lucide-react'
-import { printResume } from '@/lib/printResume'
+import { printResume, printResumeWord } from '@/lib/printResume'
+import { usePlanStore } from '@/store/planStore'
+import PaywallModal from '@/components/ui/PaywallModal'
 
 const sections = [
-  { type: 'experience',     title: 'Work Experience' },
-  { type: 'education',      title: 'Education' },
-  { type: 'skills',         title: 'Skills' },
-  { type: 'projects',       title: 'Projects' },
+  { type: 'experience', title: 'Work Experience' },
+  { type: 'education', title: 'Education' },
+  { type: 'skills', title: 'Skills' },
+  { type: 'projects', title: 'Projects' },
   { type: 'certifications', title: 'Certifications' },
-  { type: 'languages',      title: 'Languages' },
-  { type: 'volunteering',   title: 'Volunteering & Leadership' },
-  { type: 'awards',         title: 'Awards' },
+  { type: 'languages', title: 'Languages' },
+  { type: 'volunteering', title: 'Volunteering & Leadership' },
+  { type: 'awards', title: 'Awards' },
 ] as const
 
-const MIN_LEFT  = 220
-const MAX_LEFT  = 520
+const MIN_LEFT = 220
+const MAX_LEFT = 520
 const MIN_RIGHT = 260
 const MAX_RIGHT = 500
 
@@ -39,6 +41,9 @@ export default function ResumeEditorPage() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [showLayoutPanel, setShowLayoutPanel] = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [paywallOpen, setPaywallOpen] = useState(false)
+  const [paywallReason, setPaywallReason] = useState<'download_limit' | 'template_locked' | 'ats' | 'jd_tailor'>('download_limit')
+  const { canDownload, needsWatermark, trackDownload } = usePlanStore()
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Auto-save 4s after any resume change (only if there's an active draft)
@@ -62,22 +67,28 @@ export default function ResumeEditorPage() {
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
   }, [data, activeTemplateId, sectionOrder, layout])
 
-  const handleDownload = async () => {
+  const handleDownload = async (format: 'pdf' | 'word' = 'pdf') => {
     const measureEl = document.querySelector<HTMLDivElement>('[data-resume-measure]')
     if (!measureEl) return
     setDownloading(true)
     try {
-      await printResume(measureEl, 'resume')
+      const wm = needsWatermark()
+      if (format === 'pdf') {
+        await printResume(measureEl, 'resume', wm)
+      } else {
+        await printResumeWord(measureEl, 'resume')
+      }
+      await trackDownload()
     } finally {
       setDownloading(false)
     }
   }
 
   // Panel visibility — open by default
-  const [leftOpen, setLeftOpen]   = useState(true)
+  const [leftOpen, setLeftOpen] = useState(true)
 
   // Panel widths (px)
-  const [leftW,  setLeftW]  = useState(320)
+  const [leftW, setLeftW] = useState(320)
   const [rightW, setRightW] = useState(340)
 
   // ── Drag logic ──────────────────────────────────────────────────────────
@@ -182,6 +193,7 @@ export default function ResumeEditorPage() {
       </div>
 
       <TemplatePicker open={showTemplatePicker} onClose={() => setShowTemplatePicker(false)} />
+      <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} reason={paywallReason} />
     </AppLayout>
   )
 }

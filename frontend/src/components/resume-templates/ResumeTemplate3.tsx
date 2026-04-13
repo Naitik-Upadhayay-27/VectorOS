@@ -48,7 +48,7 @@ const ResumeTemplate3 = ({ data }: ResumeTemplate3Props) => {
   const sectionRenderers: Record<string, () => React.ReactNode> = {
     summary: () => data.summary ? (
       <section key="summary" className="mb-6">
-        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-2">
+        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-[5px]">
           Professional Summary
         </h2>
         <p className="text-[13px] leading-relaxed text-gray-700">
@@ -59,7 +59,7 @@ const ResumeTemplate3 = ({ data }: ResumeTemplate3Props) => {
 
     experience: () => data.experience?.length > 0 ? (
       <section key="experience" className="mb-6">
-        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-2">
+        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-[5px]">
           Professional Experience
         </h2>
         {data.experience.map((exp) => (
@@ -92,7 +92,7 @@ const ResumeTemplate3 = ({ data }: ResumeTemplate3Props) => {
 
     education: () => data.education?.length > 0 ? (
       <section key="education" className="mb-6">
-        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-2">
+        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-[5px]">
           Education
         </h2>
         {data.education.map((edu) => (
@@ -127,7 +127,7 @@ const ResumeTemplate3 = ({ data }: ResumeTemplate3Props) => {
 
     skills: () => data.skills?.length > 0 ? (
       <section key="skills" className="mb-6">
-        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-2">
+        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-[5px]">
           Technical Skills
         </h2>
         {data.skills.map((cat) => (
@@ -149,7 +149,7 @@ const ResumeTemplate3 = ({ data }: ResumeTemplate3Props) => {
 
     projects: () => data.projects?.length > 0 ? (
       <section key="projects" className="mb-6">
-        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-2">
+        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-[5px]">
           Key Projects
         </h2>
         {data.projects.map((proj) => (
@@ -203,7 +203,7 @@ const ResumeTemplate3 = ({ data }: ResumeTemplate3Props) => {
 
     certificates: () => data.certificates?.length > 0 ? (
       <section key="certificates" className="mb-6">
-        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-2">
+        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-[5px]">
           Certifications
         </h2>
         {data.certificates.map((cert) => (
@@ -220,7 +220,7 @@ const ResumeTemplate3 = ({ data }: ResumeTemplate3Props) => {
 
     awards: () => data.awards?.length > 0 ? (
       <section key="awards" className="mb-6">
-        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-2">
+        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-[5px]">
           Awards
         </h2>
         {data.awards.map((award) => (
@@ -239,7 +239,7 @@ const ResumeTemplate3 = ({ data }: ResumeTemplate3Props) => {
 
     languages: () => data.languages?.length > 0 ? (
       <section key="languages" className="mb-6">
-        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-2">
+        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-[5px]">
           Languages
         </h2>
         {data.languages.map((lang) => (
@@ -255,7 +255,7 @@ const ResumeTemplate3 = ({ data }: ResumeTemplate3Props) => {
 
     volunteer: () => data.volunteer?.length > 0 ? (
       <section key="volunteer" className="mb-6">
-        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-2">
+        <h2 className="text-[18px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b-2 border-slate-800 pb-[5px]">
           Volunteer Experience
         </h2>
         {data.volunteer.map((vol) => (
