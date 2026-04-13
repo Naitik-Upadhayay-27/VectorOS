@@ -33,9 +33,7 @@ const PLANS = [
       '20 PDF downloads',
       'No watermark',
       'All resume & cover letter templates',
-      '150 AI chat messages',
-      'ATS score analysis',
-      'Tailor resume to JD',
+      '1000 AI chat messages',
     ],
   },
   {
@@ -115,6 +113,8 @@ export default function PaywallModal({ open, onClose, reason = 'download_limit',
           const data = await verifyRes.json()
           if (data.success) {
             setPlan(data.user.plan, data.user.downloadsUsed, data.user.planExpiresAt)
+            // chatsUsed resets on plan purchase — sync from server
+            usePlanStore.getState().syncPlan()
             updateUser({ plan: data.user.plan })
             setLoading(null)
             onClose()

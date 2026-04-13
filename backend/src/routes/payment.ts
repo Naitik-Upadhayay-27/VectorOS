@@ -60,14 +60,16 @@ router.post('/verify', authenticate, async (req: AuthRequest, res: Response) => 
       const exp = new Date(); exp.setDate(exp.getDate() + 7)
       update.planExpiresAt = exp
       update.downloadsUsed = 0
+      update.chatsUsed = 0
     } else {
       const exp = new Date(); exp.setDate(exp.getDate() + 30)
       update.planExpiresAt = exp
       update.downloadsUsed = 0
+      update.chatsUsed = 0
     }
     const user = await User.findByIdAndUpdate(req.userId, update, { new: true })
     if (!user) return res.status(404).json({ error: 'User not found' })
-    res.json({ success: true, user: { plan: user.plan, downloadsUsed: user.downloadsUsed, planExpiresAt: user.planExpiresAt } })
+    res.json({ success: true, user: { plan: user.plan, downloadsUsed: user.downloadsUsed, chatsUsed: user.chatsUsed ?? 0, planExpiresAt: user.planExpiresAt } })
   } catch (err: any) {
     res.status(500).json({ error: err.message })
   }
@@ -107,12 +109,14 @@ router.post('/webhook', async (req: Request, res: Response) => {
       exp.setDate(exp.getDate() + 7)
       update.planExpiresAt = exp
       update.downloadsUsed = 0
+      update.chatsUsed = 0
     } else {
       // Monthly plan — expires in 30 days
       const exp = new Date()
       exp.setDate(exp.getDate() + 30)
       update.planExpiresAt = exp
       update.downloadsUsed = 0
+      update.chatsUsed = 0
     }
     await User.findByIdAndUpdate(uid, update)
   } catch (err: any) {
@@ -139,7 +143,7 @@ router.post('/track-download', authenticate, async (req: AuthRequest, res: Respo
 // ── GET /api/payment/status  (authenticated) ─────────────────────────────────
 router.get('/status', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const user = await User.findById(req.userId).select('plan downloadsUsed planExpiresAt')
+    const user = await User.findById(req.userId).select('plan downloadsUsed chatsUsed planExpiresAt')
     if (!user) return res.status(404).json({ error: 'User not found' })
 
     // Auto-downgrade expired plans
@@ -148,7 +152,7 @@ router.get('/status', authenticate, async (req: AuthRequest, res: Response) => {
       await user.save()
     }
 
-    res.json({ plan: user.plan, downloadsUsed: user.downloadsUsed, planExpiresAt: user.planExpiresAt })
+    res.json({ plan: user.plan, downloadsUsed: user.downloadsUsed, chatsUsed: user.chatsUsed ?? 0, planExpiresAt: user.planExpiresAt })
   } catch (err: any) {
     res.status(500).json({ error: err.message })
   }

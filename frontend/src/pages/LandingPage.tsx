@@ -216,11 +216,11 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#030303] text-white">
       {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-0 bg-black/60 backdrop-blur-md border-b border-white/[0.06]">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 md:px-8 py-0 bg-black/60 backdrop-blur-md border-b border-white/[0.06]">
         {/* Logo */}
-        <div className="flex items-center gap-0 shrink-0 -ml-4">
-          <img src="/logo.png" alt="Skill Vector" className="w-32 h-24 scale-[1.2] object-contain" />
-          <span className="text-white font-bold text-lg  tracking-tight">Skill Vector</span>
+        <div className="flex items-center gap-0 shrink-0 -ml-2 md:-ml-4">
+          <img src="/logo.png" alt="Skill Vector" className="w-24 h-16 md:w-32 md:h-24 scale-[1.2] object-contain" />
+          <span className="text-white font-bold text-base md:text-lg tracking-tight">Skill Vector</span>
         </div>
 
         {/* Nav links */}
@@ -246,11 +246,11 @@ export default function LandingPage() {
         </div>
 
         {/* Auth buttons */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
           {user ? (
             <button
               onClick={() => navigate('/dashboard')}
-              className="text-sm px-5 py-2 rounded-full bg-black border border-purple-500 text-white font-semibold transition-all shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.7)] hover:border-purple-400"
+              className="text-xs md:text-sm px-4 md:px-5 py-1.5 md:py-2 rounded-full bg-black border border-purple-500 text-white font-semibold transition-all shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.7)] hover:border-purple-400"
             >
               Dashboard
             </button>
@@ -258,13 +258,13 @@ export default function LandingPage() {
             <>
               <button
                 onClick={() => navigate('/login')}
-                className="text-sm text-white/50 hover:text-white transition-colors px-3 py-1.5"
+                className="hidden sm:block text-sm text-white/50 hover:text-white transition-colors px-3 py-1.5"
               >
                 Sign In
               </button>
               <button
                 onClick={() => navigate('/signup')}
-                className="text-sm px-5 py-2 rounded-full bg-black border border-purple-500 text-white font-semibold transition-all shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.7)] hover:border-purple-400"
+                className="text-xs md:text-sm px-4 md:px-5 py-1.5 md:py-2 rounded-full bg-black border border-purple-500 text-white font-semibold transition-all shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.7)] hover:border-purple-400"
               >
                 Get Started
               </button>
@@ -291,7 +291,7 @@ export default function LandingPage() {
         </div>
 
         {/* 2. Subheading */}
-        <p className="text-base sm:text-lg text-white/50 font-light tracking-wide max-w-2xl mx-auto mb-8 px-4 leading-relaxed">
+        <p className="text-sm sm:text-base md:text-lg text-white/50 font-light tracking-wide max-w-2xl mx-auto mb-8 px-6 leading-relaxed">
           Skill Vector is your AI-powered career command center. Upload your resume, get an instant ATS score, rewrite every section with one click, and chat with an AI coach that knows your target role — all in one place. Stop guessing. Start landing interviews.
         </p>
 
@@ -315,17 +315,17 @@ export default function LandingPage() {
         </div>
 
         {/* 4. CTA buttons */}
-        <div className="flex items-center justify-center gap-4 flex-wrap">
+        <div className="flex items-center justify-center gap-3 md:gap-4 flex-wrap px-4">
           <button
             onClick={() => navigate(user ? '/dashboard' : '/signup')}
-            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-black border border-purple-500 text-white font-semibold text-sm transition-all shadow-[0_0_16px_rgba(168,85,247,0.5)] hover:shadow-[0_0_28px_rgba(168,85,247,0.8)] hover:border-purple-400 hover:bg-black/80"
+            className="inline-flex items-center gap-2 px-5 md:px-7 py-3 md:py-3.5 rounded-full bg-black border border-purple-500 text-white font-semibold text-sm transition-all shadow-[0_0_16px_rgba(168,85,247,0.5)] hover:shadow-[0_0_28px_rgba(168,85,247,0.8)] hover:border-purple-400 hover:bg-black/80"
           >
             {user ? 'Go to Dashboard' : 'Build My Resume'} <ArrowRight size={15} />
           </button>
           {!user && (
           <button
             onClick={() => navigate('/login')}
-            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-black border border-purple-500/40 text-white/70 font-medium text-sm transition-all hover:border-purple-400 hover:text-white hover:shadow-[0_0_16px_rgba(168,85,247,0.4)]"
+            className="inline-flex items-center gap-2 px-5 md:px-7 py-3 md:py-3.5 rounded-full bg-black border border-purple-500/40 text-white/70 font-medium text-sm transition-all hover:border-purple-400 hover:text-white hover:shadow-[0_0_16px_rgba(168,85,247,0.4)]"
           >
             Find Your Job <ArrowRight size={15} />
           </button>
@@ -353,7 +353,7 @@ export default function LandingPage() {
       </div>
 
       {/* How it works — Orbital Timeline */}
-      <div id="how-it-works" className="px-8 py-24 max-w-7xl mx-auto">
+      <div id="how-it-works" className="px-4 md:px-8 py-16 md:py-24 max-w-7xl mx-auto">
 
         {/* Full-width heading */}
         <motion.div
@@ -364,7 +364,7 @@ export default function LandingPage() {
           className="mb-16 relative z-10"
         >
           <p className="text-sm font-semibold uppercase tracking-widest text-purple-400 mb-4">How it works</p>
-          <h2 className="text-5xl md:text-6xl font-bold text-white leading-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
             From upload to offer letter
           </h2>
         </motion.div>
@@ -412,7 +412,9 @@ export default function LandingPage() {
             className="relative z-0"
             style={{ marginTop: '-120px' }}
           >
-            <RadialOrbitalTimeline timelineData={howItWorksData} />
+            <div className="scale-75 sm:scale-90 lg:scale-100 origin-top">
+              <RadialOrbitalTimeline timelineData={howItWorksData} />
+            </div>
           </motion.div>
 
         </div>
@@ -488,7 +490,7 @@ export default function LandingPage() {
       </div>
 
       {/* Pricing */}
-      <div id="pricing" className="px-8 py-24 max-w-6xl mx-auto">
+      <div id="pricing" className="px-4 md:px-8 py-16 md:py-24 max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -497,7 +499,7 @@ export default function LandingPage() {
           className="text-center mb-16"
         >
           <p className="text-sm font-semibold uppercase tracking-widest text-purple-400 mb-4">Pricing</p>
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Simple, Honest Pricing</h2>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">Simple, Honest Pricing</h2>
           <p className="text-white/40 text-base max-w-xl mx-auto">
             Start free. Upgrade when you're ready. No subscriptions that auto-renew without you noticing.
           </p>
@@ -543,7 +545,7 @@ export default function LandingPage() {
                 '20 PDF downloads (no watermark)',
                 'All resume templates',
                 'All cover letter templates',
-                '150 AI chat messages',
+                '1000 AI chat messages',
                 'ATS score analysis',
                 'Tailor resume to job description',
                 'AI cover letter generation',
@@ -645,7 +647,7 @@ export default function LandingPage() {
       <div id="blog"><TestimonialsSection /></div>
 
       {/* Globe CTA */}
-      <div id="about" className="px-8 pb-24 max-w-6xl mx-auto">
+      <div id="about" className="px-4 md:px-8 pb-16 md:pb-24 max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -656,10 +658,10 @@ export default function LandingPage() {
           {/* Left — text */}
           <div className="relative z-10 p-10 md:p-14 flex flex-col justify-center">
             <p className="text-sm font-semibold uppercase tracking-widest text-purple-400 mb-4">Coming Soon</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-5 leading-tight">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-5 leading-tight">
               One resume per job.<br />Applied automatically.
             </h2>
-            <p className="text-white/40 text-base leading-relaxed mb-8 max-w-sm">
+            <p className="text-white/40 text-sm md:text-base leading-relaxed mb-8 max-w-sm">
               Skill Vector will generate a tailored, ATS-optimized resume for every job posting you target — then auto-submit it directly to LinkedIn, Indeed, Naukri, and 50+ portals. No copy-paste. No manual forms. Just interviews.
             </p>
             <ul className="space-y-2.5 mb-10">
@@ -694,10 +696,10 @@ export default function LandingPage() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-white/[0.06] bg-black/40 px-8 pt-16 pb-8">
+      <footer className="border-t border-white/[0.06] bg-black/40 px-4 md:px-8 pt-12 md:pt-16 pb-8">
         <div className="max-w-6xl mx-auto">
           {/* Top grid */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-14">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-10 mb-10 md:mb-14">
 
             {/* Brand col */}
             <div className="col-span-2">

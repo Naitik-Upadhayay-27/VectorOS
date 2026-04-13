@@ -10,8 +10,9 @@ export interface IUser extends Document {
   aiTokensLeft: number
   hasOnboarded: boolean
   onboardingData?: Record<string, any>
-  downloadsUsed: number          // total downloads consumed
-  planExpiresAt?: Date           // for 'pro' weekly plan
+  downloadsUsed: number
+  chatsUsed: number
+  planExpiresAt?: Date
   razorpayOrderId?:   string
   razorpayPaymentId?: string
   createdAt: Date
@@ -30,6 +31,7 @@ const UserSchema = new Schema<IUser>(
     hasOnboarded:    { type: Boolean, default: false },
     onboardingData:  { type: Schema.Types.Mixed },
     downloadsUsed:   { type: Number, default: 0 },
+    chatsUsed:       { type: Number, default: 0 },
     planExpiresAt:   { type: Date },
     razorpayOrderId:   { type: String },
     razorpayPaymentId: { type: String },

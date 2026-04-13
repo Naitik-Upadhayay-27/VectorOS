@@ -162,7 +162,7 @@ export default function ChatPanel() {
   const onboardingData = useOnboardingStore((s) => s.data)
   const user = useAuthStore((s) => s.user)
   const { push: pushSnapshot, remove: removeSnapshot, snapshots } = useSnapshotStore()
-  const { plan, canChat, chatsLeft, trackChat } = usePlanStore()
+  const { plan, canChat, chatsUsed, trackChat } = usePlanStore()
   const [paywallOpen, setPaywallOpen] = useState(false)
   const [input, setInput] = useState('')
   const [editedMsgIds, setEditedMsgIds] = useState<Set<string>>(new Set())
@@ -378,9 +378,9 @@ export default function ChatPanel() {
         {/* Chat count */}
         <div className="flex items-center justify-between text-[10px] text-gray-400">
           <span>Say "rewrite", "add", or "improve" to edit</span>
-          {chatsLeft() !== Infinity && (
-            <span className={chatsLeft() <= 5 ? 'text-orange-500 font-semibold' : ''}>
-              {chatsLeft()} / {CHAT_LIMITS[plan]} chats left
+          {CHAT_LIMITS[plan] !== Infinity && (
+            <span className={CHAT_LIMITS[plan] - chatsUsed <= 5 ? 'text-orange-500 font-semibold' : ''}>
+              {chatsUsed} / {CHAT_LIMITS[plan]} chats used
             </span>
           )}
         </div>
@@ -391,7 +391,7 @@ export default function ChatPanel() {
               <Lock size={11} /> Chat limit reached
             </div>
             <p className="text-[10px] text-purple-500">
-              {plan === 'free' ? 'Free plan: 25 chats. Upgrade to Pro for 150.' : 'Upgrade to Exclusive for unlimited chats.'}
+              {plan === 'free' ? 'Free plan: 25 chats. Upgrade to Pro for 1000.' : 'Upgrade to Exclusive for unlimited chats.'}
             </p>
             <button onClick={() => setPaywallOpen(true)}
               className="w-full py-1.5 bg-gradient-to-r from-violet-600 to-brand-500 text-white text-[11px] font-bold rounded-lg hover:opacity-90 transition-all">

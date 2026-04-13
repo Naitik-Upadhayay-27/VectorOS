@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Sidebar from './Sidebar'
+import MobileGate from './MobileGate'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(() => {
@@ -19,11 +20,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <Sidebar collapsed={collapsed} onToggle={toggle} />
-      <main className="flex-1 overflow-hidden min-h-0">
-        {children}
-      </main>
-    </div>
+    <MobileGate>
+      <div className="flex h-screen overflow-hidden bg-gray-50">
+        <Sidebar collapsed={collapsed} onToggle={toggle} />
+        <main className="flex-1 overflow-hidden min-h-0">
+          {children}
+        </main>
+      </div>
+    </MobileGate>
   )
 }

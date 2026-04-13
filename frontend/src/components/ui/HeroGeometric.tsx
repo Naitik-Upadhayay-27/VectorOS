@@ -88,7 +88,7 @@ export function HeroGeometric({
       </div>
 
       {/* Content */}
-      <div className="relative z-10 w-full text-center">
+      <div className="relative z-10 w-full text-center pt-24 md:pt-28 pb-16 sm:pb-24">
           {/* Headline — only render if title1/title2 provided */}
           {(title1 || title2) && (
             <motion.div custom={0} variants={fadeUpVariants} initial="hidden" animate="visible">

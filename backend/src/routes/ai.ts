@@ -112,6 +112,30 @@ router.post('/chat', async (req: AuthRequest, res: Response) => {
   const { messages, resumeContext, resumeData, userContext, editLog } = req.body
   if (!messages?.length) return res.status(400).json({ error: 'messages are required' })
 
+  // ── Server-side chat limit enforcement ───────────────────────────────────
+  const CHAT_LIMITS: Record<string, number> = { free: 25, pro: 1000, lifetime: Infinity }
+  try {
+    const user = await (await import('../models/User')).User.findById(req.userId).select('plan chatsUsed planExpiresAt')
+    if (!user) return res.status(404).json({ error: 'User not found' })
+
+    // Auto-downgrade expired plans
+    if ((user.plan === 'pro' || user.plan === 'lifetime') && user.planExpiresAt && user.planExpiresAt < new Date()) {
+      user.plan = 'free'
+      await user.save()
+    }
+
+    const limit = CHAT_LIMITS[user.plan]
+    if (limit !== Infinity && (user.chatsUsed ?? 0) >= limit) {
+      return res.status(403).json({ error: 'chat_limit_reached', plan: user.plan, limit })
+    }
+
+    // Increment chatsUsed atomically
+    await (await import('../models/User')).User.findByIdAndUpdate(req.userId, { $inc: { chatsUsed: 1 } })
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message })
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   try {
     const systemPrompt = `You are a concise, expert career coach embedded in a resume builder. You help users improve their resumes through conversation.
 

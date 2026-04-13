@@ -12,7 +12,7 @@ export type Plan = 'free' | 'pro' | 'lifetime'
 // Chat limits per plan
 export const CHAT_LIMITS = {
   free:     25,
-  pro:      150,
+  pro:      1000,
   lifetime: Infinity,
 }
 
@@ -67,6 +67,7 @@ export const usePlanStore = create<PlanState>()(
           set({
             plan: data.plan,
             downloadsUsed: data.downloadsUsed ?? 0,
+            chatsUsed: data.chatsUsed ?? 0,
             planExpiresAt: data.planExpiresAt ?? null,
             loading: false,
           })

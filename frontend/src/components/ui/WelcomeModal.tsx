@@ -26,7 +26,7 @@ const CONFIGS = {
       'All resume & cover letter templates',
       'Full ATS score analysis',
       'Tailor resume to any job description',
-      '150 AI chat messages',
+      '1000 AI chat messages',
       'AI cover letter generation',
     ],
     cta: 'Start Building',
