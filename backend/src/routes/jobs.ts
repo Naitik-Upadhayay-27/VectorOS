@@ -172,14 +172,17 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
 // ── GET /api/jobs/locations — states + districts from india.json ──────────────
 router.get('/locations', (_req, res: Response) => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const data = require('../data/india.json') as Array<{ name: string; districts: Array<{ name: string }> }>
+    const path = require('path')
+    const fs = require('fs')
+    const filePath = path.join(__dirname, '..', 'data', 'india.json')
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as Array<{ name: string; districts: Array<{ name: string }> }>
     const states = data.map(s => ({
       state: s.name,
       cities: s.districts.map(d => d.name),
     }))
     res.json({ states })
   } catch (err: any) {
+    console.error('[Locations] Failed to load india.json:', err.message)
     res.status(500).json({ error: err.message })
   }
 })
