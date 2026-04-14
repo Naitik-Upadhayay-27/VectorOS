@@ -2,32 +2,112 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/logo_fav.png" />
-    <link rel="apple-touch-icon" href="/logo_fav.png" />
+
+    <!-- Favicon — versioned to bust cache -->
+    <link rel="icon" type="image/png" href="/logo_fav.png?v=2" />
+    <link rel="shortcut icon" href="/logo_fav.png?v=2" />
+    <link rel="apple-touch-icon" href="/logo_fav.png?v=2" />
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#7c3aed" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://skillvector.in/" />
 
     <!-- Primary Meta Tags -->
-    <title>Skill Vector — AI-Powered Resume Builder & ATS Optimizer</title>
-    <meta name="title" content="Skill Vector — AI-Powered Resume Builder & ATS Optimizer" />
-    <meta name="description" content="Skill Vector is your AI-powered career command center. Build ATS-optimized resumes, get instant ATS scores, rewrite with one click, and chat with an AI coach tailored to your target role." />
-    <meta name="keywords" content="Skill Vector, AI resume builder, ATS score, resume optimizer, AI career coach, job application, resume analyzer, cover letter generator" />
+    <title>
+      Skill Vector — AI Resume Builder, ATS Score & Job Search for India
+    </title>
+    <meta
+      name="title"
+      content="Skill Vector — AI Resume Builder, ATS Score & Job Search for India"
+    />
+    <meta
+      name="description"
+      content="Build ATS-optimized resumes with AI, get instant ATS scores, tailor your resume to any job description, and find jobs on LinkedIn & Indeed — all in one platform. Free to start."
+    />
+    <meta
+      name="keywords"
+      content="AI resume builder India, ATS score checker, resume optimizer, free resume builder, job search India, cover letter generator AI, resume ATS checker, resume tailor job description, career coach AI, resume builder for freshers, resume builder for experienced, LinkedIn job search, Indeed jobs India, resume templates India, skill vector"
+    />
     <meta name="author" content="Skill Vector" />
-    <meta name="robots" content="index, follow" />
+    <meta
+      name="robots"
+      content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+    />
+    <meta name="googlebot" content="index, follow" />
 
-    <!-- Open Graph / Facebook -->
+    <!-- Open Graph / Facebook / LinkedIn -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://skillevctor.vercel.app/" />
-    <meta property="og:title" content="Skill Vector — AI-Powered Resume Builder & ATS Optimizer" />
-    <meta property="og:description" content="Skill Vector is your AI-powered career command center. Build ATS-optimized resumes, get instant ATS scores, rewrite with one click, and chat with an AI coach tailored to your target role." />
-    <meta property="og:image" content="/logo.png" />
+    <meta property="og:url" content="https://skillvector.in/" />
+    <meta property="og:site_name" content="Skill Vector" />
+    <meta
+      property="og:title"
+      content="Skill Vector — AI Resume Builder & ATS Score Checker"
+    />
+    <meta
+      property="og:description"
+      content="Build ATS-optimized resumes with AI, get instant ATS scores, tailor your resume to any job, and find jobs — all free to start. Used by job seekers across India."
+    />
+    <meta property="og:image" content="https://skillvector.in/logo.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_IN" />
 
-    <!-- Twitter -->
+    <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://skillvector.vercel.app/" />
-    <meta name="twitter:title" content="Skill Vector — AI-Powered Resume Builder & ATS Optimizer" />
-    <meta name="twitter:description" content="Skill Vector is your AI-powered career command center. Build ATS-optimized resumes, get instant ATS scores, rewrite with one click, and chat with an AI coach tailored to your target role." />
-    <meta name="twitter:image" content="/logo.png" />
+    <meta name="twitter:url" content="https://skillvector.in/" />
+    <meta
+      name="twitter:title"
+      content="Skill Vector — AI Resume Builder & ATS Score Checker"
+    />
+    <meta
+      name="twitter:description"
+      content="Build ATS-optimized resumes with AI, get instant ATS scores, tailor your resume to any job, and find jobs — all free to start."
+    />
+    <meta name="twitter:image" content="https://skillvector.in/logo.png" />
+    <meta name="twitter:site" content="@skillvector" />
 
+    <!-- Structured Data — SoftwareApplication -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Skill Vector",
+        "url": "https://skillvector.in",
+        "description": "AI-powered resume builder, ATS score checker, and job search platform for India.",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "INR"
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.8",
+          "ratingCount": "120"
+        }
+      }
+    </script>
+
+    <!-- Structured Data — Organization -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Skill Vector",
+        "url": "https://skillvector.in",
+        "logo": "https://skillvector.in/logo.png",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "email": "raushan.singh@skillvector.in",
+          "contactType": "customer support"
+        }
+      }
+    </script>
+
+    <!-- Preconnect for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

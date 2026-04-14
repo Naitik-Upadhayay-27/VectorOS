@@ -2,12 +2,14 @@ User-agent: *
 Allow: /
 Allow: /login
 Allow: /signup
+Allow: /jobs
 
 Disallow: /dashboard
 Disallow: /resume/
 Disallow: /profile
 Disallow: /applications
 Disallow: /analytics
+Disallow: /cover-letter
 Disallow: /api/
 
-Sitemap: https://skillvector.vercel.app/sitemap.xml
+Sitemap: https://skillvector.in/sitemap.xml
