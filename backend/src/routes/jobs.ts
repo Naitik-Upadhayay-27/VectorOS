@@ -169,6 +169,21 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
   res.json({ jobs, total: jobs.length })
 })
 
+// ── GET /api/jobs/locations — states + districts from india.json ──────────────
+router.get('/locations', (_req, res: Response) => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const data = require('../data/india.json') as Array<{ name: string; districts: Array<{ name: string }> }>
+    const states = data.map(s => ({
+      state: s.name,
+      cities: s.districts.map(d => d.name),
+    }))
+    res.json({ states })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ── DELETE /api/jobs/cache — flush stale cache (dev/admin use) ────────────────
 router.delete('/cache', async (_req: AuthRequest, res: Response) => {
   try {

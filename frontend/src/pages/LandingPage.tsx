@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useAuthStore } from '@/store/authStore'
-import { FileText, Target, BarChart2, MessageSquare, ArrowRight, CheckCircle, Upload, Brain, Sparkles, Send, TrendingUp, Play, Pause, Volume2, VolumeX } from 'lucide-react'
+import { FileText, Target, BarChart2, MessageSquare, ArrowRight, CheckCircle, Upload, Brain, Sparkles, Send, TrendingUp, Play, Pause, Volume2, VolumeX, Menu, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { ContainerScroll } from '@/components/ui/container-scroll-animation'
 import { GlobePulse } from '@/components/ui/cobe-globe-pulse'
@@ -193,6 +193,105 @@ const howItWorksData = [
   },
 ]
 
+const NAV_LINKS = [
+  { label: 'Features',     href: '#features'     },
+  { label: 'How it Works', href: '#how-it-works' },
+  { label: 'Pricing',      href: '#pricing'      },
+  { label: 'Testimonials', href: '#blog'         },
+]
+
+function MobileNav({ user, navigate }: { user: any; navigate: (path: string) => void }) {
+  const [open, setOpen] = useState(false)
+
+  const scrollTo = (href: string) => {
+    document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' })
+    setOpen(false)
+  }
+
+  return (
+    <>
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 md:px-8 h-14 md:h-20 bg-black/70 backdrop-blur-md border-b border-white/[0.06]">
+        {/* Logo */}
+        <div className="flex items-center shrink-0 gap-4">
+          <img src="/logo.png" alt="Skill Vector" className="w-20 h-10 scale-[1.7] md:w-16 md:h-16 object-contain" />
+          <span className="text-white font-bold text-sm md:text-base tracking-tight">Skill Vector</span>
+        </div>
+
+        {/* Desktop nav links */}
+        <div className="hidden md:flex items-center gap-6">
+          {NAV_LINKS.map(({ label, href }) => (
+            <a key={label} href={href}
+              onClick={(e) => { e.preventDefault(); scrollTo(href) }}
+              className="text-sm text-white/50 hover:text-white transition-colors">
+              {label}
+            </a>
+          ))}
+        </div>
+
+        {/* Desktop auth + mobile hamburger */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Desktop auth */}
+          {user ? (
+            <button onClick={() => navigate('/dashboard')}
+              className="hidden md:block text-xs md:text-sm px-4 py-1.5 rounded-full bg-black border border-purple-500 text-white font-semibold shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.7)] transition-all">
+              Dashboard
+            </button>
+          ) : (
+            <>
+              <button onClick={() => navigate('/login')}
+                className="hidden md:block text-sm text-white/50 hover:text-white transition-colors px-3 py-1.5">
+                Sign In
+              </button>
+              <button onClick={() => navigate('/signup')}
+                className="hidden md:block text-xs md:text-sm px-4 py-1.5 rounded-full bg-black border border-purple-500 text-white font-semibold shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.7)] transition-all">
+                Get Started
+              </button>
+            </>
+          )}
+
+          {/* Mobile: CTA + hamburger */}
+          <button onClick={() => navigate(user ? '/dashboard' : '/signup')}
+            className="md:hidden text-xs px-3 py-1.5 rounded-full bg-black border border-purple-500 text-white font-semibold shadow-[0_0_10px_rgba(168,85,247,0.4)]">
+            {user ? 'Dashboard' : 'Get Started'}
+          </button>
+          <button onClick={() => setOpen(!open)}
+            className="md:hidden w-8 h-8 flex items-center justify-center text-white/70 hover:text-white transition-colors">
+            {open ? <X size={18} /> : <Menu size={18} />}
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile drawer */}
+      {open && (
+        <div className="fixed inset-0 z-40 md:hidden" onClick={() => setOpen(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="absolute top-14 md:top-20 left-0 right-0 bg-[#0a0a0f] border-b border-white/[0.08] px-4 py-4 space-y-1"
+            onClick={(e) => e.stopPropagation()}>
+            {NAV_LINKS.map(({ label, href }) => (
+              <button key={label} onClick={() => scrollTo(href)}
+                className="w-full text-left px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/[0.05] rounded-xl transition-colors">
+                {label}
+              </button>
+            ))}
+            <div className="pt-2 border-t border-white/[0.06] flex flex-col gap-2">
+              {!user && (
+                <button onClick={() => { navigate('/login'); setOpen(false) }}
+                  className="w-full py-2.5 text-sm text-white/60 hover:text-white transition-colors text-center">
+                  Sign In
+                </button>
+              )}
+              <button onClick={() => { navigate(user ? '/dashboard' : '/signup'); setOpen(false) }}
+                className="w-full py-2.5 rounded-xl bg-black border border-purple-500 text-white text-sm font-semibold shadow-[0_0_12px_rgba(168,85,247,0.3)] text-center">
+                {user ? 'Go to Dashboard' : 'Get Started Free'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function LandingPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
@@ -216,70 +315,15 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#030303] text-white">
       {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 md:px-8 py-0 bg-black/60 backdrop-blur-md border-b border-white/[0.06]">
-        {/* Logo */}
-        <div className="flex items-center gap-0 shrink-0 -ml-2 md:-ml-4">
-          <img src="/logo.png" alt="Skill Vector" className="w-24 h-16 md:w-32 md:h-24 scale-[1.2] object-contain" />
-          <span className="text-white font-bold text-base md:text-lg tracking-tight">Skill Vector</span>
-        </div>
+      <MobileNav user={user} navigate={navigate} />
 
-        {/* Nav links */}
-        <div className="hidden md:flex items-center gap-7">
-          {[
-            { label: 'Features',     href: '#features'    },
-            { label: 'How it Works', href: '#how-it-works'},
-            { label: 'Pricing',      href: '#pricing'     },
-            { label: 'Testimonials', href: '#blog'        },
-          ].map(({ label, href }) => (
-            <a
-              key={label}
-              href={href}
-              onClick={(e) => {
-                e.preventDefault()
-                document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' })
-              }}
-              className="text-sm text-white/50 hover:text-white transition-colors"
-            >
-              {label}
-            </a>
-          ))}
-        </div>
-
-        {/* Auth buttons */}
-        <div className="flex items-center gap-2 md:gap-3 shrink-0">
-          {user ? (
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="text-xs md:text-sm px-4 md:px-5 py-1.5 md:py-2 rounded-full bg-black border border-purple-500 text-white font-semibold transition-all shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.7)] hover:border-purple-400"
-            >
-              Dashboard
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={() => navigate('/login')}
-                className="hidden sm:block text-sm text-white/50 hover:text-white transition-colors px-3 py-1.5"
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => navigate('/signup')}
-                className="text-xs md:text-sm px-4 md:px-5 py-1.5 md:py-2 rounded-full bg-black border border-purple-500 text-white font-semibold transition-all shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.7)] hover:border-purple-400"
-              >
-                Get Started
-              </button>
-            </>
-          )}
-        </div>
-      </nav>
-
-      {/* Hero — original HeroGeometric background with vapour text headline */}
+      {/* Hero */}
       <HeroGeometric>
-        {/* 1. Site name + Typewriter headline */}
-        <div className="w-screen mb-6" style={{ height: '120px', marginLeft: 'calc(-50vw + 50%)' }}>
-          <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-            <span className="text-white/30 font-semibold tracking-[0.3em] uppercase text-sm">Skill Vector</span>
-            <h1 className="text-white font-extrabold tracking-tight text-center" style={{ fontSize: 'clamp(36px, 5vw, 72px)', lineHeight: 1.1 }}>
+        {/* 1. Headline */}
+        <div className="w-full mb-6 px-4">
+          <div className="flex flex-col items-center justify-center gap-2">
+            <span className="text-white/30 font-semibold tracking-[0.3em] uppercase text-xs sm:text-sm">Skill Vector</span>
+            <h1 className="text-white font-extrabold tracking-tight text-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl leading-tight">
               <TypewriterText
                 texts={["Get Hired Faster.", "Beat the ATS.", "Own Your Career."]}
                 typeSpeed={90}
@@ -291,12 +335,12 @@ export default function LandingPage() {
         </div>
 
         {/* 2. Subheading */}
-        <p className="text-sm sm:text-base md:text-lg text-white/50 font-light tracking-wide max-w-2xl mx-auto mb-8 px-6 leading-relaxed">
-          Skill Vector is your AI-powered career command center. Upload your resume, get an instant ATS score, rewrite every section with one click, and chat with an AI coach that knows your target role — all in one place. Stop guessing. Start landing interviews.
+        <p className="text-sm sm:text-base md:text-lg text-white/50 font-light tracking-wide max-w-2xl mx-auto mb-8 px-6 leading-relaxed text-center">
+          Skill Vector is your AI-powered career command center. Upload your resume, get an instant ATS score, rewrite every section with one click, and chat with an AI coach that knows your target role — all in one place.
         </p>
 
         {/* 3. Feature capsules */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-10 px-4">
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-8 px-4">
           {[
             '✦ AI Resume Builder',
             '✦ ATS Scoring',
@@ -307,7 +351,7 @@ export default function LandingPage() {
           ].map((label) => (
             <span
               key={label}
-              className="px-4 py-1.5 rounded-full text-xs font-medium bg-white/[0.05] border border-white/[0.12] text-white/60 hover:bg-white/[0.10] hover:text-white/90 transition-all cursor-default"
+              className="px-3 py-1 rounded-full text-xs font-medium bg-white/[0.05] border border-white/[0.12] text-white/60 hover:bg-white/[0.10] hover:text-white/90 transition-all cursor-default"
             >
               {label}
             </span>
@@ -315,7 +359,7 @@ export default function LandingPage() {
         </div>
 
         {/* 4. CTA buttons */}
-        <div className="flex items-center justify-center gap-3 md:gap-4 flex-wrap px-4">
+        <div className="flex items-center justify-center gap-3 flex-wrap px-4">
           <button
             onClick={() => navigate(user ? '/dashboard' : '/signup')}
             className="inline-flex items-center gap-2 px-5 md:px-7 py-3 md:py-3.5 rounded-full bg-black border border-purple-500 text-white font-semibold text-sm transition-all shadow-[0_0_16px_rgba(168,85,247,0.5)] hover:shadow-[0_0_28px_rgba(168,85,247,0.8)] hover:border-purple-400 hover:bg-black/80"
@@ -353,15 +397,13 @@ export default function LandingPage() {
       </div>
 
       {/* How it works — Orbital Timeline */}
-      <div id="how-it-works" className="px-4 md:px-8 py-16 md:py-24 max-w-7xl mx-auto">
-
-        {/* Full-width heading */}
+      <div id="how-it-works" className="px-4 md:px-8 py-12 md:py-24 max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-16 relative z-10"
+          className="mb-10 md:mb-16 relative z-10"
         >
           <p className="text-sm font-semibold uppercase tracking-widest text-purple-400 mb-4">How it works</p>
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
@@ -369,17 +411,15 @@ export default function LandingPage() {
           </h2>
         </motion.div>
 
-        {/* 2-col: text left, timeline right — aligned at top */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-
-          {/* Left — description + steps */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-start">
+          {/* Left — steps grid */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
           >
-            <p className="text-white/40 text-lg leading-relaxed max-w-md mb-10">
+            <p className="text-white/40 text-base leading-relaxed max-w-md mb-8">
               Six steps. One platform. Click any node on the right to explore each stage of your job search journey.
             </p>
             <div className="grid grid-cols-2 gap-2">
@@ -403,20 +443,17 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Right — orbital timeline */}
+          {/* Right — orbital timeline (hidden on mobile, shown on lg+) */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
-            className="relative z-0"
+            className="relative z-0 hidden lg:block"
             style={{ marginTop: '-120px' }}
           >
-            <div className="scale-75 sm:scale-90 lg:scale-100 origin-top">
-              <RadialOrbitalTimeline timelineData={howItWorksData} />
-            </div>
+            <RadialOrbitalTimeline timelineData={howItWorksData} />
           </motion.div>
-
         </div>
       </div>
 
@@ -461,7 +498,7 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.08 }}
-                className="space-y-3 p-10 hover:bg-white/[0.03] transition-colors group"
+                className="space-y-3 p-4 md:p-10 hover:bg-white/[0.03] transition-colors group"
               >
                 <div className="flex items-center gap-2">
                   <Icon className="w-4 h-4 text-purple-400" />
@@ -656,7 +693,7 @@ export default function LandingPage() {
           className="relative rounded-3xl overflow-hidden border border-purple-500/20 bg-black grid grid-cols-1 lg:grid-cols-2 gap-0 shadow-[0_0_60px_rgba(168,85,247,0.1)]"
         >
           {/* Left — text */}
-          <div className="relative z-10 p-10 md:p-14 flex flex-col justify-center">
+          <div className="relative z-10 p-6 md:p-10 lg:p-14 flex flex-col justify-center">
             <p className="text-sm font-semibold uppercase tracking-widest text-purple-400 mb-4">Coming Soon</p>
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-5 leading-tight">
               One resume per job.<br />Applied automatically.
@@ -689,8 +726,8 @@ export default function LandingPage() {
           </div>
 
           {/* Right — globe */}
-          <div className="flex items-center justify-center p-8 lg:p-12">
-            <GlobePulse className="w-full max-w-sm" speed={0.004} />
+          <div className="flex items-center justify-center p-4 md:p-8 lg:p-12">
+            <GlobePulse className="w-full max-w-xs md:max-w-sm" speed={0.004} />
           </div>
         </motion.div>
       </div>
@@ -701,10 +738,10 @@ export default function LandingPage() {
           {/* Top grid */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-10 mb-10 md:mb-14">
 
-            {/* Brand col */}
-            <div className="col-span-2">
-              <div className="flex items-center gap-2 mb-4 -ml-2">
-                <img src="/logo.png" alt="Skill Vector" className="w-30 scale-[1.3] h-20 object-contain" />
+            {/* Brand col — full width on mobile */}
+            <div className="col-span-2 md:col-span-2">
+              <div className="flex items-center gap-4 mb-4">
+                <img src="/logo.png" alt="Skill Vector" className="w-26 scale-[2] h-12 object-contain" />
                 <span className="text-white font-bold text-lg tracking-tight">Skill Vector</span>
               </div>
               <p className="text-white/40 text-sm leading-relaxed max-w-xs mb-6">

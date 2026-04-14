@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Search, MapPin, Building2, ExternalLink, Zap, Filter, Wifi, Clock, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, ArrowLeft, Edit, Copy, Sparkles, TrendingUp, BookOpen, FileText, Bookmark, BookmarkCheck } from 'lucide-react'
+import { Search, MapPin, Building2, ExternalLink, Zap, Filter, Wifi, Clock, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, ArrowLeft, Edit, Copy, Sparkles, TrendingUp, BookOpen, FileText, Bookmark, BookmarkCheck, Lock } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
 import { apiFetch } from '@/lib/apiFetch'
 import { API_BASE } from '@/lib/config'
@@ -11,6 +11,8 @@ import { useNavigate } from 'react-router-dom'
 import { TEMPLATES } from '@/components/resume-templates'
 import { useChatStore } from '@/store/chatStore'
 import { useSavedJobsStore } from '@/store/savedJobsStore'
+import { usePlanStore } from '@/store/planStore'
+import PaywallModal from '@/components/ui/PaywallModal'
 
 const PAGE_W = 794
 const PAGE_H = 1123
@@ -114,23 +116,48 @@ export default function JobsPage() {
   const navigate = useNavigate()
   const { data: onboarding } = useOnboardingStore()
   const { save: saveJob, unsave, isSaved, load: loadSaved } = useSavedJobsStore()
+  const { plan } = usePlanStore()
+  const isPro = plan === 'pro' || plan === 'lifetime'
+  const [paywallOpen, setPaywallOpen] = useState(false)
 
   useEffect(() => { loadSaved() }, [])
   const { drafts } = useDraftStore()
   const resumeData = useTemplateResumeStore((s) => s.data)
   const { profile } = useProfileStore()
 
-  // Smart defaults from profile
-  const smartQuery = profile.targetRoles[0] || profile.jobTitle || onboarding.jobTitle || ''
-  const smartLocation = profile.targetLocations[0] || profile.location || onboarding.location || ''
-
-  const [query, setQuery] = useState(smartQuery)
+  // No auto-fill — start empty
+  const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [magicMode, setMagicMode] = useState(false)
   const [magicLoading, setMagicLoading] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const suggestDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // India location data
+  const [locationData, setLocationData] = useState<Array<{ state: string; cities: string[] }>>([])
+  const [selectedState, setSelectedState] = useState('')
+  const [selectedCity, setSelectedCity] = useState('')
+  const [stateOpen, setStateOpen] = useState(false)
+  const [cityOpen, setCityOpen] = useState(false)
+  const stateRef = useRef<HTMLDivElement>(null)
+  const cityRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    apiFetch(`${API_BASE}/api/jobs/locations`).then(r => r.json()).then(d => {
+      setLocationData(d.states ?? [])
+    }).catch(() => {})
+  }, [])
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!stateRef.current?.contains(e.target as Node)) setStateOpen(false)
+      if (!cityRef.current?.contains(e.target as Node)) setCityOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const handleQueryChange = (val: string) => {
     setQuery(val)
@@ -151,9 +178,9 @@ export default function JobsPage() {
     setQuery(s)
     setShowSuggestions(false)
   }
-  const [location, setLocation] = useState(smartLocation)
+  const [location, setLocation] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
-  const [remoteOnly, setRemoteOnly] = useState(profile.openToRemote)
+  const [remoteOnly, setRemoteOnly] = useState(false)
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -169,8 +196,12 @@ export default function JobsPage() {
     setError('')
     setJobs([])
     setHasSearched(true)
+    // Build location string from state + city selection
+    const locationStr = selectedCity
+      ? `${selectedCity}, ${selectedState}`
+      : selectedState || ''
     try {
-      const params = new URLSearchParams({ q: query, location, type: typeFilter, remote: remoteOnly ? 'true' : '' })
+      const params = new URLSearchParams({ q: query, location: locationStr, type: typeFilter, remote: remoteOnly ? 'true' : '' })
       const res = await apiFetch(`${API_BASE}/api/jobs/search?${params}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Search failed')
@@ -180,7 +211,7 @@ export default function JobsPage() {
     } finally {
       setLoading(false)
     }
-  }, [query, location, typeFilter, remoteOnly])
+  }, [query, selectedState, selectedCity, typeFilter, remoteOnly])
 
   // Auto-search disabled — user must click Search or use Magic
   // useEffect auto-search removed intentionally
@@ -188,10 +219,10 @@ export default function JobsPage() {
   // Magic search — auto-searches using profile data
   const startWithMagic = useCallback(async () => {
     const magicQuery = profile.targetRoles[0] || profile.jobTitle || onboarding.jobTitle || resumeData.personalInfo?.title || ''
-    const magicLoc = profile.openToRemote ? '' : (profile.targetLocations[0] || profile.location || '')
     if (!magicQuery) return
     setQuery(magicQuery)
-    setLocation(magicLoc)
+    setSelectedState('')
+    setSelectedCity('')
     setMagicMode(true)
     setMagicLoading(true)
     setLoading(true)
@@ -199,7 +230,7 @@ export default function JobsPage() {
     setJobs([])
     setHasSearched(true)
     try {
-      const params = new URLSearchParams({ q: magicQuery, location: magicLoc, remote: profile.openToRemote ? 'true' : '' })
+      const params = new URLSearchParams({ q: magicQuery, location: '', remote: profile.openToRemote ? 'true' : '' })
       const res = await apiFetch(`${API_BASE}/api/jobs/search?${params}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Search failed')
@@ -279,190 +310,291 @@ export default function JobsPage() {
 
   // ── Job Detail Panel ────────────────────────────────────────────────────────
   if (selectedJob) {
-    return (
-      <AppLayout>
-        <div className="h-full overflow-y-auto bg-[#f4f5f7]">
-          <div className="max-w-6xl mx-auto px-8 py-6">
-            <button onClick={() => { setSelectedJob(null); setCompatibility(null) }} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors">
-              <ArrowLeft size={15} /> Back to results
-            </button>
+    const scoreColor = compatibility
+      ? compatibility.overallScore >= 75 ? '#22c55e' : compatibility.overallScore >= 50 ? '#f59e0b' : '#ef4444'
+      : '#a855f7'
+    const scoreLabel = compatibility
+      ? compatibility.overallScore >= 75 ? 'Strong Match' : compatibility.overallScore >= 50 ? 'Good Fit' : 'Needs Work'
+      : null
 
-            <div className="grid grid-cols-5 gap-6">
-              {/* Left — job header + meta */}
-              <div className="col-span-3 space-y-5">
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                  <div className="flex items-start gap-4 mb-4">
-                    {selectedJob.logo
-                      ? <img src={selectedJob.logo} alt={selectedJob.company} className="w-12 h-12 rounded-xl object-contain border border-gray-100" />
-                      : <div className="w-12 h-12 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 font-bold text-lg">{selectedJob.company[0]}</div>
-                    }
-                    <div className="flex-1">
-                      <h1 className="text-xl font-bold text-gray-900">{selectedJob.title}</h1>
-                      <div className="flex items-center gap-4 mt-1.5 text-sm text-gray-500 flex-wrap">
-                        <span className="flex items-center gap-1"><Building2 size={13} />{selectedJob.company}</span>
-                        <span className="flex items-center gap-1"><MapPin size={13} />{selectedJob.location}</span>
-                        {selectedJob.salary !== 'Not specified' && <span className="text-green-600 font-medium">{selectedJob.salary}</span>}
-                      </div>
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${SOURCE_COLORS[selectedJob.source]}`}>
-                          {SOURCE_LABELS[selectedJob.source]}
-                        </span>
-                        {selectedJob.remote && <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-100 flex items-center gap-1"><Wifi size={10} /> Remote</span>}
-                        <span className="text-[11px] text-gray-400">{timeAgo(selectedJob.postedAt)}</span>
-                      </div>
-                    </div>
+    return (
+      <>
+        <AppLayout>
+          <div className="h-full overflow-y-auto bg-[#f6f7fb]">
+
+          {/* Hero banner — clean light */}
+          <div className="bg-white border-b border-gray-100 shadow-sm">
+            <div className="max-w-7xl mx-auto px-8 py-5">
+              <button onClick={() => { setSelectedJob(null); setCompatibility(null) }}
+                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-700 mb-4 transition-colors">
+                <ArrowLeft size={13} /> Back to results
+              </button>
+
+              <div className="flex items-center gap-5">
+                {/* Logo */}
+                <div className="w-12 h-12 rounded-xl overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center shrink-0">
+                  {selectedJob.logo
+                    ? <img src={selectedJob.logo} alt={selectedJob.company} className="w-full h-full object-contain p-1" />
+                    : <span className="text-purple-600 font-black text-lg">{selectedJob.company[0]}</span>}
+                </div>
+
+                {/* Title + meta */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${SOURCE_COLORS[selectedJob.source]}`}>{SOURCE_LABELS[selectedJob.source]}</span>
+                    {selectedJob.remote && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-200 flex items-center gap-1"><Wifi size={9} /> Remote</span>}
+                    <span className="text-[10px] text-gray-400 flex items-center gap-1"><Clock size={9} />{timeAgo(selectedJob.postedAt)}</span>
+                    {selectedJob.type && <span className="text-[10px] text-gray-400 capitalize bg-gray-100 px-2 py-0.5 rounded-full">{selectedJob.type.replace('_', ' ')}</span>}
                   </div>
-                  {selectedJob.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-4">
-                      {selectedJob.tags.map((t) => (
-                        <span key={t} className="text-xs border border-gray-200 text-gray-600 px-2.5 py-0.5 rounded-full">{t}</span>
-                      ))}
-                    </div>
-                  )}
+                  <h1 className="text-lg font-bold text-gray-900 leading-tight">{selectedJob.title}</h1>
+                  <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5 flex-wrap">
+                    <span className="flex items-center gap-1"><Building2 size={11} className="text-gray-400" />{selectedJob.company}</span>
+                    <span className="flex items-center gap-1"><MapPin size={11} className="text-gray-400" />{selectedJob.location}</span>
+                    {selectedJob.salary !== 'Not specified' && <span className="text-green-600 font-semibold">{selectedJob.salary}</span>}
+                  </div>
+                </div>
+
+                {/* Right: action buttons */}
+                <div className="flex items-center gap-3 shrink-0">
+                  {/* Apply Now */}
                   <a href={selectedJob.url} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-full transition-colors">
+                    className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors">
                     Apply Now <ExternalLink size={13} />
                   </a>
-                </div>
 
-                {/* Job description */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                  <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <span className="w-1 h-5 bg-purple-500 rounded-full inline-block" /> The Role
-                  </h2>
-                  <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-                    {selectedJob.description.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim()}
-                  </div>
-                </div>
-              </div>
-
-              {/* Right — resume selector → compatibility → job description */}
-              <div className="col-span-2 space-y-4">
-                {/* Resume selector */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                  <h3 className="text-sm font-bold text-gray-800 mb-3">Select Resume</h3>
-
-                  {drafts.length === 0 && !resumeData.personalInfo?.name ? (
-                    <div className="flex flex-col items-center justify-center py-6 text-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center">
-                        <FileText size={20} className="text-purple-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-700">No resume yet</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Create a resume to check compatibility</p>
-                      </div>
-                      <button onClick={() => navigate('/resume/resume-1')}
-                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-xl transition-colors">
-                        Create Resume
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-3 overflow-x-auto pb-2">
-                      {resumeData.personalInfo?.name && (
-                        <button onClick={() => { setSelectedDraftId(''); setCompatibility(null) }}
-                          className="flex flex-col items-center gap-1.5 shrink-0">
-                          <CurrentResumeThumbnail active={selectedDraftId === ''} />
-                          <span className="text-[11px] text-gray-500 font-medium max-w-[143px] truncate">Current Resume</span>
-                        </button>
-                      )}
-                      {drafts.map((draft) => (
-                        <button key={draft.id} onClick={() => { setSelectedDraftId(draft.id); setCompatibility(null) }}
-                          className="flex flex-col items-center gap-1.5 shrink-0">
-                          <ResumeThumbnail draft={draft} active={selectedDraftId === draft.id} />
-                          <span className="text-[11px] text-gray-500 font-medium max-w-[143px] truncate">{draft.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {(drafts.length > 0 || resumeData.personalInfo?.name) && (
-                    <button onClick={checkCompatibility} disabled={checkingCompat}
-                      className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors">
-                      {checkingCompat
-                        ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyzing...</>
-                        : <><Zap size={14} /> Check Compatibility</>}
-                    </button>
-                  )}
-                </div>
-
-                {/* Compatibility result */}
-                {compatibility && (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-gray-800">Match Intelligence</h3>
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold border-2 ${
-                        compatibility.overallScore >= 75 ? 'border-green-400 text-green-600 bg-green-50'
-                        : compatibility.overallScore >= 50 ? 'border-amber-400 text-amber-600 bg-amber-50'
-                        : 'border-red-400 text-red-600 bg-red-50'
-                      }`}>{compatibility.overallScore}%</div>
-                    </div>
-                    {[
-                      { label: 'Technical Skills', score: compatibility.breakdown.technical },
-                      { label: 'Domain Experience', score: compatibility.breakdown.experience },
-                      { label: 'Keyword Match', score: compatibility.breakdown.keywords },
-                    ].map(({ label, score }) => (
-                      <div key={label}>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-gray-500 uppercase tracking-wide font-semibold">{label}</span>
-                          <span className="font-bold text-gray-700">{score}%</span>
-                        </div>
-                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all" style={{ width: `${score}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                    <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-600 italic leading-relaxed">"{compatibility.recommendation}"</div>
-                    {compatibility.matchedSkills.length > 0 && (
-                      <div>
-                        <p className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5"><CheckCircle2 size={12} className="text-green-500" /> Strengths</p>
-                        <div className="space-y-1">
-                          {compatibility.matchedSkills.slice(0, 3).map((s) => (
-                            <p key={s} className="text-xs text-gray-600 flex items-start gap-1.5"><span className="text-green-500 mt-0.5 shrink-0">•</span>{s}</p>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {compatibility.missingSkills.length > 0 && (
-                      <div>
-                        <p className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5"><AlertCircle size={12} className="text-amber-500" /> Missing Keywords</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {compatibility.missingSkills.slice(0, 6).map((s) => (
-                            <span key={s} className="text-[11px] bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full">{s}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <div className="pt-2 border-t border-gray-100 space-y-2">
-                      <button onClick={() => editWithDraft(false)}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 border border-purple-200 text-purple-600 text-sm font-semibold rounded-xl hover:bg-purple-50 transition-colors">
-                        <Edit size={13} /> Edit This Resume
-                      </button>
-                      <button onClick={() => editWithDraft(true)}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors">
-                        <Copy size={13} /> Edit as Copy
-                      </button>
-                      <a href={selectedJob.url} target="_blank" rel="noopener noreferrer"
-                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl transition-colors">
-                        Apply Now <ExternalLink size={13} />
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {/* Job description — below resume selector */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                  <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <span className="w-1 h-5 bg-purple-500 rounded-full inline-block" /> The Role
-                  </h2>
-                  <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-                    {selectedJob.description.replace(/<[^>]*>/g, ' ').replace(/\s{2,}/g, ' ').trim()}
-                  </div>
+                  {/* Save */}
+                  <button onClick={() => isSaved(selectedJob.id) ? unsave(selectedJob.id) : saveJob({ jobId: selectedJob.id, title: selectedJob.title, company: selectedJob.company, location: selectedJob.location, url: selectedJob.url, description: selectedJob.description })}
+                    className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${isSaved(selectedJob.id) ? 'bg-purple-50 border-purple-200 text-purple-600' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                    {isSaved(selectedJob.id) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+                    {isSaved(selectedJob.id) ? 'Saved' : 'Save'}
+                  </button>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Body — 3 columns */}
+          <div className="max-w-7xl mx-auto px-8 py-6">
+            <div className="grid grid-cols-3 gap-5">
+
+              {/* ── Col 1: Job Description ─────────────────────────── */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col" style={{ height: '75vh' }}>
+                <h2 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2 shrink-0">
+                  <span className="w-1 h-4 bg-purple-500 rounded-full" /> About the Role
+                </h2>
+                <div className="text-sm text-gray-600 leading-relaxed space-y-2 overflow-y-auto pr-1 flex-1">
+                  {selectedJob.description
+                    .replace(/<[^>]*>/g, ' ')
+                    .replace(/\*\*(.*?)\*\*/g, '$1')
+                    .replace(/\*(.*?)\*/g, '$1')
+                    .replace(/\s{2,}/g, '\n\n')
+                    .trim()
+                    .split('\n')
+                    .map((line, i) => line.trim() === '' ? <div key={i} className="h-1" /> : <p key={i}>{line}</p>)}
+                </div>
+              </div>
+
+              {/* ── Col 2: AI Analysis ─────────────────────────────── */}
+              <div className="flex flex-col" style={{ height: '75vh' }}>
+                {/* Before check — prompt */}
+                {!compatibility && (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex-1">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center"><Zap size={13} className="text-white" /></div>
+                      <span className="text-sm font-bold text-gray-800">AI Match Analysis</span>
+                    </div>
+                    <p className="text-xs text-gray-500 leading-relaxed mb-4">Select a resume on the right and run the analysis to see your match score, missing keywords, and exactly what to fix.</p>
+                    <button onClick={checkCompatibility} disabled={checkingCompat || (!drafts.length && !resumeData.personalInfo?.name)}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-40">
+                      {checkingCompat ? <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyzing...</> : <><Zap size={12} /> Run Analysis</>}
+                    </button>
+                  </div>
+                )}
+
+                {/* After check — full analysis */}
+                {compatibility && (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col flex-1 overflow-hidden">
+                    {/* Fixed header */}
+                    <div className="px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center"><Zap size={13} className="text-white" /></div>
+                          <span className="text-sm font-bold text-gray-800">AI Match Analysis</span>
+                        </div>
+                        <span className="text-2xl font-black" style={{ color: scoreColor }}>{compatibility.overallScore}%</span>
+                      </div>
+                    </div>
+
+                    {/* Scrollable content */}
+                    <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                      {/* Score bars */}
+                      <div className="space-y-2.5">
+                        {[
+                          { label: 'Technical Skills', score: compatibility.breakdown.technical },
+                          { label: 'Experience', score: compatibility.breakdown.experience },
+                          { label: 'Keyword Match', score: compatibility.breakdown.keywords },
+                        ].map(({ label, score }) => (
+                          <div key={label}>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-gray-500">{label}</span>
+                              <span className="font-bold text-gray-700">{score}%</span>
+                            </div>
+                            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-purple-500 rounded-full transition-all" style={{ width: `${score}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {compatibility.recommendation && (
+                        <p className="text-xs text-gray-500 italic bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">"{compatibility.recommendation}"</p>
+                      )}
+
+                      {compatibility.matchedSkills.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-bold text-green-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                            <CheckCircle2 size={10} /> Skills you have
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {compatibility.matchedSkills.map(s => (
+                              <span key={s} className="text-[11px] bg-green-50 text-green-700 px-2.5 py-0.5 rounded-full border border-green-200 flex items-center gap-1">
+                                <CheckCircle2 size={8} /> {s}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Missing + action items — blurred for free */}
+                      <div className="relative">
+                        <div className={!isPro ? 'blur-sm select-none pointer-events-none' : ''}>
+                          {compatibility.missingSkills.length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-[10px] font-bold text-red-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                                <AlertCircle size={10} /> Missing keywords
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {compatibility.missingSkills.map(s => (
+                                  <span key={s} className="text-[11px] bg-red-50 text-red-600 px-2.5 py-0.5 rounded-full border border-red-200 flex items-center gap-1">
+                                    <AlertCircle size={8} /> {s}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <div className="bg-gray-50 rounded-xl p-3 space-y-2 border border-gray-100">
+                            <p className="text-[10px] font-bold text-gray-600 uppercase tracking-wide">What to fix</p>
+                            {compatibility.missingSkills.slice(0, 3).map((skill, i) => (
+                              <div key={skill} className="flex items-start gap-2 text-xs text-gray-700">
+                                <span className="w-4 h-4 rounded-full bg-purple-100 text-purple-600 font-bold text-[9px] flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                                <span>Add <strong>"{skill}"</strong> to your skills or experience section</span>
+                              </div>
+                            ))}
+                            {compatibility.breakdown.keywords < 50 && (
+                              <div className="flex items-start gap-2 text-xs text-gray-700">
+                                <span className="w-4 h-4 rounded-full bg-amber-100 text-amber-600 font-bold text-[9px] flex items-center justify-center shrink-0 mt-0.5">!</span>
+                                <span>Tailor your summary to include role-specific terms</span>
+                              </div>
+                            )}
+                            {compatibility.breakdown.experience < 50 && (
+                              <div className="flex items-start gap-2 text-xs text-gray-700">
+                                <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-600 font-bold text-[9px] flex items-center justify-center shrink-0 mt-0.5">↑</span>
+                                <span>Strengthen experience bullets with quantified achievements</span>
+                              </div>
+                            )}
+                          </div>
+                          {compatibility.summary && (
+                            <div className="bg-blue-50 rounded-xl p-3 border border-blue-100 mt-3">
+                              <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wide mb-1">AI Suggestion</p>
+                              <p className="text-xs text-blue-700 leading-relaxed">{compatibility.summary}</p>
+                            </div>
+                          )}
+                        </div>
+                        {!isPro && (
+                          <div className="absolute inset-0 flex items-center justify-center rounded-xl">
+                            <div className="bg-white rounded-2xl shadow-lg border border-purple-100 px-4 py-3 flex flex-col items-center gap-2 text-center max-w-[200px]">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                                <Lock size={14} className="text-white" />
+                              </div>
+                              <p className="text-xs font-bold text-gray-800">{compatibility.missingSkills.length} missing keywords found</p>
+                              <p className="text-[10px] text-gray-400 leading-relaxed">Upgrade to see what to fix and auto-tailor your resume</p>
+                              <button onClick={() => setPaywallOpen(true)}
+                                className="w-full py-1.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-[11px] font-bold rounded-lg hover:opacity-90 transition-all">
+                                Unlock Full Analysis
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Fixed footer buttons */}
+                    <div className="px-5 py-3 border-t border-gray-100 flex gap-2 shrink-0">
+                      <button onClick={() => editWithDraft(false)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition-colors">
+                        <Sparkles size={12} /> Tailor with AI
+                      </button>
+                      <button onClick={() => editWithDraft(true)}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 border border-gray-200 text-gray-600 text-xs font-semibold rounded-xl hover:bg-gray-50 transition-colors">
+                        <Copy size={12} /> Copy
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>              {/* Right: resume + actions */}
+              <div className="space-y-4">
+
+                {/* Resume selector */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col" style={{ height: '75vh' }}>
+                  <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2 shrink-0">
+                    <FileText size={14} className="text-purple-500" /> Your Resumes
+                  </h3>
+                  {drafts.length === 0 && !resumeData.personalInfo?.name ? (
+                    <div className="flex flex-col items-center py-6 text-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center">
+                        <FileText size={20} className="text-purple-400" />
+                      </div>
+                      <p className="text-xs text-gray-500">No resume yet.</p>
+                      <button onClick={() => navigate('/resume/resume-1')}
+                        className="px-4 py-2 bg-purple-600 text-white text-xs font-bold rounded-xl hover:bg-purple-700 transition-colors">
+                        Create Resume
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 overflow-x-auto pb-2 shrink-0">
+                      {resumeData.personalInfo?.name && (
+                        <button onClick={() => { setSelectedDraftId(''); setCompatibility(null) }} className="flex flex-col items-center gap-1.5 shrink-0">
+                          <CurrentResumeThumbnail active={selectedDraftId === ''} />
+                          <span className="text-[10px] text-gray-500 font-medium max-w-[130px] truncate">Current</span>
+                        </button>
+                      )}
+                      {drafts.map((draft) => (
+                        <button key={draft.id} onClick={() => { setSelectedDraftId(draft.id); setCompatibility(null) }} className="flex flex-col items-center gap-1.5 shrink-0">
+                          <ResumeThumbnail draft={draft} active={selectedDraftId === draft.id} />
+                          <span className="text-[10px] text-gray-500 font-medium max-w-[130px] truncate">{draft.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {(drafts.length > 0 || resumeData.personalInfo?.name) && (
+                    <button onClick={checkCompatibility} disabled={checkingCompat}
+                      className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors shrink-0">
+                      {checkingCompat
+                        ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyzing...</>
+                        : <><Zap size={14} /> Check Match Score</>}
+                    </button>
+                  )}
+                </div>
+
+                {/* Skill Vector pitch — removed, actions moved to header */}
+
+              </div>
+            </div>
+          </div>
         </div>
-      </AppLayout>
+        </AppLayout>
+        <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} reason="ats" />
+      </>
     )
   }
 
@@ -472,78 +604,134 @@ export default function JobsPage() {
       <div className="h-full overflow-y-auto bg-[#f4f5f7]">
         <div className="max-w-5xl mx-auto px-8 py-8">
 
-          {/* Header — no magic button, motivational quote */}
-          <div className="mb-6">
+          {/* Header */}
+          <div className="mb-5">
             <h1 className="text-2xl font-bold text-gray-900">Job Search</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Search across LinkedIn & Indeed in one place</p>
-            <div className="mt-4 px-4 py-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl flex items-center gap-3">
-              <span className="text-2xl shrink-0">💡</span>
-              <p className="text-sm text-purple-700 italic">
-                "The secret of getting ahead is getting started. Your next opportunity is one search away."
-              </p>
-            </div>
+            <p className="text-sm text-gray-400 mt-0.5">Search across LinkedIn & Indeed · Powered by real-time scraping</p>
           </div>
 
-          {/* Search bar — always at top */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
-            <div className="flex gap-3">
-              <div className="relative flex-1" ref={searchRef}>
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
-                <input
-                  value={query}
-                  onChange={(e) => handleQueryChange(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { setShowSuggestions(false); search() } if (e.key === 'Escape') setShowSuggestions(false) }}
-                  onFocus={() => query.length >= 2 && setShowSuggestions(suggestions.length > 0)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                  placeholder="Job title, skill, or company..."
-                  className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400"
-                />
-                {showSuggestions && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 overflow-y-auto max-h-52">
-                    {suggestions.map((s) => (
-                      <button
-                        key={s}
-                        onMouseDown={() => selectSuggestion(s)}
-                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left hover:bg-purple-50 hover:text-purple-700 transition-colors"
-                      >
-                        <Search size={12} className="text-gray-300 shrink-0" />
-                        {s}
+          {/* ── Search bar ─────────────────────────────────────────── */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5 overflow-visible">
+            <div className="p-5">
+              {/* Main search row */}
+              <div className="flex gap-3 mb-3">
+                {/* Job title input */}
+                <div className="relative flex-1" ref={searchRef}>
+                  <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
+                  <input
+                    value={query}
+                    onChange={(e) => handleQueryChange(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { setShowSuggestions(false); search() } if (e.key === 'Escape') setShowSuggestions(false) }}
+                    onFocus={() => query.length >= 2 && setShowSuggestions(suggestions.length > 0)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                    placeholder="Job title, skill, or keyword..."
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
+                  />
+                  {showSuggestions && (
+                    <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-30 overflow-y-auto" style={{ maxHeight: '15rem' }}>
+                      {suggestions.slice(0, 6).map((s) => (
+                        <button key={s} onMouseDown={() => selectSuggestion(s)}
+                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors">
+                          <Search size={11} className="text-gray-300 shrink-0" />{s}
+                        </button>
+                      ))}
+                      {suggestions.length > 6 && (
+                        <div className="px-4 py-2 text-[10px] text-gray-400 border-t border-gray-100">Scroll for more</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Search button */}
+                <button onClick={() => { setShowSuggestions(false); search() }}
+                  disabled={loading || !query.trim()}
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2 shrink-0">
+                  {loading
+                    ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    : <Search size={14} />}
+                  Search
+                </button>
+              </div>
+
+              {/* Location row */}
+              <div className="flex gap-3 mb-3">
+                {/* State dropdown */}
+                <div className="relative flex-1" ref={stateRef}>
+                  <button onClick={() => { setStateOpen(!stateOpen); setCityOpen(false) }}
+                    className="w-full flex items-center gap-2 px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-left hover:border-purple-300 transition-colors bg-white">
+                    <MapPin size={13} className="text-gray-400 shrink-0" />
+                    <span className={selectedState ? 'text-gray-800' : 'text-gray-400'}>{selectedState || 'Select State'}</span>
+                    <svg className="ml-auto w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {stateOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-30 overflow-y-auto" style={{ maxHeight: '15rem' }}>
+                      <button onMouseDown={() => { setSelectedState(''); setSelectedCity(''); setStateOpen(false) }}
+                        className="w-full px-4 py-2.5 text-sm text-left text-gray-400 hover:bg-gray-50 transition-colors border-b border-gray-100">
+                        All India
                       </button>
-                    ))}
-                  </div>
+                      {locationData.map(({ state }) => (
+                        <button key={state} onMouseDown={() => { setSelectedState(state); setSelectedCity(''); setStateOpen(false) }}
+                          className={`w-full px-4 py-2.5 text-sm text-left transition-colors ${selectedState === state ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}>
+                          {state}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* City dropdown */}
+                <div className="relative flex-1" ref={cityRef}>
+                  <button onClick={() => { if (selectedState) { setCityOpen(!cityOpen); setStateOpen(false) } }}
+                    disabled={!selectedState}
+                    className="w-full flex items-center gap-2 px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm text-left hover:border-purple-300 transition-colors bg-white disabled:opacity-50 disabled:cursor-not-allowed">
+                    <MapPin size={13} className="text-gray-400 shrink-0" />
+                    <span className={selectedCity ? 'text-gray-800' : 'text-gray-400'}>
+                      {selectedCity || (selectedState ? 'Select City' : 'Select state first')}
+                    </span>
+                    <svg className="ml-auto w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {cityOpen && selectedState && (
+                    <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-30 overflow-y-auto" style={{ maxHeight: '15rem' }}>
+                      <button onMouseDown={() => { setSelectedCity(''); setCityOpen(false) }}
+                        className="w-full px-4 py-2.5 text-sm text-left text-gray-400 hover:bg-gray-50 transition-colors border-b border-gray-100">
+                        All cities in {selectedState}
+                      </button>
+                      {(locationData.find(l => l.state === selectedState)?.cities ?? []).map(city => (
+                        <button key={city} onMouseDown={() => { setSelectedCity(city); setCityOpen(false) }}
+                          className={`w-full px-4 py-2.5 text-sm text-left transition-colors ${selectedCity === city ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}>
+                          {city}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Filter pills */}
+              <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-gray-50">
+                <Filter size={12} className="text-gray-400" />
+                <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide mr-1">Filters</span>
+                {['full_time', 'part_time', 'contract', 'internship'].map((t) => (
+                  <button key={t} onClick={() => setTypeFilter(typeFilter === t ? '' : t)}
+                    className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${typeFilter === t
+                      ? 'bg-purple-600 text-white border-purple-600'
+                      : 'border-gray-200 text-gray-500 hover:border-purple-300 hover:text-purple-600'}`}>
+                    {t.replace('_', ' ')}
+                  </button>
+                ))}
+                <button onClick={() => setRemoteOnly(!remoteOnly)}
+                  className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all flex items-center gap-1.5 ${remoteOnly
+                    ? 'bg-green-500 text-white border-green-500'
+                    : 'border-gray-200 text-gray-500 hover:border-green-400 hover:text-green-600'}`}>
+                  <Wifi size={10} /> Remote only
+                </button>
+                {(selectedState || selectedCity || typeFilter || remoteOnly) && (
+                  <button onClick={() => { setSelectedState(''); setSelectedCity(''); setTypeFilter(''); setRemoteOnly(false) }}
+                    className="text-xs px-3 py-1.5 rounded-full border border-red-200 text-red-400 hover:bg-red-50 transition-all ml-auto">
+                    Clear all
+                  </button>
                 )}
               </div>
-              <div className="relative">
-                <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Location (optional)"
-                  className="pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 w-48"
-                />
-              </div>
-              <button
-                onClick={search}
-                disabled={loading || !query.trim()}
-                className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"
-              >
-                {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Search size={15} />}
-                Search
-              </button>
-            </div>
-            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-50">
-              <Filter size={13} className="text-gray-400" />
-              <span className="text-xs text-gray-400 font-medium">Filters:</span>
-              {['full_time', 'part_time', 'contract', 'internship'].map((t) => (
-                <button key={t} onClick={() => setTypeFilter(typeFilter === t ? '' : t)}
-                  className={`text-xs px-3 py-1 rounded-full border transition-colors ${typeFilter === t ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-500 hover:border-purple-300'}`}>
-                  {t.replace('_', ' ')}
-                </button>
-              ))}
-              <button onClick={() => setRemoteOnly(!remoteOnly)}
-                className={`text-xs px-3 py-1 rounded-full border transition-colors flex items-center gap-1 ${remoteOnly ? 'bg-green-500 text-white border-green-500' : 'border-gray-200 text-gray-500 hover:border-green-300'}`}>
-                <Wifi size={10} /> Remote only
-              </button>
             </div>
           </div>
 

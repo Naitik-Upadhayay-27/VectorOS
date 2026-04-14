@@ -4,7 +4,7 @@ const dotenv = require('dotenv')
 const fs = require('fs')
 // Load .env.local first (local dev overrides), then fall back to .env
 if (fs.existsSync('.env.local')) {
-  dotenv.config({ path: '.env.local' })
+  dotenv.config({ path: '.env.local', override: true })
 } else {
   dotenv.config()
 }
