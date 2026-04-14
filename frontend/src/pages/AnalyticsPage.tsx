@@ -15,6 +15,7 @@ export default function AnalyticsPage() {
   const { profile } = useProfileStore()
   const resumeData = useTemplateResumeStore(s => s.data)
 
+  
   useEffect(() => {
     apiFetch(`${API_BASE}/api/applications`).then(r => r.json()).then(d => setApps(d.applications ?? [])).finally(() => setLoading(false))
   }, [])
