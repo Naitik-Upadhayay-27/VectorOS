@@ -189,6 +189,8 @@ export default function JobsPage() {
   const [compatibility, setCompatibility] = useState<CompatibilityResult | null>(null)
   const [checkingCompat, setCheckingCompat] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  const [page, setPage] = useState(1)
+  const JOBS_PER_PAGE = 6
 
   const search = useCallback(async () => {
     if (!query.trim()) return
@@ -196,6 +198,7 @@ export default function JobsPage() {
     setError('')
     setJobs([])
     setHasSearched(true)
+    setPage(1)
     // Build location string from state + city selection
     const locationStr = selectedCity
       ? `${selectedCity}, ${selectedState}`
@@ -804,7 +807,7 @@ export default function JobsPage() {
 
           {/* Job cards — 2-col grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {jobs.map((job) => {
+            {jobs.slice((page - 1) * JOBS_PER_PAGE, page * JOBS_PER_PAGE).map((job) => {
               const bookmarked = isSaved(job.url)
               return (
               <div key={job.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-purple-200 transition-all group flex flex-col overflow-hidden">
@@ -930,6 +933,43 @@ export default function JobsPage() {
               </div>
             )}
           </div>
+
+          {/* Pagination */}
+          {jobs.length > JOBS_PER_PAGE && (
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <button
+                onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                disabled={page === 1}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft size={15} /> Prev
+              </button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.ceil(jobs.length / JOBS_PER_PAGE) }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                    className={`w-9 h-9 rounded-xl text-sm font-semibold transition-all ${
+                      p === page
+                        ? 'bg-purple-600 text-white shadow-sm'
+                        : 'border border-gray-200 text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => { setPage(p => Math.min(Math.ceil(jobs.length / JOBS_PER_PAGE), p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                disabled={page === Math.ceil(jobs.length / JOBS_PER_PAGE)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Next <ChevronRight size={15} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </AppLayout>
